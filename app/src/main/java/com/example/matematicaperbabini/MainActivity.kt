@@ -1,0 +1,865 @@
+package com.example.matematicaperbambini
+
+import android.content.Context
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.net.URLDecoder
+import java.net.URLEncoder
+import kotlin.math.roundToInt
+
+// -----------------------------
+// LEADERBOARD (persistente)
+// -----------------------------
+data class ScoreEntry(val name: String, val timeMs: Long)
+
+private const val PREFS_NAME = "math_kids_prefs"
+private fun encodeName(name: String) = URLEncoder.encode(name, "UTF-8")
+private fun decodeName(name: String) = URLDecoder.decode(name, "UTF-8")
+
+fun loadEntries(context: Context, boardId: String): MutableList<ScoreEntry> {
+    val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val raw = sp.getString("leaderboard_$boardId", "") ?: ""
+    if (raw.isBlank()) return mutableListOf()
+    return raw.split(",").mapNotNull { token ->
+        val parts = token.split("|", limit = 2)
+        if (parts.size != 2) null else {
+            val t = parts[0].toLongOrNull() ?: return@mapNotNull null
+            val n = runCatching { decodeName(parts[1]) }.getOrNull() ?: "Giocatore"
+            ScoreEntry(n, t)
+        }
+    }.toMutableList()
+}
+
+fun saveEntries(context: Context, boardId: String, entries: List<ScoreEntry>) {
+    val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val raw = entries.joinToString(",") { "${it.timeMs}|${encodeName(it.name)}" }
+    sp.edit().putString("leaderboard_$boardId", raw).apply()
+}
+
+fun addEntry(context: Context, boardId: String, entry: ScoreEntry) {
+    val list = loadEntries(context, boardId)
+    list.add(entry)
+    val top10 = list.sortedBy { it.timeMs }.take(10)
+    saveEntries(context, boardId, top10)
+}
+
+fun clearLeaderboard(context: Context, boardId: String) {
+    saveEntries(context, boardId, emptyList())
+}
+
+fun bestTime(context: Context, boardId: String): Long? =
+    loadEntries(context, boardId).minByOrNull { it.timeMs }?.timeMs
+
+fun formatMs(ms: Long): String {
+    val totalSec = ms / 1000
+    val min = totalSec / 60
+    val sec = totalSec % 60
+    val cent = (ms % 1000) / 10
+    return if (min > 0) "%d:%02d.%02d".format(min, sec, cent) else "%d.%02d".format(sec, cent)
+}
+
+// -----------------------------
+// MODI DI GIOCO
+// -----------------------------
+enum class GameMode(val title: String) {
+    ADD("Addizioni"),
+    SUB("Sottrazioni"),
+    MULT("Tabelline"),
+    DIV("Divisioni"),
+    MONEY("Soldi"),
+    MULT_HARD("Moltiplicazioni difficili")
+}
+
+fun boardIdFor(mode: GameMode, digits: Int): String = when (mode) {
+    GameMode.ADD -> "add_$digits"
+    GameMode.SUB -> "sub_$digits"
+    GameMode.MULT -> "mult_${digits}" // digits qui non serve, ma lo lascio per compatibilità
+    GameMode.DIV -> "div_step"        // ✅ divisioni step-by-step
+    GameMode.MONEY -> "money"
+    GameMode.MULT_HARD -> "mult_hard"
+}
+
+// -----------------------------
+// NAV
+// -----------------------------
+private enum class Screen {
+    HOME,
+    DIGITS_PICKER,     // Add/Sub
+    GAME,              // Add/Sub/Money (e altro se vuoi)
+    MULT_PICKER,       // scegli tabellina 1..10
+    MULT_GAME,         // tabellina 10 caselle
+    MULT_HARD_GAME,    // moltiplicazioni difficili (2 cifre in colonna)
+    DIV_STEP_GAME,     // ✅ Divisioni passo-passo con resto
+    LEADERBOARD
+}
+
+private enum class NavAnim { SLIDE, EXPAND }
+
+// -----------------------------
+// APP
+// -----------------------------
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme(
+                colorScheme = lightColorScheme(
+                    primary = Color(0xFF0EA5E9),
+                    secondary = Color(0xFF22C55E),
+                    tertiary = Color(0xFFF59E0B),
+                    surface = Color.White,
+                    background = Color(0xFFF6F7FB),
+                    onSurface = Color(0xFF111827),
+                    onBackground = Color(0xFF111827),
+                ),
+                typography = Typography(
+                    titleLarge = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 22.sp),
+                    titleMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                    bodyLarge = TextStyle(fontSize = 16.sp),
+                    bodyMedium = TextStyle(fontSize = 14.sp)
+                )
+            ) { AppBackground { AppShell() } }
+        }
+    }
+}
+
+// -----------------------------
+// BACKGROUND (SEA)
+// -----------------------------
+@Composable
+private fun AppBackground(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(R.drawable.bg_sea),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.12f)))
+        content()
+    }
+}
+
+// -----------------------------
+// GLASS PANEL
+// -----------------------------
+@Composable
+fun SeaGlassPanel(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(26.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+        tonalElevation = 0.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(12.dp, RoundedCornerShape(26.dp))
+            .border(2.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(26.dp))
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            content()
+        }
+    }
+}
+
+@Composable
+fun SmallCircleButton(text: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.78f))
+            .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) { Text(text, fontSize = 16.sp) }
+}
+
+@Composable
+fun InfoPanel(title: String, text: String) {
+    SeaGlassPanel(title = title) { Text(text, style = MaterialTheme.typography.bodyLarge) }
+}
+
+@Composable
+fun BonusBar(correctCount: Int) {
+    val rewardProgress = correctCount % 5
+    val label = if (rewardProgress == 0) "Bonus: 5/5 🎈" else "Bonus: $rewardProgress/5"
+    val p = (rewardProgress / 5f).coerceIn(0f, 1f)
+
+    SeaGlassPanel(title = "Progresso") {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Obiettivo", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+            Text(label, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+        }
+        LinearProgressIndicator(
+            progress = { p },
+            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(999.dp)),
+            color = MaterialTheme.colorScheme.secondary,
+            trackColor = Color.White.copy(alpha = 0.60f)
+        )
+    }
+}
+
+@Composable
+fun GameHeader(
+    title: String,
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onBack: () -> Unit,
+    onLeaderboard: () -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SmallCircleButton("⬅") { onBack() }
+            Column {
+                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
+                Text("Fai 5 giuste per il BONUS 🎈", color = Color.White.copy(alpha = 0.88f), fontSize = 12.sp)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+            SmallCircleButton("🏆") { onLeaderboard() }
+        }
+    }
+}
+
+// -----------------------------
+// APP SHELL + NAV
+// -----------------------------
+@Composable
+private fun AppShell() {
+    var screen by remember { mutableStateOf(Screen.HOME) }
+    var navAnim by remember { mutableStateOf(NavAnim.SLIDE) }
+
+    var soundEnabled by remember { mutableStateOf(true) }
+    val fx = remember { SoundFx() }
+
+    var mode by remember { mutableStateOf(GameMode.ADD) }
+    var digits by remember { mutableStateOf(2) }
+
+    var pendingDigitsMode by remember { mutableStateOf<GameMode?>(null) }
+
+    // tabelline
+    var selectedTable by remember { mutableStateOf(2) }
+
+    fun openGame(m: GameMode, d: Int = digits) {
+        mode = m
+        digits = d
+        navAnim = NavAnim.EXPAND
+        screen = Screen.GAME
+    }
+
+    fun openLb() {
+        navAnim = NavAnim.SLIDE
+        screen = Screen.LEADERBOARD
+    }
+
+    AnimatedContent(
+        targetState = screen,
+        transitionSpec = {
+            if (navAnim == NavAnim.EXPAND) {
+                (scaleIn(initialScale = 0.90f, animationSpec = tween(260, easing = FastOutSlowInEasing)) + fadeIn(tween(200)))
+                    .togetherWith(fadeOut(tween(140)) + scaleOut(targetScale = 1.04f, animationSpec = tween(220)))
+            } else {
+                (slideInHorizontally { it } + fadeIn())
+                    .togetherWith(slideOutHorizontally { -it } + fadeOut())
+            }
+        },
+        label = "nav"
+    ) { s ->
+        when (s) {
+            Screen.HOME -> HomeMenuKids(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onOpenLeaderboard = { openLb() },
+                onPickDigitsFor = { m ->
+                    pendingDigitsMode = m
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.DIGITS_PICKER
+                },
+                onPlayDirect = { m ->
+                    when (m) {
+                        GameMode.MULT -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER }
+                        GameMode.MULT_HARD -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_HARD_GAME }
+                        GameMode.DIV -> { navAnim = NavAnim.SLIDE; screen = Screen.DIV_STEP_GAME } // ✅
+                        else -> openGame(m, digits)
+                    }
+                }
+            )
+
+            Screen.DIGITS_PICKER -> {
+                val m = pendingDigitsMode ?: GameMode.ADD
+                DigitsPickerScreen(
+                    mode = m,
+                    soundEnabled = soundEnabled,
+                    onToggleSound = { soundEnabled = !soundEnabled },
+                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onOpenLeaderboard = { openLb() },
+                    onStart = { chosenDigits -> openGame(m, chosenDigits) }
+                )
+            }
+
+            Screen.MULT_PICKER -> MultTablePickerScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onPickTable = { table ->
+                    selectedTable = table
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.MULT_GAME
+                }
+            )
+
+            Screen.MULT_GAME -> MultiplicationTableGame(
+                table = selectedTable,
+                boardId = "mult_$selectedTable",
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER },
+                onOpenLeaderboard = { openLb() }
+            )
+
+            Screen.MULT_HARD_GAME -> HardMultiplication2x2Game(
+                boardId = "mult_hard",
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onOpenLeaderboard = { openLb() }
+            )
+
+            // ✅ NUOVA SCHERMATA: DIVISIONI PASSO-PASSO
+            Screen.DIV_STEP_GAME -> DivisionStepGame(
+                boardId = "div_step",
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onOpenLeaderboard = { openLb() }
+            )
+
+            Screen.GAME -> GameRouter(
+                mode = mode,
+                digits = digits,
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.EXPAND; screen = Screen.HOME },
+                onOpenLeaderboard = { openLb() }
+            )
+
+            Screen.LEADERBOARD -> LeaderboardScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                digits = digits,
+                onDigitsChange = { digits = it },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME }
+            )
+        }
+    }
+}
+
+// -----------------------------
+// HOME MENU (kids glossy)
+// -----------------------------
+@Composable
+private fun HomeMenuKids(
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onOpenLeaderboard: () -> Unit,
+    onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
+    onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
+) {
+    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+
+        Image(
+            painter = painterResource(R.drawable.math_kids_logo),
+            contentDescription = "Math Kids",
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 22.dp)
+                .fillMaxWidth(0.90f),
+            contentScale = ContentScale.Fit
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+            SmallCircleButton("🏆") { onOpenLeaderboard() }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = 200.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            KidsMenuButton(
+                title = "Addizioni",
+                baseColor = Color(0xFFE74C3C),
+                icon = { Text("＋", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                onClick = { onPickDigitsFor(GameMode.ADD) }
+            )
+            KidsMenuButton(
+                title = "Sottrazioni",
+                baseColor = Color(0xFF2ECC71),
+                icon = { Text("−", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                onClick = { onPickDigitsFor(GameMode.SUB) }
+            )
+            KidsMenuButton(
+                title = "Tabelline",
+                baseColor = Color(0xFFF39C12),
+                icon = { Text("×", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                onClick = { onPlayDirect(GameMode.MULT) }
+            )
+            KidsMenuButton(
+                title = "Moltiplicazioni difficili",
+                baseColor = Color(0xFF8B5CF6),
+                icon = { Text("××", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black) },
+                onClick = { onPlayDirect(GameMode.MULT_HARD) }
+            )
+            KidsMenuButton(
+                title = "Divisioni",
+                baseColor = Color(0xFF3498DB),
+                icon = { Text("÷", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
+            )
+            KidsMenuButton(
+                title = "Soldi",
+                baseColor = Color(0xFFF1C40F),
+                icon = { Text("€", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                onClick = { onPlayDirect(GameMode.MONEY) }
+            )
+
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Completa gli esercizi e vinci il BONUS! 🎈",
+                color = Color.White.copy(alpha = 0.92f),
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 13.sp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        }
+    }
+}
+
+@Composable
+private fun KidsMenuButton(
+    title: String,
+    baseColor: Color,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val dark = baseColor
+    val light = lerp(baseColor, Color.White, 0.35f)
+
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(targetValue = if (pressed) 0.985f else 1f, label = "kidsBtnScale")
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .shadow(10.dp, RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(999.dp))
+            .background(Brush.verticalGradient(colors = listOf(light, dark)))
+            .border(3.dp, dark.copy(alpha = 0.55f), RoundedCornerShape(999.dp))
+            .clickable {
+                pressed = true
+                onClick()
+            }
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(30.dp)
+                .align(Alignment.TopCenter)
+                .clip(RoundedCornerShape(999.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.40f), Color.Transparent)
+                    )
+                )
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.22f))
+                    .border(2.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) { icon() }
+
+            Text(
+                title,
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
+    }
+
+    LaunchedEffect(pressed) {
+        if (pressed) {
+            kotlinx.coroutines.delay(70)
+            pressed = false
+        }
+    }
+}
+
+// -----------------------------
+// DIGITS PICKER (Add/Sub)
+// -----------------------------
+@Composable
+private fun DigitsPickerScreen(
+    mode: GameMode,
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onBack: () -> Unit,
+    onOpenLeaderboard: () -> Unit,
+    onStart: (digits: Int) -> Unit
+) {
+    val title = if (mode == GameMode.ADD) "Addizioni" else "Sottrazioni"
+    val accent = if (mode == GameMode.ADD) Color(0xFFE74C3C) else Color(0xFF2ECC71)
+
+    Column(
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallCircleButton("⬅") { onBack() }
+                Column {
+                    Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
+                    Text("Scegli quante cifre", color = Color.White.copy(alpha = 0.88f), fontSize = 12.sp)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+                SmallCircleButton("🏆") { onOpenLeaderboard() }
+            }
+        }
+
+        SeaGlassPanel(title = "Difficoltà") {
+            Text("Vuoi operazioni con:", fontWeight = FontWeight.Bold, color = Color(0xFF374151))
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                DigitsPill(text = "2 cifre", baseColor = accent, onClick = { onStart(2) }, modifier = Modifier.weight(1f))
+                DigitsPill(text = "3 cifre", baseColor = accent, onClick = { onStart(3) }, modifier = Modifier.weight(1f))
+            }
+
+            Text(
+                "Suggerimento: 2 cifre per iniziare 🙂",
+                color = Color(0xFF6B7280),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+        }
+
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun DigitsPill(
+    text: String,
+    baseColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val dark = baseColor
+    val light = lerp(baseColor, Color.White, 0.35f)
+
+    Box(
+        modifier = modifier
+            .height(56.dp)
+            .shadow(8.dp, RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(999.dp))
+            .background(Brush.verticalGradient(listOf(light, dark)))
+            .border(3.dp, dark.copy(alpha = 0.55f), RoundedCornerShape(999.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(22.dp)
+                .align(Alignment.TopCenter)
+                .clip(RoundedCornerShape(999.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.35f), Color.Transparent)
+                    )
+                )
+        )
+        Text(text, color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+    }
+}
+
+// -----------------------------
+// TABELLINE PICKER 1..10
+// -----------------------------
+@Composable
+fun MultTablePickerScreen(
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onBack: () -> Unit,
+    onPickTable: (Int) -> Unit
+) {
+    Column(
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        GameHeader(
+            title = "Scegli la tabellina",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onLeaderboard = {}
+        )
+
+        SeaGlassPanel(title = "Tabelline") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                for (row in 0 until 4) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        for (col in 0 until 3) {
+                            val n = row * 3 + col + 1
+                            if (n <= 10) {
+                                Button(
+                                    onClick = { onPickTable(n) },
+                                    modifier = Modifier.weight(1f).height(64.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFF59E0B),
+                                        contentColor = Color.White
+                                    )
+                                ) {
+                                    Text("× $n", fontSize = 22.sp, fontWeight = FontWeight.Black)
+                                }
+                            } else {
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+// -----------------------------
+// GAME ROUTER
+// -----------------------------
+@Composable
+fun GameRouter(
+    mode: GameMode,
+    digits: Int,
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    fx: SoundFx,
+    onBack: () -> Unit,
+    onOpenLeaderboard: () -> Unit
+) {
+    val boardId = boardIdFor(mode, digits)
+
+    when (mode) {
+        GameMode.ADD -> LongAdditionGame(
+            digits = digits,
+            boardId = boardId,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard
+        )
+
+
+        GameMode.SUB -> LongSubtractionGame(
+            digits = digits,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard
+        )
+
+        // ✅ anche se dal menu vai alla schermata dedicata, qui lo gestiamo uguale
+        GameMode.DIV -> DivisionStepGame(
+            boardId = boardId,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard
+        )
+
+        GameMode.MONEY -> MoneyGame(boardId, soundEnabled, onToggleSound, fx, onBack, onOpenLeaderboard)
+
+        else -> {
+            // MULT e MULT_HARD hanno schermate dedicate in AppShell
+            InfoPanel("Info", "Modalità non disponibile qui.")
+        }
+    }
+}
+
+// -----------------------------
+// LEADERBOARD
+// -----------------------------
+@Composable
+fun LeaderboardScreen(
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    digits: Int,
+    onDigitsChange: (Int) -> Unit,
+    onBack: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    var modeTab by remember { mutableStateOf(0) }
+    val mode = when (modeTab) {
+        0 -> GameMode.ADD
+        1 -> GameMode.SUB
+        2 -> GameMode.MULT
+        3 -> GameMode.DIV
+        4 -> GameMode.MONEY
+        else -> GameMode.MULT_HARD
+    }
+
+    val usesDigits = (mode == GameMode.ADD || mode == GameMode.SUB)
+    val boardId = boardIdFor(mode, digits)
+
+    var refreshToken by remember { mutableStateOf(0) }
+    val entries = remember(modeTab, digits, refreshToken) { loadEntries(context, boardId).sortedBy { it.timeMs } }
+
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallCircleButton("⬅") { onBack() }
+                Column {
+                    Text("Classifica 🏆", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
+                    Text("Bonus Round", color = Color.White.copy(alpha = 0.88f), fontSize = 12.sp)
+                }
+            }
+            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+        }
+
+        SeaGlassPanel(title = "Modalità") {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ModeTabPill("➕", selected = modeTab == 0) { modeTab = 0 }
+                ModeTabPill("➖", selected = modeTab == 1) { modeTab = 1 }
+                ModeTabPill("✖️", selected = modeTab == 2) { modeTab = 2 }
+                ModeTabPill("➗", selected = modeTab == 3) { modeTab = 3 }
+                ModeTabPill("💶", selected = modeTab == 4) { modeTab = 4 }
+                ModeTabPill("🧠×", selected = modeTab == 5) { modeTab = 5 }
+            }
+
+            if (usesDigits) {
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ModeTabPill("2 cifre", selected = digits == 2) { onDigitsChange(2) }
+                    ModeTabPill("3 cifre", selected = digits == 3) { onDigitsChange(3) }
+                }
+            }
+        }
+
+        SeaGlassPanel(title = "Top 10 tempi") {
+            if (entries.isEmpty()) {
+                Text("Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!", color = Color(0xFF6B7280))
+            } else {
+                entries.take(10).forEachIndexed { i, e ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
+                        Text(formatMs(e.timeMs), fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = { clearLeaderboard(context, boardId); refreshToken++ },
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Svuota classifica") }
+        }
+    }
+}
+
+@Composable
+private fun ModeTabPill(text: String, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.70f)
+    val fg = if (selected) Color.White else Color(0xFF111827)
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(bg)
+            .border(1.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(999.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 9.dp)
+    ) { Text(text, color = fg, fontWeight = FontWeight.Bold) }
+}
