@@ -42,6 +42,7 @@ fun AdditionGame(
     BasicColumnGame(
         title = "Addizioni",
         digits = digits,
+        boardId = boardId,
         soundEnabled = soundEnabled,
         onToggleSound = onToggleSound,
         fx = fx,
@@ -67,6 +68,7 @@ fun SubtractionGame(
     BasicColumnGame(
         title = "Sottrazioni",
         digits = digits,
+        boardId = boardId,
         soundEnabled = soundEnabled,
         onToggleSound = onToggleSound,
         fx = fx,
@@ -83,6 +85,7 @@ fun SubtractionGame(
 private fun BasicColumnGame(
     title: String,
     digits: Int,
+    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
@@ -100,6 +103,8 @@ private fun BasicColumnGame(
     var input by remember { mutableStateOf("") }
     var msg by remember { mutableStateOf<String?>(null) }
     var waitTap by remember { mutableStateOf(false) }
+    var correctCount by remember { mutableStateOf(0) }
+    var rewardsEarned by remember { mutableStateOf(0) }
 
     val correct = generator(a, b)
 
@@ -111,45 +116,68 @@ private fun BasicColumnGame(
         waitTap = false
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        GameHeader(title, soundEnabled, onToggleSound, onBack, onOpenLeaderboard)
+    Box(Modifier.fillMaxSize()) {
+        GameScreenFrame(
+            title = title,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            correctCount = correctCount,
+            hintText = "Scrivi il risultato e premi Controlla.",
+            message = msg,
+            content = {
+                SeaGlassPanel(title = "Quanto fa?") {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            "$a ${if (title == "Addizioni") "+" else "-"} $b",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
 
-        SeaGlassPanel(title = "Quanto fa?") {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("$a ${if (title == "Addizioni") "+" else "-"} $b", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
-
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it.filter { c -> c.isDigit() || c == '-' }.take(5) },
-                    singleLine = true,
-                    textStyle = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.width(180.dp)
-                )
-            }
-        }
-
-        Button(
-            onClick = {
-                val user = input.toIntOrNull()
-                if (user == correct) {
-                    msg = "✅ Corretto! Tappa per continuare"
-                    if (soundEnabled) fx.correct()
-                    waitTap = true
-                } else {
-                    msg = "❌ Riprova"
-                    if (soundEnabled) fx.wrong()
+                        OutlinedTextField(
+                            value = input,
+                            onValueChange = { input = it.filter { c -> c.isDigit() || c == '-' }.take(5) },
+                            singleLine = true,
+                            textStyle = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.width(180.dp)
+                        )
+                    }
                 }
-            },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) { Text("Controlla") }
 
-        if (!msg.isNullOrBlank()) {
-            Text(msg!!, fontWeight = FontWeight.Black)
-        }
+                Button(
+                    onClick = {
+                        val user = input.toIntOrNull()
+                        if (user == correct) {
+                            val hitBonus = (correctCount + 1) % 5 == 0
+                            correctCount += 1
+                            msg = if (hitBonus) "🎉 Bonus sbloccato!" else "✅ Corretto! Tappa per continuare"
+                            if (soundEnabled) fx.correct()
+                            waitTap = !hitBonus
+                        } else {
+                            msg = "❌ Riprova"
+                            if (soundEnabled) fx.wrong()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) { Text("Controlla") }
+            }
+        )
 
-        Spacer(Modifier.weight(1f))
+        BonusRewardHost(
+            correctCount = correctCount,
+            rewardsEarned = rewardsEarned,
+            boardId = boardId,
+            soundEnabled = soundEnabled,
+            fx = fx,
+            onRewardEarned = {
+                rewardsEarned += 1
+                msg = null
+                next()
+            }
+        )
     }
 
     if (waitTap) {
@@ -186,6 +214,8 @@ fun MultiplicationTableGame(
     var step by remember { mutableStateOf(1) }
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val ok = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
+    var correctCount by remember { mutableStateOf(0) }
+    var rewardsEarned by remember { mutableStateOf(0) }
 
     fun reset() {
         step = 1
@@ -195,84 +225,102 @@ fun MultiplicationTableGame(
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        GameHeader("Tabellina del $table", soundEnabled, onToggleSound, onBack, onOpenLeaderboard)
+    Box(Modifier.fillMaxSize()) {
+        GameScreenFrame(
+            title = "Tabellina del $table",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            correctCount = correctCount,
+            hintText = "Completa la tabellina scrivendo tutti i risultati.",
+            content = {
+                SeaGlassPanel(title = "Completa la tabellina") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (i in 1..10) {
+                            val index = i - 1
+                            val active = (i == step)
+                            val expected = table * i
+                            val expectedLength = expected.toString().length
 
-        SeaGlassPanel(title = "Completa la tabellina") {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (i in 1..10) {
-                    val index = i - 1
-                    val active = (i == step)
-                    val expected = table * i
-                    val expectedLength = expected.toString().length
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    "$table × $i",
+                                    modifier = Modifier.width(80.dp),
+                                    fontWeight = FontWeight.Bold
+                                )
 
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            "$table × $i",
-                            modifier = Modifier.width(80.dp),
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        OutlinedTextField(
-                            value = inputs[index],
-                            onValueChange = {
-                                if (!active) return@OutlinedTextField
-                                inputs[index] = it.filter { c -> c.isDigit() }.take(3)
-                                ok[index] = null
-                                if (inputs[index].length < expectedLength) return@OutlinedTextField
-                                val v = inputs[index].toIntOrNull()
-                                if (v == expected) {
-                                    ok[index] = true
-                                    if (soundEnabled) fx.correct()
-                                    step++
-                                } else {
-                                    ok[index] = false
-                                    inputs[index] = ""
-                                    if (soundEnabled) fx.wrong()
-                                }
-                            },
-                            enabled = active,
-                            singleLine = true,
-                            modifier = Modifier
-                                .width(boxW)
-                                .height(boxH),
-                            textStyle = TextStyle(
-                                fontSize = (18 * scale).sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                textAlign = TextAlign.Center
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = when (ok[index]) {
-                                    true -> Color(0xFF22C55E)
-                                    false -> Color(0xFFEF4444)
-                                    null -> MaterialTheme.colorScheme.primary
-                                },
-                                unfocusedBorderColor = Color.Gray
-                            )
-                        )
+                                OutlinedTextField(
+                                    value = inputs[index],
+                                    onValueChange = {
+                                        if (!active) return@OutlinedTextField
+                                        inputs[index] = it.filter { c -> c.isDigit() }.take(3)
+                                        ok[index] = null
+                                        if (inputs[index].length < expectedLength) return@OutlinedTextField
+                                        val v = inputs[index].toIntOrNull()
+                                        if (v == expected) {
+                                            ok[index] = true
+                                            if (soundEnabled) fx.correct()
+                                            correctCount += 1
+                                            step++
+                                        } else {
+                                            ok[index] = false
+                                            inputs[index] = ""
+                                            if (soundEnabled) fx.wrong()
+                                        }
+                                    },
+                                    enabled = active,
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .width(boxW)
+                                        .height(boxH),
+                                    textStyle = TextStyle(
+                                        fontSize = (18 * scale).sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        textAlign = TextAlign.Center
+                                    ),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = when (ok[index]) {
+                                            true -> Color(0xFF22C55E)
+                                            false -> Color(0xFFEF4444)
+                                            null -> MaterialTheme.colorScheme.primary
+                                        },
+                                        unfocusedBorderColor = Color.Gray
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
+            },
+            bottomBar = {
+                Button(
+                    onClick = { reset() },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFEF4444),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("RESET", fontWeight = FontWeight.Black)
+                }
             }
-        }
+        )
 
-        Button(
-            onClick = { reset() },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFEF4444),
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Text("RESET", fontWeight = FontWeight.Black)
-        }
-
-        Spacer(Modifier.weight(1f))
+        BonusRewardHost(
+            correctCount = correctCount,
+            rewardsEarned = rewardsEarned,
+            boardId = boardId,
+            soundEnabled = soundEnabled,
+            fx = fx,
+            onRewardEarned = { rewardsEarned += 1 }
+        )
     }
 }
 
@@ -355,42 +403,60 @@ fun MoneyGame(
     var b by remember { mutableStateOf(rng.nextInt(1, 10)) }
     var input by remember { mutableStateOf("") }
     var msg by remember { mutableStateOf<String?>(null) }
+    var correctCount by remember { mutableStateOf(0) }
+    var rewardsEarned by remember { mutableStateOf(0) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        GameHeader("Soldi", soundEnabled, onToggleSound, onBack, onOpenLeaderboard)
+    Box(Modifier.fillMaxSize()) {
+        GameScreenFrame(
+            title = "Soldi",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            correctCount = correctCount,
+            hintText = "Somma le monete e scrivi il totale.",
+            message = msg,
+            content = {
+                SeaGlassPanel(title = "Quanto fa?") {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("€ $a + € $b", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
 
-        SeaGlassPanel(title = "Quanto fa?") {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("€ $a + € $b", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
-
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it.filter { c -> c.isDigit() } },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
-                )
-            }
-        }
-
-        Button(
-            onClick = {
-                val u = input.toIntOrNull()
-                if (u == a + b) {
-                    msg = "✅ Corretto"
-                    if (soundEnabled) fx.correct()
-                    a = rng.nextInt(1, 10)
-                    b = rng.nextInt(1, 10)
-                    input = ""
-                } else {
-                    msg = "❌ Riprova"
-                    if (soundEnabled) fx.wrong()
+                        OutlinedTextField(
+                            value = input,
+                            onValueChange = { input = it.filter { c -> c.isDigit() } },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
                 }
-            },
-            modifier = Modifier.fillMaxWidth().height(52.dp)
-        ) { Text("Controlla") }
 
-        if (!msg.isNullOrBlank()) Text(msg!!, fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = {
+                        val u = input.toIntOrNull()
+                        if (u == a + b) {
+                            msg = "✅ Corretto"
+                            correctCount += 1
+                            if (soundEnabled) fx.correct()
+                            a = rng.nextInt(1, 10)
+                            b = rng.nextInt(1, 10)
+                            input = ""
+                        } else {
+                            msg = "❌ Riprova"
+                            if (soundEnabled) fx.wrong()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) { Text("Controlla") }
+            }
+        )
 
-        Spacer(Modifier.weight(1f))
+        BonusRewardHost(
+            correctCount = correctCount,
+            rewardsEarned = rewardsEarned,
+            boardId = boardId,
+            soundEnabled = soundEnabled,
+            fx = fx,
+            onRewardEarned = { rewardsEarned += 1 }
+        )
     }
 }

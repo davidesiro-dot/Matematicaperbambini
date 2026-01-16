@@ -145,6 +145,8 @@ fun LongAdditionGame(
     val rng = remember { Random(System.currentTimeMillis()) }
     var plan by remember(digits) { mutableStateOf(computeAdditionPlan(digits, rng)) }
     var step by remember(plan) { mutableStateOf(0) }
+    var correctCount by remember { mutableStateOf(0) }
+    var rewardsEarned by remember { mutableStateOf(0) }
 
     // input
     val carryIn = remember(plan) { mutableStateOf(CharArray(plan.digits) { '\u0000' }) }
@@ -206,7 +208,10 @@ fun LongAdditionGame(
         }
         val ok = digit == t.expected
         setCell(row, col, digit, !ok)
-        if (ok) step = (step + 1).coerceAtMost(plan.targets.size)
+        if (ok) {
+            step = (step + 1).coerceAtMost(plan.targets.size)
+            correctCount += 1
+        }
     }
 
     // UI sizes (scalano in base alla larghezza disponibile)
@@ -223,15 +228,16 @@ fun LongAdditionGame(
         current!!.hint
     }
 
-    GameScreenFrame(
-        title = "Addizioni in colonna",
-        soundEnabled = soundEnabled,
-        onToggleSound = onToggleSound,
-        onBack = onBack,
-        onOpenLeaderboard = onOpenLeaderboard,
-        correctCount = step,
-        hintText = hint,
-        content = {
+    Box(Modifier.fillMaxSize()) {
+        GameScreenFrame(
+            title = "Addizioni in colonna",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            correctCount = correctCount,
+            hintText = hint,
+            content = {
             SeaGlassPanel(title = "Esercizio") {
                 Text(
                     "Esercizio: ${plan.a} + ${plan.b}",
@@ -339,13 +345,23 @@ fun LongAdditionGame(
                 )
             }
         },
-        bottomBar = {
-            GameBottomActions(
-                leftText = "Ricomincia",
-                onLeft = { resetSame() },
-                rightText = "Nuovo",
-                onRight = { resetNew() }
-            )
-        }
-    )
+            bottomBar = {
+                GameBottomActions(
+                    leftText = "Ricomincia",
+                    onLeft = { resetSame() },
+                    rightText = "Nuovo",
+                    onRight = { resetNew() }
+                )
+            }
+        )
+
+        BonusRewardHost(
+            correctCount = correctCount,
+            rewardsEarned = rewardsEarned,
+            boardId = boardId,
+            soundEnabled = soundEnabled,
+            fx = fx,
+            onRewardEarned = { rewardsEarned += 1 }
+        )
+    }
 }
