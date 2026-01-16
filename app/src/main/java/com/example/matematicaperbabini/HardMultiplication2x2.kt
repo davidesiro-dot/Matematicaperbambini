@@ -219,6 +219,8 @@ fun HardMultiplication2x2Game(
 ) {
     var plan by remember { mutableStateOf(hmComputePlan(47, 36)) }
     var step by remember { mutableStateOf(0) }
+    var correctCount by remember { mutableStateOf(0) }
+    var rewardsEarned by remember { mutableStateOf(0) }
 
     // input arrays
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -342,6 +344,7 @@ fun HardMultiplication2x2Game(
         if (ok) {
             if (soundEnabled) fx.correct()
             step = (step + 1).coerceAtMost(plan.targets.size)
+            correctCount += 1
         } else {
             if (soundEnabled) fx.wrong()
         }
@@ -353,15 +356,16 @@ fun HardMultiplication2x2Game(
         current!!.hint
     }
 
-    GameScreenFrame(
-        title = "Moltiplicazioni difficili",
-        soundEnabled = soundEnabled,
-        onToggleSound = onToggleSound,
-        onBack = onBack,
-        onOpenLeaderboard = onOpenLeaderboard,
-        correctCount = step,
-        hintText = hint,
-        content = {
+    Box(Modifier.fillMaxSize()) {
+        GameScreenFrame(
+            title = "Moltiplicazioni difficili",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            correctCount = correctCount,
+            hintText = hint,
+            content = {
             SeaGlassPanel(title = "Esercizio") {
                 Text(
                     "Esercizio: ${plan.a} × ${plan.b}",
@@ -504,8 +508,18 @@ fun HardMultiplication2x2Game(
                     }) { Text("Soluzione") }
                 }
             )
-        }
-    )
+            }
+        )
+
+        BonusRewardHost(
+            correctCount = correctCount,
+            rewardsEarned = rewardsEarned,
+            boardId = boardId,
+            soundEnabled = soundEnabled,
+            fx = fx,
+            onRewardEarned = { rewardsEarned += 1 }
+        )
+    }
 }
 
 /* ----------------------------- GRID UI (RIGHT-ALIGNED) ----------------------------- */

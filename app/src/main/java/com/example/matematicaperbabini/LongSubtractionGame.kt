@@ -293,6 +293,8 @@ fun LongSubtractionGame(
     val steps = remember(expected) { buildStepsSub(expected) }
 
     var stepIndex by remember(problem, digits) { mutableStateOf(0) }
+    var correctCount by remember { mutableStateOf(0) }
+    var rewardsEarned by remember { mutableStateOf(0) }
     val currentStep = steps.getOrNull(stepIndex)
     val done = currentStep == null
 
@@ -355,6 +357,7 @@ fun LongSubtractionGame(
                 }
                 playCorrect()
                 stepIndex++
+                correctCount += 1
             }
 
             SubStepType.RESULT_DIGIT -> {
@@ -371,6 +374,7 @@ fun LongSubtractionGame(
                 }
                 playCorrect()
                 stepIndex++
+                correctCount += 1
             }
         }
 
@@ -397,7 +401,7 @@ fun LongSubtractionGame(
             onToggleSound = onToggleSound,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            correctCount = stepIndex,
+            correctCount = correctCount,
             hintText = hint,
             message = message,
             content = {
@@ -533,6 +537,15 @@ fun LongSubtractionGame(
                     onRight = { resetForNew() }
                 )
             }
+        )
+
+        BonusRewardHost(
+            correctCount = correctCount,
+            rewardsEarned = rewardsEarned,
+            boardId = boardIdFor(GameMode.SUB, digits),
+            soundEnabled = soundEnabled,
+            fx = fx,
+            onRewardEarned = { rewardsEarned += 1 }
         )
 
         // Overlay tap-to-continue
