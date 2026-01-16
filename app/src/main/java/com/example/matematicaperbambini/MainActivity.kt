@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 // -----------------------------
 // LEADERBOARD (persistente)
 // -----------------------------
-data class ScoreEntry(val name: String, val timeMs: Long)
+data class ScoreEntry(val name: String, val value: Long)
 
 private const val PREFS_NAME = "math_kids_prefs"
 private fun encodeName(name: String) = URLEncoder.encode(name, "UTF-8")
@@ -61,6 +61,20 @@ fun loadEntries(context: Context, boardId: String): MutableList<ScoreEntry> {
     val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     val raw = sp.getString("leaderboard_$boardId", "") ?: ""
     if (raw.isBlank()) return mutableListOf()
+    val trimmed = raw.trim()
+    if (trimmed.startsWith("[")) {
+        return runCatching {
+            val jsonArray = org.json.JSONArray(trimmed)
+            val entries = mutableListOf<ScoreEntry>()
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.optJSONObject(i) ?: continue
+                val name = obj.optString("name", "Giocatore")
+                val value = obj.optLong("value", 0L)
+                entries += ScoreEntry(name, value)
+            }
+            entries
+        }.getOrElse { mutableListOf() }
+    }
     return raw.split(",").mapNotNull { token ->
         val parts = token.split("|", limit = 2)
         if (parts.size != 2) null else {
@@ -73,15 +87,35 @@ fun loadEntries(context: Context, boardId: String): MutableList<ScoreEntry> {
 
 fun saveEntries(context: Context, boardId: String, entries: List<ScoreEntry>) {
     val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    val raw = entries.joinToString(",") { "${it.timeMs}|${encodeName(it.name)}" }
-    sp.edit().putString("leaderboard_$boardId", raw).apply()
+    val jsonArray = org.json.JSONArray()
+    entries.forEach { entry ->
+        val obj = org.json.JSONObject()
+        obj.put("name", entry.name)
+        obj.put("value", entry.value)
+        jsonArray.put(obj)
+    }
+    sp.edit().putString("leaderboard_$boardId", jsonArray.toString()).apply()
 }
 
 fun addEntry(context: Context, boardId: String, entry: ScoreEntry) {
     val list = loadEntries(context, boardId)
     list.add(entry)
-    val top10 = list.sortedBy { it.timeMs }.take(10)
+    val top10 = list.sortedBy { it.value }.take(10)
     saveEntries(context, boardId, top10)
+}
+
+fun addTimeEntry(context: Context, boardId: String, entry: ScoreEntry) {
+    val list = loadEntries(context, boardId)
+    list.add(entry)
+    val sorted = list.sortedBy { it.value }.take(50)
+    saveEntries(context, boardId, sorted)
+}
+
+fun addScoreEntry(context: Context, boardId: String, entry: ScoreEntry) {
+    val list = loadEntries(context, boardId)
+    list.add(entry)
+    val sorted = list.sortedByDescending { it.value }.take(50)
+    saveEntries(context, boardId, sorted)
 }
 
 fun clearLeaderboard(context: Context, boardId: String) {
@@ -89,7 +123,7 @@ fun clearLeaderboard(context: Context, boardId: String) {
 }
 
 fun bestTime(context: Context, boardId: String): Long? =
-    loadEntries(context, boardId).minByOrNull { it.timeMs }?.timeMs
+    loadEntries(context, boardId).minByOrNull { it.value }?.value
 
 fun formatMs(ms: Long): String {
     val totalSec = ms / 1000
@@ -119,6 +153,9 @@ fun boardIdFor(mode: GameMode, digits: Int): String = when (mode) {
     GameMode.MONEY -> "money"
     GameMode.MULT_HARD -> "mult_hard"
 }
+
+fun balloonsBoardId(boardId: String): String = "${boardId}_balloons_time"
+fun starsBoardId(boardId: String): String = "${boardId}_stars_score"
 
 // -----------------------------
 // NAV
@@ -817,9 +854,16 @@ fun LeaderboardScreen(
 
     val usesDigits = (mode == GameMode.ADD || mode == GameMode.SUB)
     val boardId = boardIdFor(mode, digits)
+    val balloonsId = balloonsBoardId(boardId)
+    val starsId = starsBoardId(boardId)
 
     var refreshToken by remember { mutableStateOf(0) }
-    val entries = remember(modeTab, digits, refreshToken) { loadEntries(context, boardId).sortedBy { it.timeMs } }
+    val balloonEntries = remember(modeTab, digits, refreshToken) {
+        loadEntries(context, balloonsId).sortedBy { it.value }
+    }
+    val starEntries = remember(modeTab, digits, refreshToken) {
+        loadEntries(context, starsId).sortedByDescending { it.value }
+    }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -852,25 +896,92 @@ fun LeaderboardScreen(
             }
         }
 
-        SeaGlassPanel(title = "Top 10 tempi") {
-            if (entries.isEmpty()) {
-                Text("Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!", color = Color(0xFF6B7280))
+        SeaGlassPanel(title = "Palloncini (Tempo)") {
+            if (balloonEntries.isEmpty()) {
+                Text(
+                    "Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!",
+                    color = Color(0xFF6B7280)
+                )
             } else {
-                entries.take(10).forEachIndexed { i, e ->
+                balloonEntries.take(10).forEachIndexed { i, e ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
-                        Text(formatMs(e.timeMs), fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            formatMs(e.value),
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
 
             OutlinedButton(
-                onClick = { clearLeaderboard(context, boardId); refreshToken++ },
+                onClick = { clearLeaderboard(context, balloonsId); refreshToken++ },
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Svuota classifica") }
+            ) { Text("Svuota classifica palloncini") }
+        }
+
+        SeaGlassPanel(title = "Stelline (Punti)") {
+            if (starEntries.isEmpty()) {
+                Text(
+                    "Nessun record ancora.\nCompleta 5 risposte giuste e gioca con le stelline!",
+                    color = Color(0xFF6B7280)
+                )
+            } else {
+                starEntries.take(10).forEachIndexed { i, e ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${e.value}",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = { clearLeaderboard(context, starsId); refreshToken++ },
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Svuota classifica stelline") }
         }
     }
+}
+
+@Composable
+fun LeaderboardDialog(
+    title: String,
+    entries: List<ScoreEntry>,
+    valueFormatter: (Long) -> String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (entries.isEmpty()) {
+                    Text("Nessun record ancora.")
+                } else {
+                    entries.take(10).forEachIndexed { index, entry ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("#${index + 1}  ${entry.name}", fontWeight = FontWeight.Bold)
+                            Text(
+                                valueFormatter(entry.value),
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) { Text("Chiudi") }
+        }
+    )
 }
 
 @Composable
