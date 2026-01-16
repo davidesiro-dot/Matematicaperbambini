@@ -72,9 +72,15 @@ fun FallingStarsGame(
     var showNameDialog by remember { mutableStateOf(true) }
     var playerName by remember { mutableStateOf("Bimbo") }
     var saved by remember { mutableStateOf(false) }
+    var showLeaderboard by remember { mutableStateOf(false) }
+    var refreshToken by remember { mutableStateOf(0) }
+    var startTimeNs by remember { mutableStateOf<Long?>(null) }
+    var lastFrameNs by remember { mutableStateOf(0L) }
 
     val widthPx = containerSize.width.toFloat()
     val heightPx = containerSize.height.toFloat()
+    val paused = showNameDialog || showLeaderboard || finished
+    val starsBoardId = starsBoardId(boardId)
 
     fun createStar(id: Int, startInView: Boolean): StarState {
         val sizePx = with(density) { rng.nextInt(36, 56).dp.toPx() }
@@ -141,14 +147,17 @@ fun FallingStarsGame(
             }
         }
 
-        LaunchedEffect(widthPx, heightPx, finished, started) {
+        LaunchedEffect(widthPx, heightPx, finished, started, paused) {
             if (!started || finished || widthPx <= 0f || heightPx <= 0f) return@LaunchedEffect
-            var startTimeNs: Long? = null
-            var lastFrameNs = 0L
+            if (paused) {
+                startTimeNs = null
+                lastFrameNs = 0L
+                return@LaunchedEffect
+            }
 
             while (isActive && !finished) {
                 withFrameNanos { now ->
-                    if (startTimeNs == null) startTimeNs = now
+                    if (startTimeNs == null) startTimeNs = now - (elapsedMs * 1_000_000)
                     if (lastFrameNs == 0L) lastFrameNs = now
                     val dt = (now - lastFrameNs) / 1_000_000_000f
                     lastFrameNs = now
@@ -205,6 +214,8 @@ fun FallingStarsGame(
                         fontWeight = FontWeight.Bold
                     )
                 }
+                Spacer(Modifier.width(10.dp))
+                SmallCircleButton("🏆") { showLeaderboard = true }
             }
 
             Spacer(Modifier.height(12.dp))
@@ -266,11 +277,8 @@ fun FallingStarsGame(
                             onClick = {
                                 if (!saved) {
                                     saved = true
-                                    addEntry(
-                                        context,
-                                        boardId,
-                                        ScoreEntry(playerName, score.toLong())
-                                    )
+                                    addScoreEntry(context, starsBoardId, ScoreEntry(playerName, score.toLong()))
+                                    refreshToken++
                                     onBackToMath()
                                 }
                             }
@@ -280,6 +288,18 @@ fun FallingStarsGame(
                     }
                 }
             }
+        }
+
+        if (showLeaderboard) {
+            val entries = remember(refreshToken) {
+                loadEntries(context, starsBoardId).sortedByDescending { it.value }
+            }
+            LeaderboardDialog(
+                title = "Classifica Stelline",
+                entries = entries,
+                valueFormatter = { it.toString() },
+                onDismiss = { showLeaderboard = false }
+            )
         }
     }
 }
