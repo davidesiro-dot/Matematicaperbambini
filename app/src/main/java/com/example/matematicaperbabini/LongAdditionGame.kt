@@ -209,13 +209,13 @@ fun LongAdditionGame(
         if (ok) step = (step + 1).coerceAtMost(plan.targets.size)
     }
 
-    // UI sizes (puoi ridurre se ti taglia il basso)
-    val digitW = 40.dp
-    val digitH = 56.dp
-    val carryW = 24.dp
-    val carryH = 30.dp
-    val signW = 26.dp
-    val gap = 6.dp
+    // UI sizes (scalano in base alla larghezza disponibile)
+    val baseDigitW = 40.dp
+    val baseDigitH = 56.dp
+    val baseCarryW = 24.dp
+    val baseCarryH = 30.dp
+    val baseSignW = 26.dp
+    val baseGap = 6.dp
 
     val hint = if (done) {
         "Bravo! ✅ Risultato: ${plan.result}"
@@ -239,51 +239,76 @@ fun LongAdditionGame(
                 )
                 Spacer(Modifier.height(8.dp))
 
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val totalCols = plan.digits + 1
+                    val totalItems = totalCols + 1
+                    val baseTotalWidth = baseSignW + (baseDigitW * totalCols) + (baseGap * (totalItems - 1))
+                    val scale = (maxWidth.value / baseTotalWidth.value).coerceAtMost(1f)
+
+                    val digitW = baseDigitW * scale
+                    val digitH = baseDigitH * scale
+                    val carryW = baseCarryW * scale
+                    val carryH = baseCarryH * scale
+                    val signW = baseSignW * scale
+                    val gap = baseGap * scale
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         // Riga carry (caselline piccole) allineate alle cifre A/B
                         GridRowRight(signW, gap) {
-                            SignCell("", signW)
-                            for (col in 0 until plan.digits) {
-                                val expected = plan.carry[col]
-                                Box(modifier = Modifier.width(digitW), contentAlignment = Alignment.Center) {
-                                    if (expected == ' ') {
-                                        Box(Modifier.width(carryW).height(carryH))
-                                    } else {
-                                        val txt = carryIn.value[col].let { if (it == '\u0000') "" else it.toString() }
-                                        InputBox(
-                                            value = txt,
-                                            enabled = enabled(AddRowKey.CARRY, col, AddCellKind.CARRY),
-                                            isActive = isActive(AddRowKey.CARRY, col, AddCellKind.CARRY),
-                                            isError = errCarry.value[col],
-                                            w = carryW,
-                                            h = carryH,
-                                            fontSize = 16.sp,
-                                            onValueChange = { onTyped(AddRowKey.CARRY, col, AddCellKind.CARRY, it) }
-                                        )
+                            for (displayCol in 0 until totalCols) {
+                                if (displayCol == 0) {
+                                    Box(Modifier.width(digitW).height(carryH))
+                                } else {
+                                    val col = displayCol - 1
+                                    val expected = plan.carry[col]
+                                    Box(modifier = Modifier.width(digitW), contentAlignment = Alignment.Center) {
+                                        if (expected == ' ') {
+                                            Box(Modifier.width(carryW).height(carryH))
+                                        } else {
+                                            val txt = carryIn.value[col].let { if (it == '\u0000') "" else it.toString() }
+                                            InputBox(
+                                                value = txt,
+                                                enabled = enabled(AddRowKey.CARRY, col, AddCellKind.CARRY),
+                                                isActive = isActive(AddRowKey.CARRY, col, AddCellKind.CARRY),
+                                                isError = errCarry.value[col],
+                                                w = carryW,
+                                                h = carryH,
+                                                fontSize = 16.sp,
+                                                onValueChange = { onTyped(AddRowKey.CARRY, col, AddCellKind.CARRY, it) }
+                                            )
+                                        }
                                     }
                                 }
                             }
+                            SignCell("", signW)
                         }
 
                         // Riga A
                         GridRowRight(signW, gap) {
+                            for (displayCol in 0 until totalCols) {
+                                val ch = if (displayCol == 0) ' ' else plan.aStr[displayCol - 1]
+                                FixedDigit(ch, digitW, digitH)
+                            }
                             SignCell("", signW)
-                            for (col in 0 until plan.digits) FixedDigit(plan.aStr[col], digitW, digitH)
                         }
 
                         // Riga B con segno +
                         GridRowRight(signW, gap) {
+                            for (displayCol in 0 until totalCols) {
+                                val ch = if (displayCol == 0) ' ' else plan.bStr[displayCol - 1]
+                                FixedDigit(ch, digitW, digitH)
+                            }
                             SignCell("+", signW)
-                            for (col in 0 until plan.digits) FixedDigit(plan.bStr[col], digitW, digitH)
                         }
 
                         Divider(thickness = 2.dp)
 
                         // Risultato (digits+1)
                         GridRowRight(signW, gap) {
-                            SignCell("", signW)
-                            for (col in 0 until (plan.digits + 1)) {
+                            for (col in 0 until totalCols) {
                                 val exp = plan.res[col]
                                 if (exp == ' ') {
                                     FixedDigit(' ', digitW, digitH)
@@ -301,6 +326,7 @@ fun LongAdditionGame(
                                     )
                                 }
                             }
+                            SignCell("", signW)
                         }
                     }
                 }

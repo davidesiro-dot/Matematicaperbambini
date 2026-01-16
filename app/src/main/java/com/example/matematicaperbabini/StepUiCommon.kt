@@ -28,7 +28,7 @@ fun GridRowRight(
     content: @Composable RowScope.() -> Unit
 ) {
     Row(
-        modifier = Modifier.wrapContentWidth(Alignment.End),
+        modifier = Modifier.wrapContentWidth(Alignment.CenterHorizontally),
         horizontalArrangement = Arrangement.spacedBy(gap),
         verticalAlignment = Alignment.CenterVertically,
         content = content
