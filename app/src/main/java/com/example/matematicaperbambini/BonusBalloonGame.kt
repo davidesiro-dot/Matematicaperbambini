@@ -1,10 +1,11 @@
 package com.example.matematicaperbambini
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,11 +15,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,14 +32,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -50,7 +57,15 @@ private data class BalloonState(
     val x: Float,
     val y: Float,
     val vx: Float,
-    val vy: Float
+    val vy: Float,
+    val popped: Boolean = false,
+    val particles: List<BalloonParticle> = emptyList()
+)
+
+private data class BalloonParticle(
+    val dx: Float,
+    val dy: Float,
+    val radiusPx: Float
 )
 
 @Composable
@@ -62,7 +77,6 @@ fun BonusRewardHost(
     fx: SoundFx,
     onRewardEarned: () -> Unit
 ) {
-    val context = LocalContext.current
     val nextRewardAt = (rewardsEarned + 1) * 5
     val rng = remember { Random(System.currentTimeMillis()) }
     var showPrompt by remember { mutableStateOf(false) }
@@ -114,8 +128,8 @@ fun BonusRewardHost(
                 }
             )
             else -> BonusBalloonGame(
-                onFinished = { timeMs ->
-                    addEntry(context, boardId, ScoreEntry("Bimbo", timeMs))
+                boardId = boardId,
+                onBackToMath = {
                     showGame = false
                     pickedGame = null
                     onRewardEarned()
@@ -132,15 +146,30 @@ private enum class BonusGame {
 
 @Composable
 fun BonusBalloonGame(
+    boardId: String,
     balloonCount: Int = 8,
-    onFinished: (Long) -> Unit
+    onBackToMath: () -> Unit
 ) {
+    val context = LocalContext.current
     val density = LocalDensity.current
     val rng = remember { Random(System.currentTimeMillis()) }
     val balloons = remember { mutableStateListOf<BalloonState>() }
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
     var elapsedMs by remember { mutableStateOf(0L) }
     var finished by remember { mutableStateOf(false) }
     var started by remember { mutableStateOf(false) }
+    var showNameDialog by remember { mutableStateOf(true) }
+    var playerName by remember { mutableStateOf("Bimbo") }
+    var saved by remember { mutableStateOf(false) }
+    var showLeaderboard by remember { mutableStateOf(false) }
+    var refreshToken by remember { mutableStateOf(0) }
+    var startTimeNs by remember { mutableStateOf<Long?>(null) }
+    var lastFrameNs by remember { mutableStateOf(0L) }
+
+    val balloonBoardId = balloonsBoardId(boardId)
+    val widthPx = containerSize.width.toFloat()
+    val heightPx = containerSize.height.toFloat()
+    val paused = showNameDialog || showLeaderboard || finished
 
     val colors = listOf(
         Color(0xFF60A5FA),
@@ -150,7 +179,57 @@ fun BonusBalloonGame(
         Color(0xFFC084FC)
     )
 
-    BoxWithConstraints(
+    fun createBalloon(id: Int, sizePx: Float): BalloonState {
+        val x = rng.nextFloat() * (widthPx - sizePx).coerceAtLeast(0f)
+        val y = rng.nextFloat() * (heightPx - sizePx).coerceAtLeast(0f)
+        val speed = with(density) { rng.nextInt(70, 130).dp.toPx() }
+        val angle = rng.nextFloat() * 360f
+        val vx = kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat() * speed
+        val vy = kotlin.math.sin(Math.toRadians(angle.toDouble())).toFloat() * speed
+        return BalloonState(
+            id = id,
+            color = colors[id % colors.size],
+            sizePx = sizePx,
+            x = x,
+            y = y,
+            vx = vx,
+            vy = vy
+        )
+    }
+
+    if (showNameDialog) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Nome del bimbo") },
+            text = {
+                Column {
+                    Text("Scrivi il tuo nome per iniziare!")
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = playerName,
+                        onValueChange = { newValue ->
+                            val filtered = newValue.trimStart().trimEnd().take(12)
+                            playerName = filtered
+                        },
+                        singleLine = true,
+                        label = { Text("Nome") }
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val trimmed = playerName.trim()
+                        playerName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
+                        showNameDialog = false
+                        started = true
+                    }
+                ) { Text("Inizia") }
+            }
+        )
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -159,40 +238,44 @@ fun BonusBalloonGame(
                 )
             )
             .zIndex(2f)
+            .padding(8.dp)
+            .onSizeChanged { containerSize = it }
     ) {
-        val widthPx = with(density) { maxWidth.toPx() }
-        val heightPx = with(density) { maxHeight.toPx() }
-        val balloonSizePx = with(density) { 64.dp.toPx() }
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cloudColor = Color.White.copy(alpha = 0.7f)
+            val cloudRadius = size.minDimension * 0.08f
+            drawCircle(cloudColor, cloudRadius, center = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.18f))
+            drawCircle(cloudColor, cloudRadius * 0.8f, center = androidx.compose.ui.geometry.Offset(size.width * 0.28f, size.height * 0.16f))
+            drawCircle(cloudColor, cloudRadius * 0.9f, center = androidx.compose.ui.geometry.Offset(size.width * 0.34f, size.height * 0.2f))
 
-        if (balloons.isEmpty() && widthPx > 0 && heightPx > 0) {
-            repeat(balloonCount) { index ->
-                val x = rng.nextFloat() * (widthPx - balloonSizePx).coerceAtLeast(0f)
-                val y = rng.nextFloat() * (heightPx - balloonSizePx).coerceAtLeast(0f)
-                val speed = with(density) { rng.nextInt(70, 130).dp.toPx() }
-                val angle = rng.nextFloat() * 360f
-                val vx = kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat() * speed
-                val vy = kotlin.math.sin(Math.toRadians(angle.toDouble())).toFloat() * speed
-                balloons += BalloonState(
-                    id = index,
-                    color = colors[index % colors.size],
-                    sizePx = balloonSizePx,
-                    x = x,
-                    y = y,
-                    vx = vx,
-                    vy = vy
-                )
-            }
-            started = true
+            drawCircle(cloudColor, cloudRadius * 1.1f, center = androidx.compose.ui.geometry.Offset(size.width * 0.65f, size.height * 0.12f))
+            drawCircle(cloudColor, cloudRadius, center = androidx.compose.ui.geometry.Offset(size.width * 0.72f, size.height * 0.1f))
+            drawCircle(cloudColor, cloudRadius * 0.85f, center = androidx.compose.ui.geometry.Offset(size.width * 0.78f, size.height * 0.14f))
+
+            drawCircle(cloudColor, cloudRadius * 0.9f, center = androidx.compose.ui.geometry.Offset(size.width * 0.48f, size.height * 0.3f))
+            drawCircle(cloudColor, cloudRadius * 0.7f, center = androidx.compose.ui.geometry.Offset(size.width * 0.56f, size.height * 0.28f))
+            drawCircle(cloudColor, cloudRadius * 0.8f, center = androidx.compose.ui.geometry.Offset(size.width * 0.41f, size.height * 0.32f))
         }
 
-        LaunchedEffect(widthPx, heightPx, finished, started) {
-            if (finished || !started) return@LaunchedEffect
-            var startTimeNs: Long? = null
-            var lastFrameNs = 0L
+        val balloonSizePx = with(density) { 72.dp.toPx() }
+
+        if (started && balloons.isEmpty() && widthPx > 0 && heightPx > 0) {
+            repeat(balloonCount) { index ->
+                balloons += createBalloon(index, balloonSizePx)
+            }
+        }
+
+        LaunchedEffect(widthPx, heightPx, finished, started, paused) {
+            if (finished || !started || widthPx <= 0f || heightPx <= 0f) return@LaunchedEffect
+            if (paused) {
+                startTimeNs = null
+                lastFrameNs = 0L
+                return@LaunchedEffect
+            }
 
             while (isActive && !finished) {
                 withFrameNanos { now ->
-                    if (startTimeNs == null) startTimeNs = now
+                    if (startTimeNs == null) startTimeNs = now - (elapsedMs * 1_000_000)
                     if (lastFrameNs == 0L) lastFrameNs = now
                     val dt = (now - lastFrameNs) / 1_000_000_000f
                     lastFrameNs = now
@@ -201,6 +284,7 @@ fun BonusBalloonGame(
                         elapsedMs = ((now - (startTimeNs ?: now)) / 1_000_000)
                         for (i in balloons.indices) {
                             val b = balloons[i]
+                            if (b.popped) continue
                             var nx = b.x + b.vx * dt
                             var ny = b.y + b.vy * dt
                             var nvx = b.vx
@@ -217,9 +301,8 @@ fun BonusBalloonGame(
 
                             balloons[i] = b.copy(x = nx, y = ny, vx = nvx, vy = nvy)
                         }
-                    } else {
+                    } else if (!finished) {
                         finished = true
-                        onFinished(elapsedMs)
                     }
                 }
             }
@@ -230,18 +313,22 @@ fun BonusBalloonGame(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = Color.White.copy(alpha = 0.85f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = Color.White.copy(alpha = 0.85f)
                 ) {
-                    Text("Bonus Round 🎈", fontWeight = FontWeight.ExtraBold)
-                    Spacer(Modifier.width(16.dp))
-                    Text("Tempo: ${formatMs(elapsedMs)}", fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Bonus Round 🎈", fontWeight = FontWeight.ExtraBold)
+                        Spacer(Modifier.width(16.dp))
+                        Text("Tempo: ${formatMs(elapsedMs)}", fontWeight = FontWeight.Bold)
+                    }
                 }
+                Spacer(Modifier.width(10.dp))
+                SmallCircleButton("🏆") { showLeaderboard = true }
             }
 
             Spacer(Modifier.height(12.dp))
@@ -254,18 +341,144 @@ fun BonusBalloonGame(
         }
 
         balloons.forEach { balloon ->
+            val popProgress by animateFloatAsState(
+                targetValue = if (balloon.popped) 1f else 0f,
+                animationSpec = tween(durationMillis = 300),
+                label = "balloonPop"
+            )
+            val scale = 1f - (0.6f * popProgress)
+            val alpha = 1f - popProgress
+
+            if (balloon.popped) {
+                LaunchedEffect(balloon.id, balloon.popped) {
+                    delay(320)
+                    balloons.removeAll { it.id == balloon.id }
+                }
+            }
+
             Box(
                 modifier = Modifier
                     .offset { IntOffset(balloon.x.roundToInt(), balloon.y.roundToInt()) }
                     .size(with(density) { balloon.sizePx.toDp() })
-                    .background(balloon.color, CircleShape)
-                    .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape)
-                    .clickable { balloons.remove(balloon) },
-                contentAlignment = Alignment.Center
+                    .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha)
+                    .clip(RoundedCornerShape(50))
+                    .clickable(enabled = !balloon.popped) {
+                        val index = balloons.indexOfFirst { it.id == balloon.id }
+                        if (index >= 0) {
+                            val particles = List(6) {
+                                val angle = rng.nextFloat() * 360f
+                                val distance = with(density) { rng.nextInt(16, 30).dp.toPx() }
+                                BalloonParticle(
+                                    dx = kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat() * distance,
+                                    dy = kotlin.math.sin(Math.toRadians(angle.toDouble())).toFloat() * distance,
+                                    radiusPx = with(density) { rng.nextInt(3, 6).dp.toPx() }
+                                )
+                            }
+                            balloons[index] = balloon.copy(popped = true, particles = particles)
+                        }
+                    }
             ) {
-                Text("🎈", fontSize = MaterialTheme.typography.titleLarge.fontSize)
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val bodyHeight = size.height * 0.78f
+                    val bodyRect = androidx.compose.ui.geometry.Rect(0f, 0f, size.width, bodyHeight)
+                    val balloonBrush = Brush.radialGradient(
+                        colors = listOf(balloon.color.copy(alpha = 0.95f), balloon.color.copy(alpha = 0.75f)),
+                        center = androidx.compose.ui.geometry.Offset(size.width * 0.35f, size.height * 0.25f),
+                        radius = size.minDimension * 0.7f
+                    )
+                    drawOval(brush = balloonBrush, topLeft = bodyRect.topLeft, size = bodyRect.size)
+                    drawOval(
+                        color = Color.White.copy(alpha = 0.35f),
+                        topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.12f),
+                        size = androidx.compose.ui.geometry.Size(size.width * 0.22f, bodyHeight * 0.25f)
+                    )
+                    drawOval(
+                        color = Color.White.copy(alpha = 0.7f),
+                        topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.28f, size.height * 0.18f),
+                        size = androidx.compose.ui.geometry.Size(size.width * 0.12f, bodyHeight * 0.14f)
+                    )
+                    drawOval(
+                        color = Color.White.copy(alpha = 0.7f),
+                        topLeft = bodyRect.topLeft,
+                        size = bodyRect.size,
+                        style = Stroke(width = 3f)
+                    )
+                    val stringStart = androidx.compose.ui.geometry.Offset(size.width / 2f, bodyHeight)
+                    val stringEnd = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height)
+                    drawLine(
+                        color = Color(0xFF9CA3AF),
+                        start = stringStart,
+                        end = stringEnd,
+                        strokeWidth = 2f
+                    )
+
+                    if (balloon.popped) {
+                        val particleProgress = popProgress
+                        balloon.particles.forEach { particle ->
+                            drawCircle(
+                                color = Color.White.copy(alpha = (1f - particleProgress).coerceAtLeast(0f)),
+                                radius = particle.radiusPx * (0.6f + particleProgress),
+                                center = androidx.compose.ui.geometry.Offset(
+                                    x = size.width / 2f + particle.dx * particleProgress,
+                                    y = size.height / 2f + particle.dy * particleProgress
+                                )
+                            )
+                        }
+                    }
+                }
             }
         }
 
+        if (showLeaderboard) {
+            val entries = remember(refreshToken) {
+                loadEntries(context, balloonBoardId).sortedBy { it.value }
+            }
+            LeaderboardDialog(
+                title = "Classifica Palloncini",
+                entries = entries,
+                valueFormatter = { formatMs(it) },
+                onDismiss = { showLeaderboard = false }
+            )
+        }
+
+        if (finished) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x99000000)),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = Color.White
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "Finito! Tempo: ${formatMs(elapsedMs)}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                if (!saved) {
+                                    saved = true
+                                    addTimeEntry(
+                                        context,
+                                        balloonBoardId,
+                                        ScoreEntry(playerName, elapsedMs)
+                                    )
+                                    refreshToken++
+                                    onBackToMath()
+                                }
+                            }
+                        ) { Text("Continua") }
+                    }
+                }
+            }
+        }
     }
 }
