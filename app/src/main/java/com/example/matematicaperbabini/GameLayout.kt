@@ -1,6 +1,8 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,9 +32,11 @@ fun GameScreenFrame(
     bottomBar: @Composable (() -> Unit)? = null,
     message: String? = null
 ) {
+    val scrollState = rememberScrollState()
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -59,7 +63,7 @@ fun GameScreenFrame(
 
         bottomBar?.invoke()
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
