@@ -1,4 +1,4 @@
-package com.example.matematicaperbabini
+package com.example.matematicaperbambini
 
 import org.junit.Test
 
