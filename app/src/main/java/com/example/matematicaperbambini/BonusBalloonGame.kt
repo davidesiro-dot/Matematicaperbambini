@@ -64,23 +64,29 @@ fun BonusRewardHost(
 ) {
     val context = LocalContext.current
     val nextRewardAt = (rewardsEarned + 1) * 5
+    val rng = remember { Random(System.currentTimeMillis()) }
     var showPrompt by remember { mutableStateOf(false) }
     var showGame by remember { mutableStateOf(false) }
+    var pickedGame by remember { mutableStateOf<BonusGame?>(null) }
 
     LaunchedEffect(correctCount, rewardsEarned) {
         if (correctCount >= nextRewardAt) {
+            if (pickedGame == null) {
+                pickedGame = if (rng.nextInt(2) == 0) BonusGame.Balloons else BonusGame.Stars
+            }
             showPrompt = true
         }
     }
 
     if (showPrompt) {
+        val bonusLabel = if (pickedGame == BonusGame.Stars) "Bonus: Stelle ⭐" else "Bonus: Palloncini 🎈"
         AlertDialog(
             onDismissRequest = {},
             title = { Text("Complimenti! 🎉") },
             text = {
                 Text(
                     "Hai fatto $nextRewardAt operazioni corrette."
-                        + "\nÈ ora del Bonus Round con i palloncini!"
+                        + "\nÈ ora del Bonus Round! $bonusLabel"
                 )
             },
             confirmButton = {
@@ -96,14 +102,32 @@ fun BonusRewardHost(
     }
 
     if (showGame) {
-        BonusBalloonGame(
-            onFinished = { timeMs ->
-                addEntry(context, boardId, ScoreEntry("Bimbo", timeMs))
-                showGame = false
-                onRewardEarned()
-            }
-        )
+        when (pickedGame) {
+            BonusGame.Stars -> FallingStarsGame(
+                boardId = boardId,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onBackToMath = {
+                    showGame = false
+                    pickedGame = null
+                    onRewardEarned()
+                }
+            )
+            else -> BonusBalloonGame(
+                onFinished = { timeMs ->
+                    addEntry(context, boardId, ScoreEntry("Bimbo", timeMs))
+                    showGame = false
+                    pickedGame = null
+                    onRewardEarned()
+                }
+            )
+        }
     }
+}
+
+private enum class BonusGame {
+    Balloons,
+    Stars
 }
 
 @Composable
