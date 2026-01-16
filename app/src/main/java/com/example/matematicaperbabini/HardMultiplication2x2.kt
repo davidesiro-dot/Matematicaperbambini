@@ -235,13 +235,13 @@ fun HardMultiplication2x2Game(
     var errCarrySUM by remember { mutableStateOf(BooleanArray(4) { false }) }
     var errSUM by remember { mutableStateOf(BooleanArray(4) { false }) }
 
-    // dimensioni (se vuoi più piccolo: riduci qui)
-    val digitW = 40.dp
-    val digitH = 56.dp
-    val carryW = 24.dp
-    val carryH = 30.dp
-    val signW = 26.dp
-    val gap = 6.dp
+    // dimensioni (scalano in base alla larghezza disponibile)
+    val baseDigitW = 40.dp
+    val baseDigitH = 56.dp
+    val baseCarryW = 24.dp
+    val baseCarryH = 30.dp
+    val baseSignW = 26.dp
+    val baseGap = 6.dp
 
     fun reset(newA: Int, newB: Int) {
         plan = hmComputePlan(newA, newB)
@@ -369,22 +369,37 @@ fun HardMultiplication2x2Game(
                 )
                 Spacer(Modifier.height(8.dp))
 
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val totalCols = 4
+                    val totalItems = totalCols + 1
+                    val baseTotalWidth = baseSignW + (baseDigitW * totalCols) + (baseGap * (totalItems - 1))
+                    val scale = (maxWidth / baseTotalWidth).coerceAtMost(1f)
+
+                    val digitW = baseDigitW * scale
+                    val digitH = baseDigitH * scale
+                    val carryW = baseCarryW * scale
+                    val carryH = baseCarryH * scale
+                    val signW = baseSignW * scale
+                    val gap = baseGap * scale
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         HMGridRowRight(signW, gap) {
-                            HMSignCell("", signW)
                             HMFixedDigit(plan.a4[0], digitW, digitH)
                             HMFixedDigit(plan.a4[1], digitW, digitH)
                             HMFixedDigit(plan.a4[2], digitW, digitH)
                             HMFixedDigit(plan.a4[3], digitW, digitH)
+                            HMSignCell("", signW)
                         }
 
                         HMGridRowRight(signW, gap) {
-                            HMSignCell("×", signW)
                             HMFixedDigit(plan.b4[0], digitW, digitH)
                             HMFixedDigit(plan.b4[1], digitW, digitH)
                             HMFixedDigit(plan.b4[2], digitW, digitH)
                             HMFixedDigit(plan.b4[3], digitW, digitH)
+                            HMSignCell("×", signW)
                         }
 
                         Divider(thickness = 2.dp)
@@ -502,7 +517,7 @@ private fun HMGridRowRight(
     content: @Composable RowScope.() -> Unit
 ) {
     Row(
-        modifier = Modifier.wrapContentWidth(Alignment.End),
+        modifier = Modifier.wrapContentWidth(Alignment.CenterHorizontally),
         horizontalArrangement = Arrangement.spacedBy(gap),
         verticalAlignment = Alignment.CenterVertically,
         content = content
@@ -561,7 +576,6 @@ private fun HMCarryRowRight(
     onChange: (Int, String) -> Unit
 ) {
     HMGridRowRight(signW, gap) {
-        HMSignCell("", signW)
         for (col in 0..3) {
             val exp = expected[col]
             val fade = (exp != ' ') && shouldFade(col) && !enabled(col) && !isActive(col)
@@ -588,6 +602,7 @@ private fun HMCarryRowRight(
                 }
             }
         }
+        HMSignCell("", signW)
     }
 }
 
@@ -606,7 +621,6 @@ private fun HMDigitRowRight(
     fixedUnitDash: Boolean = false
 ) {
     HMGridRowRight(signW, gap) {
-        HMSignCell("", signW)
         for (col in 0..3) {
             val exp = expected[col]
 
@@ -631,6 +645,7 @@ private fun HMDigitRowRight(
                 )
             }
         }
+        HMSignCell("", signW)
     }
 }
 
