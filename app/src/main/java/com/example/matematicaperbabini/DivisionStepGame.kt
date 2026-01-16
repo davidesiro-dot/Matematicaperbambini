@@ -359,6 +359,14 @@ fun DivisionStepGame(
     } else {
         current!!.hint
     }
+    val activeStepNumber = current?.stepIndex?.plus(1) ?: plan.steps.size
+    val activeAction = when (current?.row) {
+        DivRow.QUOTIENT -> "Scrivi la cifra del quoziente."
+        DivRow.PRODUCT -> "Scrivi il prodotto."
+        DivRow.REMAINDER -> "Scrivi il resto."
+        null -> "Hai completato tutti i passi!"
+    }
+    val activeChunk = current?.stepIndex?.let { plan.steps[it].chunk }
 
     GameScreenFrame(
         title = "Divisioni passo passo",
@@ -370,80 +378,103 @@ fun DivisionStepGame(
         hintText = hint,
         message = message,
         content = {
-            SeaGlassPanel(title = "Esercizio") {
-                // Riga principale: divisor | dividend
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FixedBox(plan.divisor.toString(), w = 52.dp, h = 56.dp, fontSize = 22)
-                    Text("⟌", fontSize = 34.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        plan.dividendDigits.forEach { d ->
-                            FixedBox(d.toString())
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                // Quoziente: una casella per step (in ordine)
-                Text("Quoziente", fontWeight = FontWeight.Bold, color = Color(0xFF374151))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    plan.steps.forEachIndexed { si, st ->
-                        DigitBox(
-                            value = qInputs[si],
-                            enabled = isActive(DivRow.QUOTIENT, si, 0),
-                            active = isActive(DivRow.QUOTIENT, si, 0),
-                            isError = qErr[si],
-                            onValueChange = { onTyped(DivRow.QUOTIENT, si, 0, it) },
-                            w = 44.dp, h = 56.dp, fontSize = 22
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SeaGlassPanel(title = "Come si fa") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("1) Prendi le prime cifre finché puoi dividere per il divisore.", color = Color(0xFF374151))
+                        Text("2) Scrivi la cifra del quoziente sopra al numero.", color = Color(0xFF374151))
+                        Text("3) Moltiplica il divisore × quella cifra e scrivi il prodotto.", color = Color(0xFF374151))
+                        Text("4) Sottrai per trovare il resto.", color = Color(0xFF374151))
+                        Text("5) Abbassa la cifra successiva e ripeti i passi 2-4.", color = Color(0xFF374151))
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = if (done) {
+                                "Hai completato tutti i passi!"
+                            } else {
+                                "Adesso: passo $activeStepNumber/${plan.steps.size} • $activeChunk ÷ ${plan.divisor} • $activeAction"
+                            },
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
-
-                // Mostro i passi (chunk / prodotto / resto) con caselle controllate
-                plan.steps.forEachIndexed { si, st ->
-                    val prodStr = st.product.toString()
-                    val remStr = st.remainder.toString()
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 10.dp)
-                            .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("Passo ${si + 1}: ${st.chunk} ÷ ${plan.divisor}", fontWeight = FontWeight.Black)
-
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Prodotto", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                for (c in prodStr.indices) {
-                                    DigitBox(
-                                        value = prodInputs[si][c],
-                                        enabled = isActive(DivRow.PRODUCT, si, c),
-                                        active = isActive(DivRow.PRODUCT, si, c),
-                                        isError = prodErr[si][c],
-                                        onValueChange = { onTyped(DivRow.PRODUCT, si, c, it) },
-                                        w = 40.dp, h = 52.dp, fontSize = 20
-                                    )
-                                }
+                SeaGlassPanel(title = "Esercizio") {
+                    // Riga principale: divisor | dividend
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FixedBox(plan.divisor.toString(), w = 52.dp, h = 56.dp, fontSize = 22)
+                        Text("⟌", fontSize = 34.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            plan.dividendDigits.forEach { d ->
+                                FixedBox(d.toString())
                             }
                         }
+                    }
 
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Resto", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                for (c in remStr.indices) {
-                                    DigitBox(
-                                        value = remInputs[si][c],
-                                        enabled = isActive(DivRow.REMAINDER, si, c),
-                                        active = isActive(DivRow.REMAINDER, si, c),
-                                        isError = remErr[si][c],
-                                        onValueChange = { onTyped(DivRow.REMAINDER, si, c, it) },
-                                        w = 40.dp, h = 52.dp, fontSize = 20
-                                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    // Quoziente: una casella per step (in ordine)
+                    Text("Quoziente", fontWeight = FontWeight.Bold, color = Color(0xFF374151))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        plan.steps.forEachIndexed { si, _ ->
+                            DigitBox(
+                                value = qInputs[si],
+                                enabled = isActive(DivRow.QUOTIENT, si, 0),
+                                active = isActive(DivRow.QUOTIENT, si, 0),
+                                isError = qErr[si],
+                                onValueChange = { onTyped(DivRow.QUOTIENT, si, 0, it) },
+                                w = 44.dp, h = 56.dp, fontSize = 22
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    // Mostro i passi (chunk / prodotto / resto) con caselle controllate
+                    plan.steps.forEachIndexed { si, st ->
+                        val prodStr = st.product.toString()
+                        val remStr = st.remainder.toString()
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp)
+                                .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("Passo ${si + 1}: ${st.chunk} ÷ ${plan.divisor}", fontWeight = FontWeight.Black)
+                            Text("Prima il quoziente, poi prodotto e resto.", color = Color(0xFF6B7280))
+
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Prodotto", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    for (c in prodStr.indices) {
+                                        DigitBox(
+                                            value = prodInputs[si][c],
+                                            enabled = isActive(DivRow.PRODUCT, si, c),
+                                            active = isActive(DivRow.PRODUCT, si, c),
+                                            isError = prodErr[si][c],
+                                            onValueChange = { onTyped(DivRow.PRODUCT, si, c, it) },
+                                            w = 40.dp, h = 52.dp, fontSize = 20
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Resto", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    for (c in remStr.indices) {
+                                        DigitBox(
+                                            value = remInputs[si][c],
+                                            enabled = isActive(DivRow.REMAINDER, si, c),
+                                            active = isActive(DivRow.REMAINDER, si, c),
+                                            isError = remErr[si][c],
+                                            onValueChange = { onTyped(DivRow.REMAINDER, si, c, it) },
+                                            w = 40.dp, h = 52.dp, fontSize = 20
+                                        )
+                                    }
                                 }
                             }
                         }
