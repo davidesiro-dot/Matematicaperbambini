@@ -116,7 +116,7 @@ private fun computeDivisionPlan(dividend: Int, divisor: Int): DivPlan {
             stepIndex = si,
             col = 0,
             expected = qCh,
-            hint = "Quante volte $divisor sta in ${st.chunk}? Scrivi la cifra del quoziente."
+            hint = "Trova il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${st.chunk}. Scrivi la cifra del quoziente."
         )
 
         val prodStr = st.product.toString()
@@ -127,18 +127,25 @@ private fun computeDivisionPlan(dividend: Int, divisor: Int): DivPlan {
                 stepIndex = si,
                 col = k,
                 expected = prodStr[k],
-                hint = "Moltiplica: $divisor × ${st.qDigit} = ${st.product}. Scrivi il prodotto."
+                hint = "Moltiplica: $divisor × ${st.qDigit} = ${st.product}. Scrivi il prodotto sotto le cifre selezionate."
             )
         }
 
         val remStr = st.remainder.toString()
+        val nextDigit = ds.getOrNull(st.endPos + 1)
+        val remainderHint = buildString {
+            append("Sottrai: ${st.chunk} − ${st.product} = ${st.remainder}. Scrivi il resto.")
+            if (nextDigit != null) {
+                append(" Poi abbassa la cifra successiva ($nextDigit) e ripeti.")
+            }
+        }
         for (k in remStr.indices.reversed()) {
             add(
                 row = DivRow.REMAINDER,
                 stepIndex = si,
                 col = k,
                 expected = remStr[k],
-                hint = "Sottrai: ${st.chunk} − ${st.product} = ${st.remainder}. Scrivi il resto."
+                hint = remainderHint
             )
         }
     }
@@ -381,11 +388,11 @@ fun DivisionStepGame(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SeaGlassPanel(title = "Come si fa") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("1) Prendi le prime cifre finché puoi dividere per il divisore.", color = Color(0xFF374151))
-                        Text("2) Scrivi la cifra del quoziente sopra al numero.", color = Color(0xFF374151))
-                        Text("3) Moltiplica il divisore × quella cifra e scrivi il prodotto.", color = Color(0xFF374151))
-                        Text("4) Sottrai per trovare il resto.", color = Color(0xFF374151))
-                        Text("5) Abbassa la cifra successiva e ripeti i passi 2-4.", color = Color(0xFF374151))
+                        Text("1) Allinea il dividendo a sinistra e il divisore a destra: il quoziente va sotto la linea.", color = Color(0xFF374151))
+                        Text("2) Prendi il minimo numero di cifre del dividendo (da sinistra) che sia ≥ del divisore.", color = Color(0xFF374151))
+                        Text("3) Trova il numero più grande che, moltiplicato per il divisore, resta ≤ al numero scelto.", color = Color(0xFF374151))
+                        Text("4) Moltiplica, scrivi il prodotto sotto le cifre scelte e sottrai per ottenere il resto.", color = Color(0xFF374151))
+                        Text("5) Abbassa la cifra successiva del dividendo accanto al resto e ripeti 3-4.", color = Color(0xFF374151))
                         Spacer(Modifier.height(6.dp))
                         Text(
                             text = if (done) {
@@ -400,21 +407,29 @@ fun DivisionStepGame(
                 }
 
                 SeaGlassPanel(title = "Esercizio") {
-                    // Riga principale: divisor | dividend
+                    // Riga principale: dividend | divisor
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        FixedBox(plan.divisor.toString(), w = 52.dp, h = 56.dp, fontSize = 22)
-                        Text("⟌", fontSize = 34.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             plan.dividendDigits.forEach { d ->
                                 FixedBox(d.toString())
                             }
+                        }
+                        Text("│", fontSize = 34.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            FixedBox(plan.divisor.toString(), w = 52.dp, h = 56.dp, fontSize = 22)
+                            Box(
+                                modifier = Modifier
+                                    .width(52.dp)
+                                    .height(3.dp)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
                         }
                     }
 
                     Spacer(Modifier.height(8.dp))
 
                     // Quoziente: una casella per step (in ordine)
-                    Text("Quoziente", fontWeight = FontWeight.Bold, color = Color(0xFF374151))
+                    Text("Quoziente (sotto il divisore)", fontWeight = FontWeight.Bold, color = Color(0xFF374151))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         plan.steps.forEachIndexed { si, _ ->
                             DigitBox(
