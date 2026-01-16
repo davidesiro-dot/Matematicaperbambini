@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,10 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.isActive
@@ -80,7 +81,7 @@ fun BonusRewardHost(
             text = {
                 Text(
                     "Hai fatto $nextRewardAt operazioni corrette."
-                        + "\nÈ ora del Bonus Round con i palloncini!"
+                            + "\nÈ ora del Bonus Round con i palloncini!"
                 )
             },
             confirmButton = {
@@ -114,9 +115,13 @@ fun BonusBalloonGame(
     val density = LocalDensity.current
     val rng = remember { Random(System.currentTimeMillis()) }
     val balloons = remember { mutableStateListOf<BalloonState>() }
+
     var elapsedMs by remember { mutableStateOf(0L) }
     var finished by remember { mutableStateOf(false) }
     var started by remember { mutableStateOf(false) }
+
+    // ✅ size reale del Box (in px) misurata con onSizeChanged
+    var boxSize by remember { mutableStateOf(IntSize.Zero) }
 
     val colors = listOf(
         Color(0xFF60A5FA),
@@ -126,9 +131,10 @@ fun BonusBalloonGame(
         Color(0xFFC084FC)
     )
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
+            .onSizeChanged { boxSize = it }
             .background(
                 Brush.verticalGradient(
                     listOf(Color(0xFFBAE6FD), Color(0xFFE0F2FE))
@@ -136,11 +142,11 @@ fun BonusBalloonGame(
             )
             .zIndex(2f)
     ) {
-        val widthPx = with(density) { maxWidth.toPx() }
-        val heightPx = with(density) { maxHeight.toPx() }
+        val widthPx = boxSize.width.toFloat()
+        val heightPx = boxSize.height.toFloat()
         val balloonSizePx = with(density) { 64.dp.toPx() }
 
-        if (balloons.isEmpty() && widthPx > 0 && heightPx > 0) {
+        if (!started && balloons.isEmpty() && widthPx > 0 && heightPx > 0) {
             repeat(balloonCount) { index ->
                 val x = rng.nextFloat() * (widthPx - balloonSizePx).coerceAtLeast(0f)
                 val y = rng.nextFloat() * (heightPx - balloonSizePx).coerceAtLeast(0f)
@@ -242,6 +248,5 @@ fun BonusBalloonGame(
                 Text("🎈", fontSize = MaterialTheme.typography.titleLarge.fontSize)
             }
         }
-
     }
 }
