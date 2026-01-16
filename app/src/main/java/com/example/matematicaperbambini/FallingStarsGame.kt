@@ -84,7 +84,7 @@ fun FallingStarsGame(
         } else {
             -sizePx - rng.nextFloat() * heightPx
         }
-        val vy = with(density) { rng.nextInt(60, 140).dp.toPx() }
+        val vy = with(density) { rng.nextInt(60, 140).dp.toPx() } * 3f
         val isGolden = rng.nextInt(6) == 0
         return StarState(id = id, x = x, y = y, vy = vy, sizePx = sizePx, isGolden = isGolden)
     }
