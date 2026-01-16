@@ -243,7 +243,7 @@ fun LongAdditionGame(
                     val totalCols = plan.digits + 1
                     val totalItems = totalCols + 1
                     val baseTotalWidth = baseSignW + (baseDigitW * totalCols) + (baseGap * (totalItems - 1))
-                    val scale = (maxWidth / baseTotalWidth).coerceAtMost(1f)
+                    val scale = (maxWidth.value / baseTotalWidth.value).coerceAtMost(1f)
 
                     val digitW = baseDigitW * scale
                     val digitH = baseDigitH * scale
