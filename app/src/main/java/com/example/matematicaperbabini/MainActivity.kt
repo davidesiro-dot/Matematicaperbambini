@@ -43,6 +43,10 @@ import androidx.compose.ui.unit.sp
 import java.net.URLDecoder
 import java.net.URLEncoder
 import kotlin.math.roundToInt
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.text.style.TextAlign
+
 
 // -----------------------------
 // LEADERBOARD (persistente)
@@ -207,6 +211,8 @@ fun SeaGlassPanel(
 
 @Composable
 fun SmallCircleButton(text: String, onClick: () -> Unit) {
+    val isBack = text == "⬅"
+
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -215,8 +221,25 @@ fun SmallCircleButton(text: String, onClick: () -> Unit) {
             .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
-    ) { Text(text, fontSize = 16.sp) }
+    ) {
+        if (isBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = null,
+                tint = Color(0xFF111827),
+                modifier = Modifier.size(22.dp)
+            )
+        } else {
+            Text(
+                text,
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+                color = Color(0xFF111827)
+            )
+        }
+    }
 }
+
 
 @Composable
 fun InfoPanel(title: String, text: String) {

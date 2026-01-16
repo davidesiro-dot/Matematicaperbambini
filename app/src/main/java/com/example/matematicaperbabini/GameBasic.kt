@@ -203,6 +203,8 @@ fun MultiplicationTableGame(
                 for (i in 1..10) {
                     val index = i - 1
                     val active = (i == step)
+                    val expected = table * i
+                    val expectedLength = expected.toString().length
 
                     Row(
                         Modifier.fillMaxWidth(),
@@ -220,8 +222,10 @@ fun MultiplicationTableGame(
                             onValueChange = {
                                 if (!active) return@OutlinedTextField
                                 inputs[index] = it.filter { c -> c.isDigit() }.take(3)
+                                ok[index] = null
+                                if (inputs[index].length < expectedLength) return@OutlinedTextField
                                 val v = inputs[index].toIntOrNull()
-                                if (v == table * i) {
+                                if (v == expected) {
                                     ok[index] = true
                                     if (soundEnabled) fx.correct()
                                     step++
