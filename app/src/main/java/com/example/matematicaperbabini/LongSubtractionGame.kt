@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -308,8 +307,7 @@ fun LongSubtractionGame(
     val topOk = remember(problem, digits) { mutableStateListOf<Boolean?>().apply { repeat(digits) { add(null) } } }
     val resOk = remember(problem, digits) { mutableStateListOf<Boolean?>().apply { repeat(digits) { add(null) } } }
 
-    fun resetForNew() {
-        problem = generateSubtractionMixed(digits)
+    fun resetSame() {
         stepIndex = 0
         message = null
         waitTapToContinue = false
@@ -317,6 +315,11 @@ fun LongSubtractionGame(
         for (i in resInputs.indices) resInputs[i] = ""
         for (i in topOk.indices) topOk[i] = null
         for (i in resOk.indices) resOk[i] = null
+    }
+
+    fun resetForNew() {
+        problem = generateSubtractionMixed(digits)
+        resetSame()
     }
 
     fun playCorrect() { if (soundEnabled) fx.correct() }
@@ -382,168 +385,155 @@ fun LongSubtractionGame(
     val uiScale = (screenH / 820f).coerceIn(0.72f, 1.0f)
     val boxSize = (56f * uiScale).dp
     val gap = (10f * uiScale).dp
-    val pad = (16f * uiScale).dp
-    val spacing = (14f * uiScale).dp
-
     val borrowBg = Color(0xFFE0F2FE)
     val inputBg = Color(0xFFF3F4F6)
 
+    val hint = if (!done) instructionSub(currentStep!!, digits) else "Bravo! 🙂"
+
     Box(Modifier.fillMaxSize()) {
+        GameScreenFrame(
+            title = "Sottrazioni in colonna",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            correctCount = stepIndex,
+            hintText = hint,
+            message = message,
+            content = {
+                SeaGlassPanel(title = "Operazione in colonna") {
+                    @Composable fun BlankBox() { Box(Modifier.size(boxSize)) }
 
-        Column(
-            Modifier.fillMaxSize().padding(pad),
-            verticalArrangement = Arrangement.spacedBy(spacing)
-        ) {
-            // Usa i tuoi componenti già esistenti (se ci sono)
-            GameHeader(
-                title = "Sottrazioni in colonna",
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = onOpenLeaderboard
-            )
+                    // Riga “nuovi numeri sopra” (solo dove serve)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BlankBox()
+                        Spacer(Modifier.width(gap))
+                        for (col in 0 until digits) {
+                            val enabled = topEnabled(col)
+                            val show = expected.borrowChanged[col] || enabled
+                            if (show) {
+                                SubDigitInput(
+                                    value = topNewInputs[col],
+                                    onChange = { v ->
+                                        topNewInputs[col] = v
+                                        if (enabled) tryValidate()
+                                    },
+                                    size = boxSize,
+                                    enabled = enabled,
+                                    active = enabled,
+                                    bg = borrowBg,
+                                    status = topOk[col]
+                                )
+                            } else {
+                                Box(Modifier.size(boxSize))
+                            }
+                            Spacer(Modifier.width(gap))
+                        }
+                    }
 
-            SeaGlassPanel(title = "Cosa fare") {
-                Text(
-                    if (!done) instructionSub(currentStep!!, digits) else "Bravo! 🙂",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+                    // Due righe numeri + simbolo a destra centrato
+                    Row(verticalAlignment = Alignment.Top) {
+                        Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                            // Riga TOP originale
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                BlankBox()
+                                Spacer(Modifier.width(gap))
+                                for (col in 0 until digits) {
+                                    val active =
+                                        (currentStep?.colIndexFromLeft == col) &&
+                                                (currentStep?.type == SubStepType.RESULT_DIGIT || currentStep?.type == SubStepType.BORROW_NEW_TOP_DIGIT)
 
-            SeaGlassPanel(title = "Operazione in colonna") {
-                @Composable fun BlankBox() { Box(Modifier.size(boxSize)) }
+                                    SubStaticBox(
+                                        text = expected.topDigitsOriginal[col].toString(),
+                                        size = boxSize,
+                                        active = active
+                                    )
+                                    Spacer(Modifier.width(gap))
+                                }
+                            }
 
-                // Riga “nuovi numeri sopra” (solo dove serve)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    BlankBox()
-                    Spacer(Modifier.width(gap))
-                    for (col in 0 until digits) {
-                        val enabled = topEnabled(col)
-                        val show = expected.borrowChanged[col] || enabled
-                        if (show) {
+                            // Riga BOTTOM
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                BlankBox()
+                                Spacer(Modifier.width(gap))
+                                for (col in 0 until digits) {
+                                    val active =
+                                        (currentStep?.colIndexFromLeft == col) &&
+                                                (currentStep?.type == SubStepType.RESULT_DIGIT)
+
+                                    SubStaticBox(
+                                        text = expected.bottomDigits[col].toString(),
+                                        size = boxSize,
+                                        active = active
+                                    )
+                                    Spacer(Modifier.width(gap))
+                                }
+                            }
+                        }
+
+                        // simbolo a destra tra le due righe
+                        Box(
+                            modifier = Modifier
+                                .width((28f * (boxSize.value / 56f)).dp)
+                                .height(boxSize + gap + boxSize),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "−",
+                                fontWeight = FontWeight.Black,
+                                fontSize = (26f * (boxSize.value / 56f)).sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = Color(0xFF111827).copy(alpha = 0.25f))
+
+                    // Riga risultato
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BlankBox()
+                        Spacer(Modifier.width(gap))
+                        for (col in 0 until digits) {
+                            val enabled = resEnabled(col)
                             SubDigitInput(
-                                value = topNewInputs[col],
+                                value = resInputs[col],
                                 onChange = { v ->
-                                    topNewInputs[col] = v
+                                    resInputs[col] = v
                                     if (enabled) tryValidate()
                                 },
                                 size = boxSize,
                                 enabled = enabled,
                                 active = enabled,
-                                bg = borrowBg,
-                                status = topOk[col]
+                                bg = inputBg,
+                                status = resOk[col]
                             )
-                        } else {
-                            Box(Modifier.size(boxSize))
-                        }
-                        Spacer(Modifier.width(gap))
-                    }
-                }
-
-                // Due righe numeri + simbolo a destra centrato
-                Row(verticalAlignment = Alignment.Top) {
-
-                    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-
-                        // Riga TOP originale
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            BlankBox()
                             Spacer(Modifier.width(gap))
-                            for (col in 0 until digits) {
-                                val active =
-                                    (currentStep?.colIndexFromLeft == col) &&
-                                            (currentStep?.type == SubStepType.RESULT_DIGIT || currentStep?.type == SubStepType.BORROW_NEW_TOP_DIGIT)
-
-                                SubStaticBox(
-                                    text = expected.topDigitsOriginal[col].toString(),
-                                    size = boxSize,
-                                    active = active
-                                )
-                                Spacer(Modifier.width(gap))
-                            }
-                        }
-
-                        // Riga BOTTOM
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            BlankBox()
-                            Spacer(Modifier.width(gap))
-                            for (col in 0 until digits) {
-                                val active =
-                                    (currentStep?.colIndexFromLeft == col) &&
-                                            (currentStep?.type == SubStepType.RESULT_DIGIT)
-
-                                SubStaticBox(
-                                    text = expected.bottomDigits[col].toString(),
-                                    size = boxSize,
-                                    active = active
-                                )
-                                Spacer(Modifier.width(gap))
-                            }
                         }
                     }
 
-                    // simbolo a destra tra le due righe
-                    Box(
-                        modifier = Modifier
-                            .width((28f * (boxSize.value / 56f)).dp)
-                            .height(boxSize + gap + boxSize),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "−",
-                            fontWeight = FontWeight.Black,
-                            fontSize = (26f * (boxSize.value / 56f)).sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text(
+                        "Le caselle azzurre sono per il cambio (prestito).",
+                        color = Color(0xFF6B7280),
+                        fontSize = (12f * (boxSize.value / 56f)).sp
+                    )
                 }
 
-                HorizontalDivider(color = Color(0xFF111827).copy(alpha = 0.25f))
-
-                // Riga risultato
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    BlankBox()
-                    Spacer(Modifier.width(gap))
-                    for (col in 0 until digits) {
-                        val enabled = resEnabled(col)
-                        SubDigitInput(
-                            value = resInputs[col],
-                            onChange = { v ->
-                                resInputs[col] = v
-                                if (enabled) tryValidate()
-                            },
-                            size = boxSize,
-                            enabled = enabled,
-                            active = enabled,
-                            bg = inputBg,
-                            status = resOk[col]
-                        )
-                        Spacer(Modifier.width(gap))
-                    }
+                SeaGlassPanel(title = "Stato") {
+                    Text(
+                        if (done) "Operazione completata." else "Passo ${stepIndex + 1}/${steps.size}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 }
-
-                Text(
-                    "Le caselle azzurre sono per il cambio (prestito).",
-                    color = Color(0xFF6B7280),
-                    fontSize = (12f * (boxSize.value / 56f)).sp
+            },
+            bottomBar = {
+                GameBottomActions(
+                    leftText = "Ricomincia",
+                    onLeft = { resetSame() },
+                    rightText = "Nuovo",
+                    onRight = { resetForNew() }
                 )
             }
-
-            // Reset ben visibile
-            Button(
-                onClick = { resetForNew() },
-                modifier = Modifier.fillMaxWidth().height((54f * uiScale).dp),
-                shape = RoundedCornerShape((14f * uiScale).dp)
-            ) {
-                Text("RESET", fontWeight = FontWeight.Black, fontSize = (16f * uiScale).sp)
-            }
-
-            if (!message.isNullOrBlank()) {
-                Text(message!!, color = Color.White, fontWeight = FontWeight.Black)
-            }
-
-            Spacer(Modifier.weight(1f))
-        }
+        )
 
         // Overlay tap-to-continue
         if (waitTapToContinue) {

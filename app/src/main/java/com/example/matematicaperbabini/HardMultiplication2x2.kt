@@ -208,7 +208,6 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
 
 /* ----------------------------- GAME COMPOSABLE (integrata in app) ----------------------------- */
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HardMultiplication2x2Game(
     boardId: String,
@@ -348,37 +347,30 @@ fun HardMultiplication2x2Game(
         }
     }
 
-    // UI
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Header app
-        GameHeader(
-            title = "Moltiplicazioni difficili",
-            soundEnabled = soundEnabled,
-            onToggleSound = onToggleSound,
-            onBack = onBack,
-            onLeaderboard = onOpenLeaderboard
-        )
+    val hint = if (done) {
+        "Bravo! ✅ Risultato: ${plan.result}"
+    } else {
+        current!!.hint
+    }
 
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            AssistChip(onClick = {}, label = { Text("Esercizio: ${plan.a} × ${plan.b}") })
-            Spacer(Modifier.weight(1f))
-            OutlinedButton(onClick = { reset(Random.nextInt(10, 100), Random.nextInt(10, 100)) }) {
-                Text("Nuovo")
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Scrivi SOLO nella casella evidenziata", style = MaterialTheme.typography.titleMedium)
+    GameScreenFrame(
+        title = "Moltiplicazioni difficili",
+        soundEnabled = soundEnabled,
+        onToggleSound = onToggleSound,
+        onBack = onBack,
+        onOpenLeaderboard = onOpenLeaderboard,
+        correctCount = step,
+        hintText = hint,
+        content = {
+            SeaGlassPanel(title = "Esercizio") {
+                Text(
+                    "Esercizio: ${plan.a} × ${plan.b}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(Modifier.height(8.dp))
 
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-
                         HMGridRowRight(signW, gap) {
                             HMSignCell("", signW)
                             HMFixedDigit(plan.a4[0], digitW, digitH)
@@ -465,38 +457,40 @@ fun HardMultiplication2x2Game(
                     }
                 }
             }
-        }
 
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            SeaGlassPanel(title = "Stato") {
                 if (done) {
-                    Text("Bravo! ✅ Risultato: ${plan.result}", style = MaterialTheme.typography.titleMedium)
+                    Text("Operazione completata.", style = MaterialTheme.typography.bodyLarge)
                 } else {
-                    Text("Passo ${step + 1}/${plan.targets.size}", style = MaterialTheme.typography.titleMedium)
-                    Text(current!!.hint)
-                    Text("Casella attiva: ${hmRowLabel(current.row)} – ${hmColLabel(current.col)}")
+                    Text("Passo ${step + 1}/${plan.targets.size}", style = MaterialTheme.typography.bodyLarge)
+                    Text("Casella attiva: ${hmRowLabel(current!!.row)} – ${hmColLabel(current.col)}")
                 }
             }
-        }
+        },
+        bottomBar = {
+            GameBottomActions(
+                leftText = "Ricomincia",
+                onLeft = { reset(plan.a, plan.b) },
+                rightText = "Nuovo",
+                onRight = { reset(Random.nextInt(10, 100), Random.nextInt(10, 100)) },
+                center = {
+                    OutlinedButton(onClick = {
+                        for (c in 0..3) {
+                            val cp1 = plan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
+                            val cp2 = plan.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)
+                            val cs = plan.carrySUM[c]; if (cs != ' ') setCell(HMRowKey.CARRY_SUM, c, cs, false)
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = { reset(plan.a, plan.b) }) { Text("Ricomincia") }
-            Spacer(Modifier.weight(1f))
-            OutlinedButton(onClick = {
-                for (c in 0..3) {
-                    val cp1 = plan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
-                    val cp2 = plan.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)
-                    val cs = plan.carrySUM[c]; if (cs != ' ') setCell(HMRowKey.CARRY_SUM, c, cs, false)
-
-                    val d1 = plan.p1_4[c]; if (d1 != ' ') setCell(HMRowKey.P1, c, d1, false)
-                    val d2 = plan.p2_4[c]; if (d2 != ' ') setCell(HMRowKey.P2, c, d2, false)
-                    val dr = plan.res_4[c]; if (dr != ' ') setCell(HMRowKey.SUM, c, dr, false)
+                            val d1 = plan.p1_4[c]; if (d1 != ' ') setCell(HMRowKey.P1, c, d1, false)
+                            val d2 = plan.p2_4[c]; if (d2 != ' ') setCell(HMRowKey.P2, c, d2, false)
+                            val dr = plan.res_4[c]; if (dr != ' ') setCell(HMRowKey.SUM, c, dr, false)
+                        }
+                        setCell(HMRowKey.P2, 3, '-', false)
+                        step = plan.targets.size
+                    }) { Text("Soluzione") }
                 }
-                setCell(HMRowKey.P2, 3, '-', false)
-                step = plan.targets.size
-            }) { Text("Soluzione") }
+            )
         }
-    }
+    )
 }
 
 /* ----------------------------- GRID UI (RIGHT-ALIGNED) ----------------------------- */
