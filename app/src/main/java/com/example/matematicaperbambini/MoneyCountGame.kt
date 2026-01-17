@@ -1,60 +1,42 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.*
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
 import kotlin.random.Random
 
-data class MoneyItem(
+private data class MoneyItem(
     val id: String,
     val cents: Int,
     val drawableRes: Int,
     val label: String
 )
 
-val MONEY_ITEMS = listOf(
-    MoneyItem(id = "1c", cents = 1, drawableRes = R.drawable.`1centesimo`, label = "1 centesimo"),
-    MoneyItem(id = "2c", cents = 2, drawableRes = R.drawable.`2centesimi`, label = "2 centesimi"),
-    MoneyItem(id = "5c", cents = 5, drawableRes = R.drawable.`5centesimi`, label = "5 centesimi"),
-    MoneyItem(id = "10c", cents = 10, drawableRes = R.drawable.`10centesimi`, label = "10 centesimi"),
-    MoneyItem(id = "20c", cents = 20, drawableRes = R.drawable.`20centesimi`, label = "20 centesimi"),
-    MoneyItem(id = "50c", cents = 50, drawableRes = R.drawable.`50centesimi`, label = "50 centesimi"),
-    MoneyItem(id = "1e", cents = 100, drawableRes = R.drawable.`1euro`, label = "1 euro"),
-    MoneyItem(id = "2e", cents = 200, drawableRes = R.drawable.`2euro`, label = "2 euro"),
-    MoneyItem(id = "5e", cents = 500, drawableRes = R.drawable.`5euro`, label = "5 euro"),
-    MoneyItem(id = "10e", cents = 1000, drawableRes = R.drawable.`10euro`, label = "10 euro"),
-    MoneyItem(id = "20e", cents = 2000, drawableRes = R.drawable.`20euro`, label = "20 euro"),
-    MoneyItem(id = "50e", cents = 5000, drawableRes = R.drawable.`50euro`, label = "50 euro")
+private val MONEY_ITEMS: List<MoneyItem> = listOf(
+    MoneyItem("1c", 1, R.drawable.coin_1c, "1 cent"),
+    MoneyItem("2c", 2, R.drawable.coin_2c, "2 cent"),
+    MoneyItem("5c", 5, R.drawable.coin_5c, "5 cent"),
+    MoneyItem("10c", 10, R.drawable.coin_10c, "10 cent"),
+    MoneyItem("20c", 20, R.drawable.coin_20c, "20 cent"),
+    MoneyItem("50c", 50, R.drawable.coin_50c, "50 cent"),
+    MoneyItem("1e", 100, R.drawable.coin_1e, "1 euro"),
+    MoneyItem("2e", 200, R.drawable.coin_2e, "2 euro"),
+    MoneyItem("5e", 500, R.drawable.note_5e, "5 euro"),
+    MoneyItem("10e", 1000, R.drawable.note_10e, "10 euro"),
+    MoneyItem("20e", 2000, R.drawable.note_20e, "20 euro"),
+    MoneyItem("50e", 5000, R.drawable.note_50e, "50 euro")
 )
 
 private val COIN_ITEMS = MONEY_ITEMS.filter { it.cents < 500 }
@@ -70,6 +52,7 @@ fun MoneyCountGame(
     onOpenLeaderboard: () -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
+
     var items by remember { mutableStateOf<List<MoneyItem>>(emptyList()) }
     var expectedTotalCents by remember { mutableStateOf(0) }
     var input by remember { mutableStateOf("") }
@@ -81,79 +64,80 @@ fun MoneyCountGame(
     fun formatEuro(cents: Int): String {
         val euros = cents / 100
         val leftover = cents % 100
-        return "€${euros},${leftover.toString().padStart(2, '0')}"
+        return "€$euros,${leftover.toString().padStart(2, '0')}"
     }
 
     fun parseInputToCents(text: String): Int? {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return null
+
         val normalized = trimmed.replace(',', '.')
         val parts = normalized.split('.')
         if (parts.size > 2) return null
-        val eurosPart = parts[0].ifEmpty { "0" }
-        if (!eurosPart.all { it.isDigit() }) return null
+
+        val eurosPart = parts[0]
+        if (eurosPart.isEmpty() || !eurosPart.all { ch -> ch.isDigit() }) return null
         val euros = eurosPart.toIntOrNull() ?: return null
+
         val cents = if (parts.size == 2) {
             val raw = parts[1]
-            if (!raw.all { it.isDigit() }) return null
+            if (!raw.all { ch -> ch.isDigit() }) return null
             when (raw.length) {
                 0 -> 0
                 1 -> (raw + "0").toInt()
                 else -> raw.take(2).toInt()
             }
         } else 0
+
         return euros * 100 + cents
     }
 
     fun pickItem(banknoteChance: Float): MoneyItem {
-        return if (coinsOnly || BANKNOTE_ITEMS.isEmpty()) {
-            COIN_ITEMS[rng.nextInt(COIN_ITEMS.size)]
-        } else {
-            val pickBanknote = rng.nextFloat() < banknoteChance
-            val pool = if (pickBanknote) BANKNOTE_ITEMS else COIN_ITEMS
-            pool[rng.nextInt(pool.size)]
+        if (coinsOnly || BANKNOTE_ITEMS.isEmpty()) {
+            return COIN_ITEMS[rng.nextInt(COIN_ITEMS.size)]
         }
+        val pickBanknote = rng.nextFloat() < banknoteChance
+        val pool = if (pickBanknote) BANKNOTE_ITEMS else COIN_ITEMS
+        return pool[rng.nextInt(pool.size)]
     }
 
     fun generateRound(clearMessage: Boolean) {
         val stage = correctCount / 5
         val minItems = 2
         val maxItems = min(5 + stage, 7)
-        val banknoteChance = (0.2f + 0.1f * stage).coerceAtMost(0.6f)
+
+        // Probabilità banconote cresce con i successi, ma resta moderata
+        val banknoteChance = (0.20f + 0.10f * stage).coerceAtMost(0.60f)
+
         var chosenItems: List<MoneyItem> = emptyList()
         var total = 0
 
-        repeat(200) {
+        // Cerca una combinazione che NON superi 50€ (5000 cent)
+        repeat(300) {
             val count = rng.nextInt(minItems, maxItems + 1)
             val generated = List(count) { pickItem(banknoteChance) }
             val sum = generated.sumOf { it.cents }
-            if (sum <= 10000) {
+            if (sum <= 5000) {
                 chosenItems = generated
                 total = sum
                 return@repeat
             }
         }
 
+        // Fallback: solo monete
         if (chosenItems.isEmpty()) {
             chosenItems = List(minItems) { COIN_ITEMS[rng.nextInt(COIN_ITEMS.size)] }
-            total = chosenItems.sumOf { it.cents }.coerceAtMost(10000)
+            total = chosenItems.sumOf { it.cents }.coerceAtMost(5000)
         }
 
         items = chosenItems
         expectedTotalCents = total
         input = ""
-        if (clearMessage) {
-            message = null
-        }
+        if (clearMessage) message = null
     }
 
-    LaunchedEffect(Unit) {
-        generateRound(clearMessage = true)
-    }
-
-    LaunchedEffect(coinsOnly) {
-        generateRound(clearMessage = true)
-    }
+    LaunchedEffect(Unit) { generateRound(clearMessage = true) }
+    LaunchedEffect(coinsOnly) { generateRound(clearMessage = true) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         GameScreenFrame(
@@ -163,10 +147,11 @@ fun MoneyCountGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
-            hintText = "Somma il valore delle monete e delle banconote e scrivi il totale in euro.",
+            hintText = "Somma il valore delle monete e banconote e scrivi il totale in euro.",
             message = message,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
                     SeaGlassPanel(title = "Modalità") {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -179,46 +164,55 @@ fun MoneyCountGame(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = if (coinsOnly) {
-                                        "Solo centesimi e euro in moneta."
-                                    } else {
-                                        "Monete e banconote fino a 50€."
-                                    },
+                                    text = if (coinsOnly) "Solo centesimi e euro in moneta."
+                                    else "Monete e banconote fino a 50€.",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
                             Switch(
                                 checked = coinsOnly,
-                                onCheckedChange = { coinsOnly = it }
+                                onCheckedChange = { v -> coinsOnly = v }
                             )
                         }
                     }
 
                     SeaGlassPanel(title = "Conta le immagini") {
                         val columns = if (items.size <= 4) 2 else 3
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(columns),
+                        val rows = (items.size + columns - 1) / columns
+
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 220.dp)
                                 .padding(6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                            userScrollEnabled = false
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            items(items) { item ->
-                                Image(
-                                    painter = painterResource(id = item.drawableRes),
-                                    contentDescription = item.label,
-                                    modifier = Modifier
-                                        .size(110.dp)
-                                        .padding(4.dp)
-                                )
+                            for (r in 0 until rows) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    for (c in 0 until columns) {
+                                        val idx = r * columns + c
+                                        if (idx < items.size) {
+                                            val item = items[idx]
+                                            Image(
+                                                painter = painterResource(id = item.drawableRes),
+                                                contentDescription = item.label,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .aspectRatio(1f)      // mantiene “quadrato” lo slot
+                                                    .padding(4.dp)
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
 
-                    SeaGlassPanel(title = "Scrivi il totale") {
+                        SeaGlassPanel(title = "Scrivi il totale") {
                         Column(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -227,10 +221,11 @@ fun MoneyCountGame(
                             OutlinedTextField(
                                 value = input,
                                 onValueChange = { value ->
-                                    input = value.filter { it.isDigit() || it == ',' || it == '.' }
+                                    input = value.filter { ch ->
+                                        ch.isDigit() || ch == ',' || ch == '.'
+                                    }
                                 },
                                 placeholder = { Text("Es. 3,50") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -239,7 +234,7 @@ fun MoneyCountGame(
                                 onClick = {
                                     val parsed = parseInputToCents(input)
                                     if (parsed == null) {
-                                        message = "Scrivi un importo valido (esempio ${formatEuro(350)})"
+                                        message = "Scrivi un importo valido (es. ${formatEuro(350)})"
                                         if (soundEnabled) fx.wrong()
                                         return@Button
                                     }
@@ -254,7 +249,9 @@ fun MoneyCountGame(
                                         if (soundEnabled) fx.wrong()
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth().height(52.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
                             ) {
                                 Text("Verifica")
                             }
