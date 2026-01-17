@@ -141,7 +141,7 @@ enum class GameMode(val title: String) {
     SUB("Sottrazioni"),
     MULT("Tabelline"),
     DIV("Divisioni"),
-    MONEY("Soldi"),
+    MONEY("Conta i soldi"),
     MULT_HARD("Moltiplicazioni difficili")
 }
 
@@ -538,7 +538,7 @@ private fun HomeMenuKids(
                 onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
             )
             KidsMenuButton(
-                title = "Soldi",
+                title = "Conta i soldi (Euro)",
                 baseColor = Color(0xFFF1C40F),
                 icon = { Text("€", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
                 onClick = { onPlayDirect(GameMode.MONEY) }
@@ -820,7 +820,7 @@ fun GameRouter(
             onOpenLeaderboard = onOpenLeaderboard
         )
 
-        GameMode.MONEY -> MoneyGame(boardId, soundEnabled, onToggleSound, fx, onBack, onOpenLeaderboard)
+        GameMode.MONEY -> MoneyCountGame(boardId, soundEnabled, onToggleSound, fx, onBack, onOpenLeaderboard)
 
         else -> {
             // MULT e MULT_HARD hanno schermate dedicate in AppShell
