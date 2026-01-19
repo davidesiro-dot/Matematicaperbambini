@@ -31,22 +31,22 @@ import kotlin.math.pow
 @Composable
 fun AdditionGame(
     digits: Int,
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     BasicColumnGame(
         title = "Addizioni",
         digits = digits,
-        boardId = boardId,
         soundEnabled = soundEnabled,
         onToggleSound = onToggleSound,
         fx = fx,
         onBack = onBack,
         onOpenLeaderboard = onOpenLeaderboard,
+        onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
         generator = { a, b -> a + b }
     )
 }
@@ -57,22 +57,22 @@ fun AdditionGame(
 @Composable
 fun SubtractionGame(
     digits: Int,
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     BasicColumnGame(
         title = "Sottrazioni",
         digits = digits,
-        boardId = boardId,
         soundEnabled = soundEnabled,
         onToggleSound = onToggleSound,
         fx = fx,
         onBack = onBack,
         onOpenLeaderboard = onOpenLeaderboard,
+        onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
         generator = { a, b -> a - b }
     )
 }
@@ -84,12 +84,12 @@ fun SubtractionGame(
 private fun BasicColumnGame(
     title: String,
     digits: Int,
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     generator: (Int, Int) -> Int
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
@@ -182,9 +182,9 @@ private fun BasicColumnGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = {
                 rewardsEarned += 1
                 waitTap = true
@@ -214,12 +214,12 @@ private fun BasicColumnGame(
 @Composable
 fun MultiplicationTableGame(
     table: Int,
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     var step by remember { mutableStateOf(1) }
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
@@ -333,9 +333,9 @@ fun MultiplicationTableGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )
@@ -347,7 +347,6 @@ fun MultiplicationTableGame(
 // --------------------------------------------------
 @Composable
 fun DivisionGame(
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
@@ -418,12 +417,12 @@ fun DivisionGame(
 // --------------------------------------------------
 @Composable
 fun MoneyGame(
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     var a by remember { mutableStateOf(rng.nextInt(1, 10)) }
@@ -485,9 +484,9 @@ fun MoneyGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )

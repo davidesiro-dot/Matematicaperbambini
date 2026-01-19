@@ -285,7 +285,8 @@ fun LongSubtractionGame(
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     var problem by remember(digits) { mutableStateOf(generateSubtractionMixed(digits)) }
     val expected = remember(problem, digits) { computeExpectedSub(problem, digits) }
@@ -544,9 +545,9 @@ fun LongSubtractionGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardIdFor(GameMode.SUB, digits),
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )

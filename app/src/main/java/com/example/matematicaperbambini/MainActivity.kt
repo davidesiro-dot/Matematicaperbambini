@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.TextUnit
 data class ScoreEntry(val name: String, val value: Long)
 
 private const val PREFS_NAME = "math_kids_prefs"
+const val GLOBAL_STARS_LEADERBOARD_ID = "global_stars_score"
+const val GLOBAL_BALLOONS_LEADERBOARD_ID = "global_balloons_time"
 private fun encodeName(name: String) = URLEncoder.encode(name, "UTF-8")
 private fun decodeName(name: String) = URLDecoder.decode(name, "UTF-8")
 
@@ -160,17 +162,10 @@ enum class GameMode(val title: String) {
     MULT_HARD("Moltiplicazioni difficili")
 }
 
-fun boardIdFor(mode: GameMode, digits: Int): String = when (mode) {
-    GameMode.ADD -> "add_$digits"
-    GameMode.SUB -> "sub_$digits"
-    GameMode.MULT -> "mult_${digits}" // digits qui non serve, ma lo lascio per compatibilità
-    GameMode.DIV -> "div_step"        // ✅ divisioni step-by-step
-    GameMode.MONEY -> "money"
-    GameMode.MULT_HARD -> "mult_hard"
+enum class LeaderboardTab {
+    BALLOONS,
+    STARS
 }
-
-fun balloonsBoardId(boardId: String): String = "${boardId}_balloons_time"
-fun starsBoardId(boardId: String): String = "${boardId}_stars_score"
 
 // -----------------------------
 // NAV
@@ -425,6 +420,8 @@ fun GameHeader(
 private fun AppShell() {
     var screen by remember { mutableStateOf(Screen.HOME) }
     var navAnim by remember { mutableStateOf(NavAnim.SLIDE) }
+    var returnScreenAfterLeaderboard by remember { mutableStateOf<Screen?>(null) }
+    var leaderboardTab by remember { mutableStateOf(LeaderboardTab.STARS) }
 
     var soundEnabled by remember { mutableStateOf(true) }
     val fx = remember { SoundFx() }
@@ -444,7 +441,9 @@ private fun AppShell() {
         screen = Screen.GAME
     }
 
-    fun openLb() {
+    fun openLb(tab: LeaderboardTab = leaderboardTab) {
+        leaderboardTab = tab
+        returnScreenAfterLeaderboard = screen
         navAnim = NavAnim.SLIDE
         screen = Screen.LEADERBOARD
     }
@@ -507,26 +506,25 @@ private fun AppShell() {
 
             Screen.MULT_GAME -> MultiplicationTableGame(
                 table = selectedTable,
-                boardId = "mult_$selectedTable",
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER },
-                onOpenLeaderboard = { openLb() }
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
 
             Screen.MULT_HARD_GAME -> HardMultiplication2x2Game(
-                boardId = "mult_hard",
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onOpenLeaderboard = { openLb() }
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
 
             // ✅ NUOVA SCHERMATA: DIVISIONI PASSO-PASSO
             Screen.DIV_STEP_GAME -> DivisionStepGame(
-                boardId = "div_step",
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
@@ -541,15 +539,20 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.EXPAND; screen = Screen.HOME },
-                onOpenLeaderboard = { openLb() }
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
 
             Screen.LEADERBOARD -> LeaderboardScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                digits = digits,
-                onDigitsChange = { digits = it },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME }
+                selectedTab = leaderboardTab,
+                onTabChange = { leaderboardTab = it },
+                onBack = {
+                    navAnim = NavAnim.SLIDE
+                    screen = returnScreenAfterLeaderboard ?: Screen.HOME
+                    returnScreenAfterLeaderboard = null
+                }
             )
         }
     }
@@ -873,19 +876,18 @@ fun GameRouter(
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
-    val boardId = boardIdFor(mode, digits)
-
     when (mode) {
         GameMode.ADD -> LongAdditionGame(
             digits = digits,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,
             onBack = onBack,
-            onOpenLeaderboard = onOpenLeaderboard
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
         )
 
 
@@ -895,12 +897,12 @@ fun GameRouter(
             onToggleSound = onToggleSound,
             fx = fx,
             onBack = onBack,
-            onOpenLeaderboard = onOpenLeaderboard
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
         )
 
         // ✅ anche se dal menu vai alla schermata dedicata, qui lo gestiamo uguale
         GameMode.DIV -> DivisionStepGame(
-            boardId = boardId,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,
@@ -908,7 +910,14 @@ fun GameRouter(
             onOpenLeaderboard = onOpenLeaderboard
         )
 
-        GameMode.MONEY -> MoneyCountGame(boardId, soundEnabled, onToggleSound, fx, onBack, onOpenLeaderboard)
+        GameMode.MONEY -> MoneyCountGame(
+            soundEnabled,
+            onToggleSound,
+            fx,
+            onBack,
+            onOpenLeaderboard,
+            onOpenLeaderboardFromBonus
+        )
 
         else -> {
             // MULT e MULT_HARD hanno schermate dedicate in AppShell
@@ -924,32 +933,19 @@ fun GameRouter(
 fun LeaderboardScreen(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
-    digits: Int,
-    onDigitsChange: (Int) -> Unit,
+    selectedTab: LeaderboardTab,
+    onTabChange: (LeaderboardTab) -> Unit,
     onBack: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-
-    var modeTab by remember { mutableStateOf(0) }
-    val mode = when (modeTab) {
-        0 -> GameMode.ADD
-        1 -> GameMode.SUB
-        2 -> GameMode.MULT
-        3 -> GameMode.DIV
-        4 -> GameMode.MONEY
-        else -> GameMode.MULT_HARD
-    }
-
-    val usesDigits = (mode == GameMode.ADD || mode == GameMode.SUB)
-    val boardId = boardIdFor(mode, digits)
-    val balloonsId = balloonsBoardId(boardId)
-    val starsId = starsBoardId(boardId)
+    val balloonsId = GLOBAL_BALLOONS_LEADERBOARD_ID
+    val starsId = GLOBAL_STARS_LEADERBOARD_ID
 
     var refreshToken by remember { mutableStateOf(0) }
-    val balloonEntries = remember(modeTab, digits, refreshToken) {
+    val balloonEntries = remember(refreshToken) {
         loadEntries(context, balloonsId).sortedBy { it.value }
     }
-    val starEntries = remember(modeTab, digits, refreshToken) {
+    val starEntries = remember(refreshToken) {
         loadEntries(context, starsId).sortedByDescending { it.value }
     }
 
@@ -965,75 +961,69 @@ fun LeaderboardScreen(
             SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
         }
 
-        SeaGlassPanel(title = "Modalità") {
+        SeaGlassPanel(title = "Classifiche Bonus") {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ModeTabPill("➕", selected = modeTab == 0) { modeTab = 0 }
-                ModeTabPill("➖", selected = modeTab == 1) { modeTab = 1 }
-                ModeTabPill("✖️", selected = modeTab == 2) { modeTab = 2 }
-                ModeTabPill("➗", selected = modeTab == 3) { modeTab = 3 }
-                ModeTabPill("💶", selected = modeTab == 4) { modeTab = 4 }
-                ModeTabPill("🧠×", selected = modeTab == 5) { modeTab = 5 }
-            }
-
-            if (usesDigits) {
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ModeTabPill("2 cifre", selected = digits == 2) { onDigitsChange(2) }
-                    ModeTabPill("3 cifre", selected = digits == 3) { onDigitsChange(3) }
+                ModeTabPill("🎈 Palloncini", selected = selectedTab == LeaderboardTab.BALLOONS) {
+                    onTabChange(LeaderboardTab.BALLOONS)
+                }
+                ModeTabPill("⭐ Stelline", selected = selectedTab == LeaderboardTab.STARS) {
+                    onTabChange(LeaderboardTab.STARS)
                 }
             }
         }
 
-        SeaGlassPanel(title = "Palloncini (Tempo)") {
-            if (balloonEntries.isEmpty()) {
-                Text(
-                    "Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!",
-                    color = Color(0xFF6B7280)
-                )
-            } else {
-                balloonEntries.take(10).forEachIndexed { i, e ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
-                        Text(
-                            formatMs(e.value),
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+        when (selectedTab) {
+            LeaderboardTab.BALLOONS -> SeaGlassPanel(title = "Palloncini (Tempo)") {
+                if (balloonEntries.isEmpty()) {
+                    Text(
+                        "Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!",
+                        color = Color(0xFF6B7280)
+                    )
+                } else {
+                    balloonEntries.take(10).forEachIndexed { i, e ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
+                            Text(
+                                formatMs(e.value),
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
+
+                OutlinedButton(
+                    onClick = { clearLeaderboard(context, balloonsId); refreshToken++ },
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Svuota classifica palloncini") }
             }
 
-            OutlinedButton(
-                onClick = { clearLeaderboard(context, balloonsId); refreshToken++ },
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Svuota classifica palloncini") }
-        }
-
-        SeaGlassPanel(title = "Stelline (Punti)") {
-            if (starEntries.isEmpty()) {
-                Text(
-                    "Nessun record ancora.\nCompleta 5 risposte giuste e gioca con le stelline!",
-                    color = Color(0xFF6B7280)
-                )
-            } else {
-                starEntries.take(10).forEachIndexed { i, e ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
-                        Text(
-                            "${e.value}",
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
+            LeaderboardTab.STARS -> SeaGlassPanel(title = "Stelline (Punti)") {
+                if (starEntries.isEmpty()) {
+                    Text(
+                        "Nessun record ancora.\nCompleta 5 risposte giuste e gioca con le stelline!",
+                        color = Color(0xFF6B7280)
+                    )
+                } else {
+                    starEntries.take(10).forEachIndexed { i, e ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
+                            Text(
+                                "${e.value}",
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
                     }
                 }
-            }
 
-            OutlinedButton(
-                onClick = { clearLeaderboard(context, starsId); refreshToken++ },
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Svuota classifica stelline") }
+                OutlinedButton(
+                    onClick = { clearLeaderboard(context, starsId); refreshToken++ },
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Svuota classifica stelline") }
+            }
         }
     }
 }

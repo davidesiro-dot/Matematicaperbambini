@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,10 +57,9 @@ data class StarState(
 fun FallingStarsGame(
     starCount: Int = 10,
     durationMs: Long = 30_000,
-    boardId: String,
     soundEnabled: Boolean,
     fx: SoundFx,
-    onBackToMath: () -> Unit
+    onFinish: () -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -72,66 +69,20 @@ fun FallingStarsGame(
     var elapsedMs by remember { mutableStateOf(0L) }
     var score by remember { mutableStateOf(0) }
     var finished by remember { mutableStateOf(false) }
-    var started by remember { mutableStateOf(false) }
-    var showNameDialog by remember { mutableStateOf(true) }
-    var playerName by remember { mutableStateOf("Bimbo") }
+    var started by remember { mutableStateOf(true) }
+    var showNameEntry by remember { mutableStateOf(false) }
+    var playerName by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
-    var showLeaderboard by remember { mutableStateOf(false) }
-    var refreshToken by remember { mutableStateOf(0) }
-    var showSummary by remember { mutableStateOf(false) }
-    var summaryRank by remember { mutableStateOf<Int?>(null) }
-    var summaryScore by remember { mutableStateOf<Long?>(null) }
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
     var lastFrameNs by remember { mutableStateOf(0L) }
 
     val widthPx = containerSize.width.toFloat()
     val heightPx = containerSize.height.toFloat()
-    val paused = showNameDialog || showLeaderboard || finished
-    val starsBoardId = starsBoardId(boardId)
-
-    if (showNameDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Nome del bimbo") },
-            text = {
-                Column {
-                    Text("Scrivi il tuo nome per iniziare!")
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = playerName,
-                        onValueChange = { newValue ->
-                            val filtered = newValue.trimStart().trimEnd().take(12)
-                            playerName = filtered
-                        },
-                        singleLine = true,
-                        label = { Text("Nome") }
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val trimmed = playerName.trim()
-                        playerName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
-                        showNameDialog = false
-                        started = true
-                    }
-                ) {
-                    Text("Inizia")
-                }
-            }
-        )
-    }
+    val paused = showNameEntry || finished
 
     LaunchedEffect(finished) {
         if (finished && !saved) {
-            saved = true
-            addScoreEntry(context, starsBoardId, ScoreEntry(playerName, score.toLong()))
-            refreshToken++
-            val updatedEntries = loadEntries(context, starsBoardId)
-            summaryRank = computeRankScore(updatedEntries, score.toLong())
-            summaryScore = score.toLong()
-            showSummary = true
+            showNameEntry = true
         }
     }
 
@@ -150,9 +101,6 @@ fun FallingStarsGame(
         val ui = rememberUiSizing()
         val headerPad = ui.pad
         val headerSpacing = if (ui.isCompact) 8.dp else 16.dp
-        val buttonSize = if (ui.isCompact) 34.dp else 40.dp
-        val buttonFont = if (ui.isCompact) 16.sp else 18.sp
-        val buttonIcon = if (ui.isCompact) 18.dp else 22.dp
         val hintFont = if (ui.isCompact) 14.sp else 16.sp
         val starMin = if (ui.isCompact) 30 else 36
         val starMax = if (ui.isCompact) 46 else 56
@@ -245,14 +193,6 @@ fun FallingStarsGame(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(Modifier.width(if (ui.isCompact) 6.dp else 10.dp))
-                SmallCircleButton(
-                    "🏆",
-                    onClick = { showLeaderboard = true },
-                    size = buttonSize,
-                    iconSize = buttonIcon,
-                    fontSize = buttonFont
-                )
             }
 
             Spacer(Modifier.height(if (ui.isCompact) 8.dp else 12.dp))
@@ -293,44 +233,42 @@ fun FallingStarsGame(
             }
         }
 
-        if (showSummary) {
+        if (showNameEntry) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0x99000000)),
+                    .background(Color(0xCC0F172A)),
                 contentAlignment = Alignment.Center
             ) {
-                SeaGlassPanel(title = "Riepilogo Bonus") {
-                    Text(
-                        "Punti: ${summaryScore ?: score}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "Posizione in classifica: #${summaryRank ?: "-"}",
-                        color = MaterialTheme.colorScheme.onSurface
+                SeaGlassPanel(title = "Salva i tuoi punti") {
+                    Text("Scrivi il tuo nome (max 12 caratteri)")
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = playerName,
+                        onValueChange = { newValue ->
+                            playerName = newValue.trimStart().trimEnd().take(12)
+                        },
+                        singleLine = true,
+                        label = { Text("Nome") }
                     )
                     Spacer(Modifier.height(16.dp))
                     Button(
                         onClick = {
-                            showSummary = false
-                            onBackToMath()
+                            if (saved) return@Button
+                            val trimmed = playerName.trim()
+                            val finalName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
+                            saved = true
+                            addScoreEntry(
+                                context,
+                                GLOBAL_STARS_LEADERBOARD_ID,
+                                ScoreEntry(finalName, score.toLong())
+                            )
+                            showNameEntry = false
+                            onFinish()
                         }
-                    ) { Text("⬅ Torna agli esercizi") }
+                    ) { Text("Salva e vai alla classifica") }
                 }
             }
-        }
-
-        if (showLeaderboard) {
-            val entries = remember(refreshToken) {
-                loadEntries(context, starsBoardId).sortedByDescending { it.value }
-            }
-            LeaderboardDialog(
-                title = "Classifica Stelline",
-                entries = entries,
-                valueFormatter = { it.toString() },
-                onDismiss = { showLeaderboard = false }
-            )
         }
     }
 }
