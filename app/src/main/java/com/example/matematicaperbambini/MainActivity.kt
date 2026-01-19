@@ -125,6 +125,18 @@ fun clearLeaderboard(context: Context, boardId: String) {
     saveEntries(context, boardId, emptyList())
 }
 
+fun computeRankTime(entries: List<ScoreEntry>, myValue: Long): Int {
+    val sorted = entries.sortedBy { it.value }
+    val index = sorted.indexOfFirst { it.value == myValue }
+    return if (index >= 0) index + 1 else sorted.size + 1
+}
+
+fun computeRankScore(entries: List<ScoreEntry>, myValue: Long): Int {
+    val sorted = entries.sortedByDescending { it.value }
+    val index = sorted.indexOfFirst { it.value == myValue }
+    return if (index >= 0) index + 1 else sorted.size + 1
+}
+
 fun bestTime(context: Context, boardId: String): Long? =
     loadEntries(context, boardId).minByOrNull { it.value }?.value
 
@@ -226,7 +238,7 @@ private fun AppBackground(content: @Composable () -> Unit) {
 // -----------------------------
 @Composable
 fun SeaGlassPanel(
-    title: String,
+    title: String? = null,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
@@ -243,7 +255,9 @@ fun SeaGlassPanel(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            if (!title.isNullOrBlank()) {
+                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            }
             content()
         }
     }
@@ -374,11 +388,11 @@ fun GameHeader(
                     title,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = titleSize,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     "Fai 5 giuste per il BONUS 🎈",
-                    color = Color.White.copy(alpha = 0.88f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     fontSize = subtitleSize,
                     maxLines = if (isCompact) 1 else 2,
                     overflow = TextOverflow.Ellipsis

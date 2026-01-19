@@ -352,7 +352,8 @@ fun LongAdditionGame(
             boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
-            onRewardEarned = { rewardsEarned += 1 }
+            onRewardEarned = { rewardsEarned += 1 },
+            onRewardSkipped = { rewardsEarned += 1 }
         )
     }
 }
