@@ -363,25 +363,38 @@ fun DivisionStepGame(
     }
     val activeChunk = current?.stepIndex?.let { plan.steps[it].chunk }
 
-    GameScreenFrame(
-        title = "Divisioni passo passo",
-        soundEnabled = soundEnabled,
-        onToggleSound = onToggleSound,
-        onBack = onBack,
-        onOpenLeaderboard = onOpenLeaderboard,
-        correctCount = correctCount,
-        hintText = hint,
-        message = message,
-        content = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Box(Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val digitW = if (ui.isCompact) 36.dp else 44.dp
+        val digitH = if (ui.isCompact) 48.dp else 56.dp
+        val digitSmallW = if (ui.isCompact) 34.dp else 40.dp
+        val digitSmallH = if (ui.isCompact) 46.dp else 52.dp
+        val fontLarge = if (ui.isCompact) 18 else 22
+        val fontSmall = if (ui.isCompact) 16 else 20
+        val dividerFont = if (ui.isCompact) 28.sp else 34.sp
+        val divisorW = if (ui.isCompact) 44.dp else 52.dp
+        val divisorH = if (ui.isCompact) 50.dp else 56.dp
+
+        GameScreenFrame(
+            title = "Divisioni passo passo",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            correctCount = correctCount,
+            hintText = hint,
+            ui = ui,
+            message = message,
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                 SeaGlassPanel(title = "Come si fa") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
                         Text("1) Allinea il dividendo a sinistra e il divisore a destra: il quoziente va sotto la linea.", color = Color(0xFF374151))
                         Text("2) Prendi il minimo numero di cifre del dividendo (da sinistra) che sia ≥ del divisore.", color = Color(0xFF374151))
                         Text("3) Trova il numero più grande che, moltiplicato per il divisore, resta ≤ al numero scelto.", color = Color(0xFF374151))
                         Text("4) Moltiplica, scrivi il prodotto sotto le cifre scelte e sottrai per ottenere il resto.", color = Color(0xFF374151))
                         Text("5) Abbassa la cifra successiva del dividendo accanto al resto e ripeti 3-4.", color = Color(0xFF374151))
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(if (ui.isCompact) 4.dp else 6.dp))
                         Text(
                             text = if (done) "Hai completato tutti i passi!"
                             else "Adesso: passo $activeStepNumber/${plan.steps.size} • $activeChunk ÷ ${plan.divisor} • $activeAction",
@@ -394,27 +407,29 @@ fun DivisionStepGame(
                 SeaGlassPanel(title = "Esercizio") {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(ui.spacing)
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            plan.dividendDigits.forEach { d -> FixedBox(d.toString()) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
+                            plan.dividendDigits.forEach { d ->
+                                FixedBox(d.toString(), w = digitW, h = digitH, fontSize = fontLarge)
+                            }
                         }
-                        Text("│", fontSize = 34.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        Text("│", fontSize = dividerFont, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            FixedBox(plan.divisor.toString(), w = 52.dp, h = 56.dp, fontSize = 22)
+                            FixedBox(plan.divisor.toString(), w = divisorW, h = divisorH, fontSize = fontLarge)
                             Box(
                                 modifier = Modifier
-                                    .width(52.dp)
-                                    .height(3.dp)
+                                    .width(divisorW)
+                                    .height(if (ui.isCompact) 2.dp else 3.dp)
                                     .background(MaterialTheme.colorScheme.primary)
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
 
                     Text("Quoziente (sotto il divisore)", fontWeight = FontWeight.Bold, color = Color(0xFF374151))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
                         plan.steps.forEachIndexed { si, _ ->
                             DigitBox(
                                 value = qInputs[si],
@@ -422,12 +437,14 @@ fun DivisionStepGame(
                                 active = isActive(DivRow.QUOTIENT, si, 0),
                                 isError = qErr[si],
                                 onValueChange = { onTyped(DivRow.QUOTIENT, si, 0, it) },
-                                w = 44.dp, h = 56.dp, fontSize = 22
+                                w = digitW,
+                                h = digitH,
+                                fontSize = fontLarge
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(if (ui.isCompact) 8.dp else 10.dp))
 
                     plan.steps.forEachIndexed { si, st ->
                         val prodStr = st.product.toString()
@@ -436,17 +453,17 @@ fun DivisionStepGame(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 10.dp)
+                                .padding(top = if (ui.isCompact) 6.dp else 10.dp)
                                 .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(if (ui.isCompact) 8.dp else 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)
                         ) {
                             Text("Passo ${si + 1}: ${st.chunk} ÷ ${plan.divisor}", fontWeight = FontWeight.Black)
                             Text("Prima il quoziente, poi prodotto e resto.", color = Color(0xFF6B7280))
 
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)) {
                                 Text("Prodotto", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
                                     for (c in prodStr.indices) {
                                         DigitBox(
                                             value = prodInputs[si][c],
@@ -454,15 +471,17 @@ fun DivisionStepGame(
                                             active = isActive(DivRow.PRODUCT, si, c),
                                             isError = prodErr[si][c],
                                             onValueChange = { onTyped(DivRow.PRODUCT, si, c, it) },
-                                            w = 40.dp, h = 52.dp, fontSize = 20
+                                            w = digitSmallW,
+                                            h = digitSmallH,
+                                            fontSize = fontSmall
                                         )
                                     }
                                 }
                             }
 
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)) {
                                 Text("Resto", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
                                     for (c in remStr.indices) {
                                         DigitBox(
                                             value = remInputs[si][c],
@@ -470,7 +489,9 @@ fun DivisionStepGame(
                                             active = isActive(DivRow.REMAINDER, si, c),
                                             isError = remErr[si][c],
                                             onValueChange = { onTyped(DivRow.REMAINDER, si, c, it) },
-                                            w = 40.dp, h = 52.dp, fontSize = 20
+                                            w = digitSmallW,
+                                            h = digitSmallH,
+                                            fontSize = fontSmall
                                         )
                                     }
                                 }
@@ -479,16 +500,17 @@ fun DivisionStepGame(
                     }
                 }
             }
-        },
-        bottomBar = {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = { resetSame() }, modifier = Modifier.weight(1f)) {
-                    Text("Ricomincia")
-                }
-                OutlinedButton(onClick = { resetNew() }, modifier = Modifier.weight(1f)) {
-                    Text("Nuovo")
+            },
+            bottomBar = {
+                Row(horizontalArrangement = Arrangement.spacedBy(ui.spacing), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { resetSame() }, modifier = Modifier.weight(1f)) {
+                        Text("Ricomincia")
+                    }
+                    OutlinedButton(onClick = { resetNew() }, modifier = Modifier.weight(1f)) {
+                        Text("Nuovo")
+                    }
                 }
             }
-        }
-    )
+        )
+    }
 }

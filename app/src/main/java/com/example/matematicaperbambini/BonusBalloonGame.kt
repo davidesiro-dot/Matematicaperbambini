@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -241,6 +242,13 @@ fun BonusBalloonGame(
             .padding(8.dp)
             .onSizeChanged { containerSize = it }
     ) {
+        val ui = rememberUiSizing()
+        val headerPad = ui.pad
+        val headerSpacing = if (ui.isCompact) 8.dp else 16.dp
+        val buttonSize = if (ui.isCompact) 34.dp else 40.dp
+        val buttonFont = if (ui.isCompact) 16.sp else 18.sp
+        val buttonIcon = if (ui.isCompact) 18.dp else 22.dp
+        val balloonSizeDp = if (ui.isCompact) 58.dp else 72.dp
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cloudColor = Color.White.copy(alpha = 0.7f)
             val cloudRadius = size.minDimension * 0.08f
@@ -257,7 +265,7 @@ fun BonusBalloonGame(
             drawCircle(cloudColor, cloudRadius * 0.8f, center = androidx.compose.ui.geometry.Offset(size.width * 0.41f, size.height * 0.32f))
         }
 
-        val balloonSizePx = with(density) { 72.dp.toPx() }
+        val balloonSizePx = with(density) { balloonSizeDp.toPx() }
 
         if (started && balloons.isEmpty() && widthPx > 0 && heightPx > 0) {
             repeat(balloonCount) { index ->
@@ -311,7 +319,7 @@ fun BonusBalloonGame(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(headerPad)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
@@ -319,19 +327,25 @@ fun BonusBalloonGame(
                     color = Color.White.copy(alpha = 0.85f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = headerSpacing, vertical = if (ui.isCompact) 6.dp else 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Bonus Round 🎈", fontWeight = FontWeight.ExtraBold)
-                        Spacer(Modifier.width(16.dp))
+                        Spacer(Modifier.width(headerSpacing))
                         Text("Tempo: ${formatMs(elapsedMs)}", fontWeight = FontWeight.Bold)
                     }
                 }
-                Spacer(Modifier.width(10.dp))
-                SmallCircleButton("🏆") { showLeaderboard = true }
+                Spacer(Modifier.width(if (ui.isCompact) 6.dp else 10.dp))
+                SmallCircleButton(
+                    "🏆",
+                    onClick = { showLeaderboard = true },
+                    size = buttonSize,
+                    iconSize = buttonIcon,
+                    fontSize = buttonFont
+                )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(if (ui.isCompact) 8.dp else 12.dp))
 
             Text(
                 "Scoppia tutti i palloncini!",

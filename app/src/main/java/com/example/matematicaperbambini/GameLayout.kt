@@ -1,14 +1,11 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 /**
  * Cornice unica stile "Sottrazioni":
@@ -27,30 +24,35 @@ fun GameScreenFrame(
     onOpenLeaderboard: () -> Unit,
     correctCount: Int,
     hintText: String,
+    ui: UiSizing,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
     bottomBar: @Composable (() -> Unit)? = null,
     message: String? = null
 ) {
-    val scrollState = rememberScrollState()
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(ui.pad),
+        verticalArrangement = Arrangement.spacedBy(ui.spacing)
     ) {
         GameHeader(
             title = title,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             onBack = onBack,
-            onLeaderboard = onOpenLeaderboard
+            onLeaderboard = onOpenLeaderboard,
+            ui = ui
         )
 
-        BonusBar(correctCount = correctCount)
+        BonusBar(correctCount = correctCount, ui = ui)
 
-        InfoPanel(title = "Cosa fare", text = hintText)
+        InfoPanel(
+            title = "Cosa fare",
+            text = hintText,
+            ui = ui,
+            maxLines = if (ui.isCompact) 1 else 2
+        )
 
         content()
 
@@ -63,7 +65,7 @@ fun GameScreenFrame(
 
         bottomBar?.invoke()
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(ui.spacing))
     }
 }
 
