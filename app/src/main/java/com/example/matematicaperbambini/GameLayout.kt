@@ -1,19 +1,32 @@
 package com.example.matematicaperbambini
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 
 /**
  * Cornice unica stile "Sottrazioni":
  * - Header (back/suono/classifica)
- * - BonusBar
- * - InfoPanel con istruzioni/hint
+ * - CompactHud (bonus + hint)
  * - Contenuto (slot)
  * - Bottom bar (slot)
  */
@@ -33,7 +46,9 @@ fun GameScreenFrame(
     message: String? = null
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing),
         contentPadding = PaddingValues(ui.pad),
         verticalArrangement = Arrangement.spacedBy(ui.spacing)
     ) {
@@ -48,25 +63,34 @@ fun GameScreenFrame(
             )
         }
 
-        item { BonusBar(correctCount = correctCount, ui = ui) }
-
         item {
-            InfoPanel(
-                title = "Cosa fare",
-                text = hintText,
-                ui = ui,
-                maxLines = if (ui.isCompact) 1 else 2
+            CompactHud(
+                correctCount = correctCount,
+                hintText = hintText,
+                ui = ui
             )
         }
 
         item { content() }
 
-        if (!message.isNullOrBlank()) {
-            item {
-                Text(
-                    text = message,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+        item {
+            AnimatedVisibility(visible = !message.isNullOrBlank()) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = message.orEmpty(),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
             }
         }
 
@@ -75,6 +99,79 @@ fun GameScreenFrame(
         }
 
         item { Spacer(Modifier.height(ui.spacing)) }
+    }
+}
+
+@Composable
+private fun CompactHud(
+    correctCount: Int,
+    hintText: String,
+    ui: UiSizing
+) {
+    val rewardProgress = correctCount % 5
+    val label = if (rewardProgress == 0) "Bonus: 5/5 🎈" else "Bonus: $rewardProgress/5 🎈"
+    val progress = (rewardProgress / 5f).coerceIn(0f, 1f)
+    val isCompact = ui.isCompact
+    val fontSize = if (isCompact) 12.sp else 14.sp
+    val progressHeight = if (isCompact) 6.dp else 8.dp
+    var showHintDialog by remember { mutableStateOf(false) }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontSize = fontSize,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(progressHeight)
+                    .clip(MaterialTheme.shapes.small),
+                color = MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = hintText,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = fontSize,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(
+                onClick = { showHintDialog = true },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("?", fontSize = fontSize)
+            }
+        }
+    }
+
+    if (showHintDialog) {
+        AlertDialog(
+            onDismissRequest = { showHintDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showHintDialog = false }) {
+                    Text("Chiudi")
+                }
+            },
+            title = { Text("Cosa fare") },
+            text = { Text(hintText) }
+        )
     }
 }
 
