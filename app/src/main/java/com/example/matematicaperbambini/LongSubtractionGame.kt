@@ -297,6 +297,7 @@ fun LongSubtractionGame(
     var rewardsEarned by remember { mutableStateOf(0) }
     val currentStep = steps.getOrNull(stepIndex)
     val done = currentStep == null
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     var message by remember { mutableStateOf<String?>(null) }
     var waitTapToContinue by remember { mutableStateOf(false) }
@@ -313,6 +314,7 @@ fun LongSubtractionGame(
         stepIndex = 0
         message = null
         waitTapToContinue = false
+        showSuccessDialog = false
         for (i in topNewInputs.indices) topNewInputs[i] = ""
         for (i in resInputs.indices) resInputs[i] = ""
         for (i in topOk.indices) topOk[i] = null
@@ -379,8 +381,7 @@ fun LongSubtractionGame(
         }
 
         if (stepIndex >= steps.size) {
-            message = "✅ Corretto! Tappa per continuare."
-            waitTapToContinue = true
+            message = "✅ Corretto!"
         }
     }
 
@@ -388,6 +389,12 @@ fun LongSubtractionGame(
     val inputBg = Color(0xFFF3F4F6)
 
     val hint = if (!done) instructionSub(currentStep!!, digits) else "Bravo! 🙂"
+
+    LaunchedEffect(done) {
+        if (done) {
+            showSuccessDialog = true
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
@@ -540,6 +547,16 @@ fun LongSubtractionGame(
                     onRight = { resetForNew() }
                 )
             }
+        )
+
+        SuccessDialog(
+            show = showSuccessDialog,
+            onNew = {
+                showSuccessDialog = false
+                resetForNew()
+            },
+            onDismiss = { showSuccessDialog = false },
+            resultText = expected.resultDigits.joinToString("")
         )
 
         BonusRewardHost(

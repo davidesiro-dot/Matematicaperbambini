@@ -147,6 +147,7 @@ fun LongAdditionGame(
     var step by remember(plan) { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     // input
     val carryIn = remember(plan) { mutableStateOf(CharArray(plan.digits) { '\u0000' }) }
@@ -163,16 +164,24 @@ fun LongAdditionGame(
 
     fun resetSame() {
         step = 0
+        showSuccessDialog = false
         clearInputs()
     }
 
     fun resetNew() {
         plan = computeAdditionPlan(digits, rng)
         step = 0
+        showSuccessDialog = false
     }
 
     val current = plan.targets.getOrNull(step)
     val done = step >= plan.targets.size
+
+    LaunchedEffect(done) {
+        if (done) {
+            showSuccessDialog = true
+        }
+    }
 
     fun enabled(row: AddRowKey, col: Int, kind: AddCellKind): Boolean {
         val t = current ?: return false
@@ -344,6 +353,16 @@ fun LongAdditionGame(
                     onRight = { resetNew() }
                 )
             }
+        )
+
+        SuccessDialog(
+            show = showSuccessDialog,
+            onNew = {
+                showSuccessDialog = false
+                resetNew()
+            },
+            onDismiss = { showSuccessDialog = false },
+            resultText = plan.result.toString()
         )
 
         BonusRewardHost(
