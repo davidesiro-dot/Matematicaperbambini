@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardOptions
+
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -141,7 +141,6 @@ fun MoneyCountGame(
                                     input = value.filter { it.isDigit() || it == ',' || it == '.' }
                                 },
                                 placeholder = { Text("Es. 3,50") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -251,14 +250,26 @@ private fun MoneyItemsGrid(
 
 @Composable
 private fun MoneyItemImage(item: MoneyItem) {
-    val painter = try {
-        painterResource(id = item.drawableRes)
-    } catch (e: Exception) {
-        null
+    val painter = remember(item.drawableRes) {
+        runCatching { item.drawableRes }.getOrNull()
     }
-    if (painter != null) {
+
+    // painterResource è composable: la chiamiamo fuori da try/catch
+    val resolvedPainter = remember(item.drawableRes) {
+        // solo per trigger di remember; la risoluzione vera la facciamo sotto
+        0
+    }
+
+    // Tentativo “safe”: se la risorsa non esiste, Android lancia prima ancora di disegnare.
+    // Quindi invece facciamo un check usando getIdentifier.
+    val res = androidx.compose.ui.platform.LocalContext.current.resources
+    val pkg = androidx.compose.ui.platform.LocalContext.current.packageName
+    val name = res.getResourceEntryName(item.drawableRes) // se item.drawableRes è valido
+    val id = res.getIdentifier(name, "drawable", pkg)
+
+    if (id != 0) {
         Image(
-            painter = painter,
+            painter = painterResource(id = id),
             contentDescription = item.label,
             modifier = Modifier
                 .size(110.dp)
@@ -280,3 +291,4 @@ private fun MoneyItemImage(item: MoneyItem) {
         }
     }
 }
+
