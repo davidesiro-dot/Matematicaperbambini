@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -384,17 +383,19 @@ fun LongSubtractionGame(
         }
     }
 
-    // scaling per evitare “taglio sotto”
-    val screenH = LocalConfiguration.current.screenHeightDp.toFloat()
-    val uiScale = (screenH / 820f).coerceIn(0.72f, 1.0f)
-    val boxSize = (56f * uiScale).dp
-    val gap = (10f * uiScale).dp
     val borrowBg = Color(0xFFE0F2FE)
     val inputBg = Color(0xFFF3F4F6)
 
     val hint = if (!done) instructionSub(currentStep!!, digits) else "Bravo! 🙂"
 
     Box(Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val boxSize = if (ui.isCompact) 46.dp else 56.dp
+        val gap = if (ui.isCompact) 6.dp else 10.dp
+        val minusWidth = if (ui.isCompact) 22.dp else 28.dp
+        val minusSize = if (ui.isCompact) 22.sp else 26.sp
+        val hintFont = if (ui.isCompact) 10.sp else 12.sp
+
         GameScreenFrame(
             title = "Sottrazioni in colonna",
             soundEnabled = soundEnabled,
@@ -403,6 +404,7 @@ fun LongSubtractionGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = hint,
+            ui = ui,
             message = message,
             content = {
                 SeaGlassPanel(title = "Operazione in colonna") {
@@ -478,14 +480,14 @@ fun LongSubtractionGame(
                         // simbolo a destra tra le due righe
                         Box(
                             modifier = Modifier
-                                .width((28f * (boxSize.value / 56f)).dp)
+                                .width(minusWidth)
                                 .height(boxSize + gap + boxSize),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 "−",
                                 fontWeight = FontWeight.Black,
-                                fontSize = (26f * (boxSize.value / 56f)).sp,
+                                fontSize = minusSize,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -518,7 +520,7 @@ fun LongSubtractionGame(
                     Text(
                         "Le caselle azzurre sono per il cambio (prestito).",
                         color = Color(0xFF6B7280),
-                        fontSize = (12f * (boxSize.value / 56f)).sp
+                        fontSize = hintFont
                     )
                 }
 

@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -117,6 +116,12 @@ private fun BasicColumnGame(
     }
 
     Box(Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val questionSize = if (ui.isCompact) 30.sp else 36.sp
+        val inputFontSize = if (ui.isCompact) 18.sp else 22.sp
+        val inputWidth = if (ui.isCompact) 150.dp else 180.dp
+        val actionHeight = if (ui.isCompact) 44.dp else 52.dp
+
         GameScreenFrame(
             title = title,
             soundEnabled = soundEnabled,
@@ -125,13 +130,17 @@ private fun BasicColumnGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Scrivi il risultato e premi Controlla.",
+            ui = ui,
             message = msg,
             content = {
                 SeaGlassPanel(title = "Quanto fa?") {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(ui.spacing)
+                    ) {
                         Text(
                             "$a ${if (title == "Addizioni") "+" else "-"} $b",
-                            fontSize = 36.sp,
+                            fontSize = questionSize,
                             fontWeight = FontWeight.ExtraBold
                         )
 
@@ -139,9 +148,13 @@ private fun BasicColumnGame(
                             value = input,
                             onValueChange = { input = it.filter { c -> c.isDigit() || c == '-' }.take(5) },
                             singleLine = true,
-                            textStyle = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                            textStyle = TextStyle(
+                                fontSize = inputFontSize,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            ),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.width(180.dp)
+                            modifier = Modifier.width(inputWidth)
                         )
                     }
                 }
@@ -160,7 +173,7 @@ private fun BasicColumnGame(
                             if (soundEnabled) fx.wrong()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    modifier = Modifier.fillMaxWidth().height(actionHeight),
                     shape = RoundedCornerShape(14.dp)
                 ) { Text("Controlla") }
             }
@@ -205,12 +218,6 @@ fun MultiplicationTableGame(
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit
 ) {
-    val screenH = LocalConfiguration.current.screenHeightDp
-    val scale = (screenH / 820f).coerceIn(0.7f, 1f)
-
-    val boxW = (64 * scale).dp   // 🔽 50% più piccoli
-    val boxH = (52 * scale).dp
-
     var step by remember { mutableStateOf(1) }
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val ok = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
@@ -226,6 +233,12 @@ fun MultiplicationTableGame(
     }
 
     Box(Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val boxW = if (ui.isCompact) ui.cellSmall else ui.cell
+        val boxH = if (ui.isCompact) ui.cellSmall else ui.cell
+        val fontSize = if (ui.isCompact) 16.sp else 18.sp
+        val actionHeight = if (ui.isCompact) 44.dp else 52.dp
+
         GameScreenFrame(
             title = "Tabellina del $table",
             soundEnabled = soundEnabled,
@@ -234,9 +247,10 @@ fun MultiplicationTableGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Completa la tabellina scrivendo tutti i risultati.",
+            ui = ui,
             content = {
                 SeaGlassPanel(title = "Completa la tabellina") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                         for (i in 1..10) {
                             val index = i - 1
                             val active = (i == step)
@@ -246,11 +260,11 @@ fun MultiplicationTableGame(
                             Row(
                                 Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(ui.spacing)
                             ) {
                                 Text(
                                     "$table × $i",
-                                    modifier = Modifier.width(80.dp),
+                                    modifier = Modifier.width(if (ui.isCompact) 70.dp else 80.dp),
                                     fontWeight = FontWeight.Bold
                                 )
 
@@ -279,7 +293,7 @@ fun MultiplicationTableGame(
                                         .width(boxW)
                                         .height(boxH),
                                     textStyle = TextStyle(
-                                        fontSize = (18 * scale).sp,
+                                        fontSize = fontSize,
                                         fontWeight = FontWeight.ExtraBold,
                                         textAlign = TextAlign.Center
                                     ),
@@ -301,7 +315,7 @@ fun MultiplicationTableGame(
             bottomBar = {
                 Button(
                     onClick = { reset() },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    modifier = Modifier.fillMaxWidth().height(actionHeight),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFEF4444),
                         contentColor = Color.White
@@ -348,41 +362,50 @@ fun DivisionGame(
     var input by remember { mutableStateOf("") }
     var msg by remember { mutableStateOf<String?>(null) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        GameHeader("Divisioni", soundEnabled, onToggleSound, onBack, onOpenLeaderboard)
+    Box(Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val actionHeight = if (ui.isCompact) 44.dp else 52.dp
+        val titleSize = if (ui.isCompact) 28.sp else 32.sp
 
-        SeaGlassPanel(title = "Dividi") {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${q.first} ÷ ${q.second}", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
+        Column(
+            Modifier.fillMaxSize().padding(ui.pad),
+            verticalArrangement = Arrangement.spacedBy(ui.spacing)
+        ) {
+            GameHeader("Divisioni", soundEnabled, onToggleSound, onBack, onOpenLeaderboard, ui = ui)
 
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it.filter { c -> c.isDigit() } },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
-                )
-            }
-        }
+            SeaGlassPanel(title = "Dividi") {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("${q.first} ÷ ${q.second}", fontSize = titleSize, fontWeight = FontWeight.ExtraBold)
 
-        Button(
-            onClick = {
-                val u = input.toIntOrNull()
-                if (u == q.first / q.second) {
-                    msg = "✅ Corretto"
-                    if (soundEnabled) fx.correct()
-                    q = newQ()
-                    input = ""
-                } else {
-                    msg = "❌ Riprova"
-                    if (soundEnabled) fx.wrong()
+                    OutlinedTextField(
+                        value = input,
+                        onValueChange = { input = it.filter { c -> c.isDigit() } },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
                 }
-            },
-            modifier = Modifier.fillMaxWidth().height(52.dp)
-        ) { Text("Controlla") }
+            }
 
-        if (!msg.isNullOrBlank()) Text(msg!!, fontWeight = FontWeight.Bold)
+            Button(
+                onClick = {
+                    val u = input.toIntOrNull()
+                    if (u == q.first / q.second) {
+                        msg = "✅ Corretto"
+                        if (soundEnabled) fx.correct()
+                        q = newQ()
+                        input = ""
+                    } else {
+                        msg = "❌ Riprova"
+                        if (soundEnabled) fx.wrong()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(actionHeight)
+            ) { Text("Controlla") }
 
-        Spacer(Modifier.weight(1f))
+            if (!msg.isNullOrBlank()) Text(msg!!, fontWeight = FontWeight.Bold)
+
+            Spacer(Modifier.weight(1f))
+        }
     }
 }
 
@@ -407,6 +430,10 @@ fun MoneyGame(
     var rewardsEarned by remember { mutableStateOf(0) }
 
     Box(Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val titleSize = if (ui.isCompact) 24.sp else 28.sp
+        val actionHeight = if (ui.isCompact) 44.dp else 52.dp
+
         GameScreenFrame(
             title = "Soldi",
             soundEnabled = soundEnabled,
@@ -415,11 +442,12 @@ fun MoneyGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Somma le monete e scrivi il totale.",
+            ui = ui,
             message = msg,
             content = {
                 SeaGlassPanel(title = "Quanto fa?") {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("€ $a + € $b", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+                        Text("€ $a + € $b", fontSize = titleSize, fontWeight = FontWeight.ExtraBold)
 
                         OutlinedTextField(
                             value = input,
@@ -445,7 +473,7 @@ fun MoneyGame(
                             if (soundEnabled) fx.wrong()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                    modifier = Modifier.fillMaxWidth().height(actionHeight)
                 ) { Text("Controlla") }
             }
         )

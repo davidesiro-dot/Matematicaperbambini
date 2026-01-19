@@ -46,6 +46,9 @@ import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 
 
 // -----------------------------
@@ -247,12 +250,18 @@ fun SeaGlassPanel(
 }
 
 @Composable
-fun SmallCircleButton(text: String, onClick: () -> Unit) {
+fun SmallCircleButton(
+    text: String,
+    onClick: () -> Unit,
+    size: Dp = 40.dp,
+    iconSize: Dp = 22.dp,
+    fontSize: TextUnit = 18.sp
+) {
     val isBack = text == "⬅"
 
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(size)
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.78f))
             .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape)
@@ -264,12 +273,12 @@ fun SmallCircleButton(text: String, onClick: () -> Unit) {
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = null,
                 tint = Color(0xFF111827),
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(iconSize)
             )
         } else {
             Text(
                 text,
-                fontSize = 18.sp,
+                fontSize = fontSize,
                 textAlign = TextAlign.Center,
                 color = Color(0xFF111827)
             )
@@ -279,24 +288,50 @@ fun SmallCircleButton(text: String, onClick: () -> Unit) {
 
 
 @Composable
-fun InfoPanel(title: String, text: String) {
-    SeaGlassPanel(title = title) { Text(text, style = MaterialTheme.typography.bodyLarge) }
+fun InfoPanel(
+    title: String,
+    text: String,
+    ui: UiSizing? = null,
+    maxLines: Int = Int.MAX_VALUE
+) {
+    SeaGlassPanel(title = title) {
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = (ui?.font ?: 18).sp
+            ),
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
 }
 
 @Composable
-fun BonusBar(correctCount: Int) {
+fun BonusBar(correctCount: Int, ui: UiSizing? = null) {
     val rewardProgress = correctCount % 5
     val label = if (rewardProgress == 0) "Bonus: 5/5 🎈" else "Bonus: $rewardProgress/5"
     val p = (rewardProgress / 5f).coerceIn(0f, 1f)
+    val fontSize = (ui?.font ?: 18).sp
+    val barHeight = if (ui?.isCompact == true) 8.dp else 10.dp
 
     SeaGlassPanel(title = "Progresso") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Obiettivo", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-            Text(label, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Obiettivo",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF6B7280),
+                fontSize = fontSize
+            )
+            Text(
+                label,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = fontSize
+            )
         }
         LinearProgressIndicator(
             progress = { p },
-            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(999.dp)),
+            modifier = Modifier.fillMaxWidth().height(barHeight).clip(RoundedCornerShape(999.dp)),
             color = MaterialTheme.colorScheme.secondary,
             trackColor = Color.White.copy(alpha = 0.60f)
         )
@@ -309,23 +344,61 @@ fun GameHeader(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
-    onLeaderboard: () -> Unit
+    onLeaderboard: () -> Unit,
+    ui: UiSizing? = null
 ) {
+    val isCompact = ui?.isCompact == true
+    val titleSize = (ui?.title ?: 18).sp
+    val subtitleSize = if (isCompact) 10.sp else 12.sp
+    val buttonSize = if (isCompact) 34.dp else 40.dp
+    val iconSize = if (isCompact) 18.dp else 22.dp
+    val buttonFont = if (isCompact) 16.sp else 18.sp
+    val spacing = if (isCompact) 6.dp else 10.dp
+
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SmallCircleButton("⬅") { onBack() }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing)) {
+            SmallCircleButton(
+                "⬅",
+                onClick = onBack,
+                size = buttonSize,
+                iconSize = iconSize,
+                fontSize = buttonFont
+            )
             Column {
-                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
-                Text("Fai 5 giuste per il BONUS 🎈", color = Color.White.copy(alpha = 0.88f), fontSize = 12.sp)
+                Text(
+                    title,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = titleSize,
+                    color = Color.White
+                )
+                Text(
+                    "Fai 5 giuste per il BONUS 🎈",
+                    color = Color.White.copy(alpha = 0.88f),
+                    fontSize = subtitleSize,
+                    maxLines = if (isCompact) 1 else 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-            SmallCircleButton("🏆") { onLeaderboard() }
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+            SmallCircleButton(
+                if (soundEnabled) "🔊" else "🔇",
+                onClick = onToggleSound,
+                size = buttonSize,
+                iconSize = iconSize,
+                fontSize = buttonFont
+            )
+            SmallCircleButton(
+                "🏆",
+                onClick = onLeaderboard,
+                size = buttonSize,
+                iconSize = iconSize,
+                fontSize = buttonFont
+            )
         }
     }
 }
