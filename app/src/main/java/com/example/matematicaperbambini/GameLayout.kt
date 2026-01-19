@@ -204,3 +204,39 @@ fun GameBottomActions(
         }
     }
 }
+
+@Composable
+fun SuccessDialog(
+    show: Boolean,
+    onNew: () -> Unit,
+    onDismiss: () -> Unit,
+    resultText: String? = null
+) {
+    if (!show) return
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Bravissimo! 🎉") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Operazione corretta!")
+                if (!resultText.isNullOrBlank()) {
+                    Text("Risultato: $resultText")
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onNew,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Nuova operazione")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Chiudi")
+            }
+        }
+    )
+}

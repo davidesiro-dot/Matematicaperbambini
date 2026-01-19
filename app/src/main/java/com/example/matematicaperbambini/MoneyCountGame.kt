@@ -54,6 +54,7 @@ fun MoneyCountGame(
     var coinsOnly by remember { mutableStateOf(false) }
     var wrongAttempts by remember { mutableStateOf(0) }
     var revealSolution by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     fun generateRound(clearMessage: Boolean) {
         val round = MoneyRoundGenerator.generateRound(
@@ -66,6 +67,7 @@ fun MoneyCountGame(
         input = ""
         wrongAttempts = 0
         revealSolution = false
+        showSuccessDialog = false
         if (clearMessage) {
             message = null
         }
@@ -194,7 +196,9 @@ fun MoneyCountGame(
                                             correctCount += 1
                                             message = "Bravo! Totale ${formatEuro(expectedTotalCents)}"
                                             if (soundEnabled) fx.correct()
-                                            generateRound(clearMessage = false)
+                                            if (!showSuccessDialog) {
+                                                showSuccessDialog = true
+                                            }
                                         } else {
                                             wrongAttempts += 1
                                             message = "Riprova. Hai scritto ${formatEuro(parsed)}"
@@ -236,6 +240,16 @@ fun MoneyCountGame(
                     }
                 }
             }
+        )
+
+        SuccessDialog(
+            show = showSuccessDialog,
+            onNew = {
+                showSuccessDialog = false
+                generateRound(clearMessage = true)
+            },
+            onDismiss = { showSuccessDialog = false },
+            resultText = formatEuro(expectedTotalCents)
         )
 
         BonusRewardHost(
