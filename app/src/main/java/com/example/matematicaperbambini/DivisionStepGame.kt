@@ -267,6 +267,7 @@ fun DivisionStepGame(
 
     var correctCount by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf<String?>(null) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     val qInputs = remember(plan) { mutableStateListOf<String>().apply { repeat(plan.steps.size) { add("") } } }
     val prodInputs = remember(plan) {
@@ -293,6 +294,7 @@ fun DivisionStepGame(
     fun resetSame() {
         stepIndex = 0
         message = null
+        showSuccessDialog = false
         for (i in qInputs.indices) { qInputs[i] = ""; qErr[i] = false }
         for (si in prodInputs.indices) {
             for (c in prodInputs[si].indices) { prodInputs[si][c] = ""; prodErr[si][c] = false }
@@ -352,6 +354,12 @@ fun DivisionStepGame(
     val hint = if (done) {
         "Bravo! Quoziente ${plan.finalQuotient} con resto ${plan.finalRemainder}."
     } else current!!.hint
+
+    LaunchedEffect(done) {
+        if (done) {
+            showSuccessDialog = true
+        }
+    }
 
     val activeStepNumber = current?.stepIndex?.plus(1) ?: plan.steps.size
     val activeAction = when (current?.row) {
@@ -510,6 +518,16 @@ fun DivisionStepGame(
                     }
                 }
             }
+        )
+
+        SuccessDialog(
+            show = showSuccessDialog,
+            onNew = {
+                showSuccessDialog = false
+                resetNew()
+            },
+            onDismiss = { showSuccessDialog = false },
+            resultText = "${plan.finalQuotient} r. ${plan.finalRemainder}"
         )
     }
 }

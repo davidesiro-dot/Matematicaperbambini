@@ -213,6 +213,7 @@ fun HardMultiplication2x2Game(
     var step by remember { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
     var inP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -231,6 +232,7 @@ fun HardMultiplication2x2Game(
     fun reset(newA: Int, newB: Int) {
         plan = hmComputePlan(newA, newB)
         step = 0
+        showSuccessDialog = false
         inCarryP1 = CharArray(4) { '\u0000' }
         inP1 = CharArray(4) { '\u0000' }
         inCarryP2 = CharArray(4) { '\u0000' }
@@ -254,6 +256,12 @@ fun HardMultiplication2x2Game(
 
     val current = plan.targets.getOrNull(step)
     val done = step >= plan.targets.size
+
+    LaunchedEffect(done) {
+        if (done) {
+            showSuccessDialog = true
+        }
+    }
 
     fun enabled(row: HMRowKey, col: Int, kind: HMCellKind): Boolean {
         val t = current ?: return false
@@ -488,6 +496,16 @@ fun HardMultiplication2x2Game(
                     }
                 )
             }
+        )
+
+        SuccessDialog(
+            show = showSuccessDialog,
+            onNew = {
+                showSuccessDialog = false
+                reset(Random.nextInt(10, 100), Random.nextInt(10, 100))
+            },
+            onDismiss = { showSuccessDialog = false },
+            resultText = plan.result.toString()
         )
 
         BonusRewardHost(
