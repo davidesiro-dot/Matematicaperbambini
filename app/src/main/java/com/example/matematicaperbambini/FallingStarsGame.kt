@@ -78,6 +78,9 @@ fun FallingStarsGame(
     var saved by remember { mutableStateOf(false) }
     var showLeaderboard by remember { mutableStateOf(false) }
     var refreshToken by remember { mutableStateOf(0) }
+    var showSummary by remember { mutableStateOf(false) }
+    var summaryRank by remember { mutableStateOf<Int?>(null) }
+    var summaryScore by remember { mutableStateOf<Long?>(null) }
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
     var lastFrameNs by remember { mutableStateOf(0L) }
 
@@ -118,6 +121,18 @@ fun FallingStarsGame(
                 }
             }
         )
+    }
+
+    LaunchedEffect(finished) {
+        if (finished && !saved) {
+            saved = true
+            addScoreEntry(context, starsBoardId, ScoreEntry(playerName, score.toLong()))
+            refreshToken++
+            val updatedEntries = loadEntries(context, starsBoardId)
+            summaryRank = computeRankScore(updatedEntries, score.toLong())
+            summaryScore = score.toLong()
+            showSummary = true
+        }
     }
 
     Box(
@@ -278,40 +293,30 @@ fun FallingStarsGame(
             }
         }
 
-        if (finished) {
+        if (showSummary) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x99000000)),
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color.White
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "Finito! Punti: $score",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = {
-                                if (!saved) {
-                                    saved = true
-                                    addScoreEntry(context, starsBoardId, ScoreEntry(playerName, score.toLong()))
-                                    refreshToken++
-                                    onBackToMath()
-                                }
-                            }
-                        ) {
-                            Text("Continua")
+                SeaGlassPanel(title = "Riepilogo Bonus") {
+                    Text(
+                        "Punti: ${summaryScore ?: score}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Posizione in classifica: #${summaryRank ?: "-"}",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            showSummary = false
+                            onBackToMath()
                         }
-                    }
+                    ) { Text("⬅ Torna agli esercizi") }
                 }
             }
         }

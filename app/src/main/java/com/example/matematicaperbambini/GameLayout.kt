@@ -8,7 +8,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,49 +52,50 @@ fun GameScreenFrame(
         verticalArrangement = Arrangement.spacedBy(ui.spacing)
     ) {
         item {
-            GameHeader(
-                title = title,
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = onOpenLeaderboard,
-                ui = ui
-            )
+            SeaGlassPanel {
+                GameHeader(
+                    title = title,
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onBack = onBack,
+                    onLeaderboard = onOpenLeaderboard,
+                    ui = ui
+                )
+            }
         }
 
         item {
-            CompactHud(
-                correctCount = correctCount,
-                hintText = hintText,
-                ui = ui
-            )
+            SeaGlassPanel {
+                CompactHud(
+                    correctCount = correctCount,
+                    hintText = hintText,
+                    ui = ui
+                )
+            }
         }
 
         item { content() }
 
         item {
             AnimatedVisibility(visible = !message.isNullOrBlank()) {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
-                    shape = MaterialTheme.shapes.large,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                SeaGlassPanel {
                     Text(
                         text = message.orEmpty(),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
         }
 
         if (bottomBar != null) {
-            item { bottomBar() }
+            item {
+                SeaGlassPanel {
+                    bottomBar()
+                }
+            }
         }
 
         item { Spacer(Modifier.height(ui.spacing)) }

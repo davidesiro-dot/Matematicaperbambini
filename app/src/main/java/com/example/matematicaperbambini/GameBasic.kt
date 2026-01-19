@@ -187,8 +187,11 @@ private fun BasicColumnGame(
             fx = fx,
             onRewardEarned = {
                 rewardsEarned += 1
-                msg = null
-                next()
+                waitTap = true
+            },
+            onRewardSkipped = {
+                rewardsEarned += 1
+                waitTap = true
             }
         )
     }
@@ -333,7 +336,8 @@ fun MultiplicationTableGame(
             boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
-            onRewardEarned = { rewardsEarned += 1 }
+            onRewardEarned = { rewardsEarned += 1 },
+            onRewardSkipped = { rewardsEarned += 1 }
         )
     }
 }
@@ -484,7 +488,8 @@ fun MoneyGame(
             boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
-            onRewardEarned = { rewardsEarned += 1 }
+            onRewardEarned = { rewardsEarned += 1 },
+            onRewardSkipped = { rewardsEarned += 1 }
         )
     }
 }

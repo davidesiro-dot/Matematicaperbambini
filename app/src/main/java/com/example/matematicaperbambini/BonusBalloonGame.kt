@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -78,7 +79,8 @@ fun BonusRewardHost(
     boardId: String,
     soundEnabled: Boolean,
     fx: SoundFx,
-    onRewardEarned: () -> Unit
+    onRewardEarned: () -> Unit,
+    onRewardSkipped: () -> Unit
 ) {
     val nextRewardAt = (rewardsEarned + 1) * 5
     val rng = remember { Random(System.currentTimeMillis()) }
@@ -114,6 +116,15 @@ fun BonusRewardHost(
                         if (soundEnabled) fx.bonus()
                     }
                 ) { Text("Gioca") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPrompt = false
+                        pickedGame = null
+                        onRewardSkipped()
+                    }
+                ) { Text("Torna agli esercizi") }
             }
         )
     }
@@ -166,6 +177,9 @@ fun BonusBalloonGame(
     var saved by remember { mutableStateOf(false) }
     var showLeaderboard by remember { mutableStateOf(false) }
     var refreshToken by remember { mutableStateOf(0) }
+    var showSummary by remember { mutableStateOf(false) }
+    var summaryRank by remember { mutableStateOf<Int?>(null) }
+    var summaryTimeMs by remember { mutableStateOf<Long?>(null) }
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
     var lastFrameNs by remember { mutableStateOf(0L) }
 
@@ -230,6 +244,22 @@ fun BonusBalloonGame(
                 ) { Text("Inizia") }
             }
         )
+    }
+
+    LaunchedEffect(finished) {
+        if (finished && !saved) {
+            saved = true
+            addTimeEntry(
+                context,
+                balloonBoardId,
+                ScoreEntry(playerName, elapsedMs)
+            )
+            refreshToken++
+            val updatedEntries = loadEntries(context, balloonBoardId)
+            summaryRank = computeRankTime(updatedEntries, elapsedMs)
+            summaryTimeMs = elapsedMs
+            showSummary = true
+        }
     }
 
     Box(
@@ -457,42 +487,30 @@ fun BonusBalloonGame(
             )
         }
 
-        if (finished) {
+        if (showSummary) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x99000000)),
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color.White
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "Finito! Tempo: ${formatMs(elapsedMs)}",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = {
-                                if (!saved) {
-                                    saved = true
-                                    addTimeEntry(
-                                        context,
-                                        balloonBoardId,
-                                        ScoreEntry(playerName, elapsedMs)
-                                    )
-                                    refreshToken++
-                                    onBackToMath()
-                                }
-                            }
-                        ) { Text("Continua") }
-                    }
+                SeaGlassPanel(title = "Riepilogo Bonus") {
+                    Text(
+                        "Tempo: ${formatMs(summaryTimeMs ?: elapsedMs)}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Posizione in classifica: #${summaryRank ?: "-"}",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            showSummary = false
+                            onBackToMath()
+                        }
+                    ) { Text("⬅ Torna agli esercizi") }
                 }
             }
         }
