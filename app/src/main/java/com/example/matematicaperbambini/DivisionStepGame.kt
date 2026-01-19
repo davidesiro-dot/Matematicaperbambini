@@ -246,7 +246,6 @@ private fun FixedBox(
 
 @Composable
 fun DivisionStepGame(
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,

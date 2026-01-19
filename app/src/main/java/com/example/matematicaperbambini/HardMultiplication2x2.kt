@@ -202,12 +202,12 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
 
 @Composable
 fun HardMultiplication2x2Game(
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     var plan by remember { mutableStateOf(hmComputePlan(47, 36)) }
     var step by remember { mutableStateOf(0) }
@@ -493,9 +493,9 @@ fun HardMultiplication2x2Game(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )

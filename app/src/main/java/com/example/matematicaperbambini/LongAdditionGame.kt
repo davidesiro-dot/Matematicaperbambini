@@ -135,12 +135,12 @@ private fun computeAdditionPlan(digits: Int, rng: Random): AddPlan {
 @Composable
 fun LongAdditionGame(
     digits: Int,                   // 2 o 3
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     var plan by remember(digits) { mutableStateOf(computeAdditionPlan(digits, rng)) }
@@ -349,9 +349,9 @@ fun LongAdditionGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )

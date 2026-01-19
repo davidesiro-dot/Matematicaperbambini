@@ -37,12 +37,12 @@ import kotlin.random.Random
 
 @Composable
 fun MoneyCountGame(
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     var items by remember { mutableStateOf<List<MoneyItem>>(emptyList()) }
@@ -241,9 +241,9 @@ fun MoneyCountGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )
