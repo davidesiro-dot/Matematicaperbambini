@@ -6,14 +6,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 /**
  * Cornice unica stile "Sottrazioni":
  * - Header (back/suono/classifica)
  * - BonusBar
  * - InfoPanel con istruzioni/hint
- * - Pannello contenuto (slot)
- * - Riga bottoni (slot)
+ * - Contenuto (slot)
+ * - Bottom bar (slot)
  */
 @Composable
 fun GameScreenFrame(
@@ -27,7 +28,7 @@ fun GameScreenFrame(
     ui: UiSizing,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
-    bottomBar: @Composable (() -> Unit)? = null,
+    bottomBar: (@Composable () -> Unit)? = null,
     message: String? = null
 ) {
     Column(
@@ -59,7 +60,7 @@ fun GameScreenFrame(
         if (!message.isNullOrBlank()) {
             Text(
                 text = message,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 

@@ -252,10 +252,10 @@ fun SeaGlassPanel(
 @Composable
 fun SmallCircleButton(
     text: String,
-    onClick: () -> Unit,
     size: Dp = 40.dp,
     iconSize: Dp = 22.dp,
-    fontSize: TextUnit = 18.sp
+    fontSize: TextUnit = 18.sp,
+    onClick: () -> Unit
 ) {
     val isBack = text == "⬅"
 
@@ -277,7 +277,7 @@ fun SmallCircleButton(
             )
         } else {
             Text(
-                text,
+                text = text,
                 fontSize = fontSize,
                 textAlign = TextAlign.Center,
                 color = Color(0xFF111827)
@@ -285,6 +285,7 @@ fun SmallCircleButton(
         }
     }
 }
+
 
 
 @Composable
