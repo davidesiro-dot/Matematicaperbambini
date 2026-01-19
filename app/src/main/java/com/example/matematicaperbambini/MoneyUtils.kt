@@ -16,18 +16,18 @@ data class MoneyRound(
 )
 
 val MONEY_ITEMS = listOf(
-    MoneyItem(id = "1c", cents = 1, drawableRes = R.drawable.`1centesimo`, label = "1 centesimo"),
-    MoneyItem(id = "2c", cents = 2, drawableRes = R.drawable.`2centesimi`, label = "2 centesimi"),
-    MoneyItem(id = "5c", cents = 5, drawableRes = R.drawable.`5centesimi`, label = "5 centesimi"),
-    MoneyItem(id = "10c", cents = 10, drawableRes = R.drawable.`10centesimi`, label = "10 centesimi"),
-    MoneyItem(id = "20c", cents = 20, drawableRes = R.drawable.`20centesimi`, label = "20 centesimi"),
-    MoneyItem(id = "50c", cents = 50, drawableRes = R.drawable.`50centesimi`, label = "50 centesimi"),
-    MoneyItem(id = "1e", cents = 100, drawableRes = R.drawable.`1euro`, label = "1 euro"),
-    MoneyItem(id = "2e", cents = 200, drawableRes = R.drawable.`2euro`, label = "2 euro"),
-    MoneyItem(id = "5e", cents = 500, drawableRes = R.drawable.`5euro`, label = "5 euro"),
-    MoneyItem(id = "10e", cents = 1000, drawableRes = R.drawable.`10euro`, label = "10 euro"),
-    MoneyItem(id = "20e", cents = 2000, drawableRes = R.drawable.`20euro`, label = "20 euro"),
-    MoneyItem(id = "50e", cents = 5000, drawableRes = R.drawable.`50euro`, label = "50 euro")
+    MoneyItem(id = "1c", cents = 1, drawableRes = R.drawable.`coin_1c`, label = "1 centesimo"),
+    MoneyItem(id = "2c", cents = 2, drawableRes = R.drawable.`coin_2c`, label = "2 centesimi"),
+    MoneyItem(id = "5c", cents = 5, drawableRes = R.drawable.`coin_5c`, label = "5 centesimi"),
+    MoneyItem(id = "10c", cents = 10, drawableRes = R.drawable.`coin_10c`, label = "10 centesimi"),
+    MoneyItem(id = "20c", cents = 20, drawableRes = R.drawable.`coin_20c`, label = "20 centesimi"),
+    MoneyItem(id = "50c", cents = 50, drawableRes = R.drawable.`coin_50c`, label = "50 centesimi"),
+    MoneyItem(id = "1e", cents = 100, drawableRes = R.drawable.`coin_1e`, label = "1 euro"),
+    MoneyItem(id = "2e", cents = 200, drawableRes = R.drawable.`coin_2e`, label = "2 euro"),
+    MoneyItem(id = "5e", cents = 500, drawableRes = R.drawable.`note_5e`, label = "5 euro"),
+    MoneyItem(id = "10e", cents = 1000, drawableRes = R.drawable.`note_10e`, label = "10 euro"),
+    MoneyItem(id = "20e", cents = 2000, drawableRes = R.drawable.`note_20e`, label = "20 euro"),
+    MoneyItem(id = "50e", cents = 5000, drawableRes = R.drawable.`note_50e`, label = "50 euro")
 )
 
 private val COIN_ITEMS = MONEY_ITEMS.filter { it.cents < 500 }
