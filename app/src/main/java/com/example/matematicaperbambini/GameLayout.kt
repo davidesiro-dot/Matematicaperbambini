@@ -1,6 +1,7 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,42 +32,49 @@ fun GameScreenFrame(
     bottomBar: (@Composable () -> Unit)? = null,
     message: String? = null
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(ui.pad),
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(ui.pad),
         verticalArrangement = Arrangement.spacedBy(ui.spacing)
     ) {
-        GameHeader(
-            title = title,
-            soundEnabled = soundEnabled,
-            onToggleSound = onToggleSound,
-            onBack = onBack,
-            onLeaderboard = onOpenLeaderboard,
-            ui = ui
-        )
-
-        BonusBar(correctCount = correctCount, ui = ui)
-
-        InfoPanel(
-            title = "Cosa fare",
-            text = hintText,
-            ui = ui,
-            maxLines = if (ui.isCompact) 1 else 2
-        )
-
-        content()
-
-        if (!message.isNullOrBlank()) {
-            Text(
-                text = message,
-                color = MaterialTheme.colorScheme.onSurface
+        item {
+            GameHeader(
+                title = title,
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onBack = onBack,
+                onLeaderboard = onOpenLeaderboard,
+                ui = ui
             )
         }
 
-        bottomBar?.invoke()
+        item { BonusBar(correctCount = correctCount, ui = ui) }
 
-        Spacer(Modifier.height(ui.spacing))
+        item {
+            InfoPanel(
+                title = "Cosa fare",
+                text = hintText,
+                ui = ui,
+                maxLines = if (ui.isCompact) 1 else 2
+            )
+        }
+
+        item { content() }
+
+        if (!message.isNullOrBlank()) {
+            item {
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        if (bottomBar != null) {
+            item { bottomBar() }
+        }
+
+        item { Spacer(Modifier.height(ui.spacing)) }
     }
 }
 
