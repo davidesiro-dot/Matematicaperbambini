@@ -18,10 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,11 +44,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
 import kotlin.random.Random
+
+
 
 private data class BalloonState(
     val id: Int,
@@ -72,10 +75,11 @@ private data class BalloonParticle(
 fun BonusRewardHost(
     correctCount: Int,
     rewardsEarned: Int,
-    boardId: String,
     soundEnabled: Boolean,
     fx: SoundFx,
-    onRewardEarned: () -> Unit
+    onOpenLeaderboard: (LeaderboardTab) -> Unit,
+    onRewardEarned: () -> Unit,
+    onRewardSkipped: () -> Unit
 ) {
     val nextRewardAt = (rewardsEarned + 1) * 5
     val rng = remember { Random(System.currentTimeMillis()) }
@@ -111,6 +115,15 @@ fun BonusRewardHost(
                         if (soundEnabled) fx.bonus()
                     }
                 ) { Text("Gioca") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPrompt = false
+                        pickedGame = null
+                        onRewardSkipped()
+                    }
+                ) { Text("Torna agli esercizi") }
             }
         )
     }
@@ -118,21 +131,21 @@ fun BonusRewardHost(
     if (showGame) {
         when (pickedGame) {
             BonusGame.Stars -> FallingStarsGame(
-                boardId = boardId,
                 soundEnabled = soundEnabled,
                 fx = fx,
-                onBackToMath = {
+                onFinish = {
                     showGame = false
                     pickedGame = null
                     onRewardEarned()
+                    onOpenLeaderboard(LeaderboardTab.STARS)
                 }
             )
             else -> BonusBalloonGame(
-                boardId = boardId,
-                onBackToMath = {
+                onFinish = {
                     showGame = false
                     pickedGame = null
                     onRewardEarned()
+                    onOpenLeaderboard(LeaderboardTab.BALLOONS)
                 }
             )
         }
@@ -146,9 +159,8 @@ private enum class BonusGame {
 
 @Composable
 fun BonusBalloonGame(
-    boardId: String,
     balloonCount: Int = 8,
-    onBackToMath: () -> Unit
+    onFinish: () -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -157,19 +169,16 @@ fun BonusBalloonGame(
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     var elapsedMs by remember { mutableStateOf(0L) }
     var finished by remember { mutableStateOf(false) }
-    var started by remember { mutableStateOf(false) }
-    var showNameDialog by remember { mutableStateOf(true) }
-    var playerName by remember { mutableStateOf("Bimbo") }
+    var started by remember { mutableStateOf(true) }
+    var showNameEntry by remember { mutableStateOf(false) }
+    var playerName by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
-    var showLeaderboard by remember { mutableStateOf(false) }
-    var refreshToken by remember { mutableStateOf(0) }
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
     var lastFrameNs by remember { mutableStateOf(0L) }
 
-    val balloonBoardId = balloonsBoardId(boardId)
     val widthPx = containerSize.width.toFloat()
     val heightPx = containerSize.height.toFloat()
-    val paused = showNameDialog || showLeaderboard || finished
+    val paused = showNameEntry || finished
 
     val colors = listOf(
         Color(0xFF60A5FA),
@@ -197,36 +206,10 @@ fun BonusBalloonGame(
         )
     }
 
-    if (showNameDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Nome del bimbo") },
-            text = {
-                Column {
-                    Text("Scrivi il tuo nome per iniziare!")
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = playerName,
-                        onValueChange = { newValue ->
-                            val filtered = newValue.trimStart().trimEnd().take(12)
-                            playerName = filtered
-                        },
-                        singleLine = true,
-                        label = { Text("Nome") }
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val trimmed = playerName.trim()
-                        playerName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
-                        showNameDialog = false
-                        started = true
-                    }
-                ) { Text("Inizia") }
-            }
-        )
+    LaunchedEffect(finished) {
+        if (finished && !saved) {
+            showNameEntry = true
+        }
     }
 
     Box(
@@ -241,6 +224,10 @@ fun BonusBalloonGame(
             .padding(8.dp)
             .onSizeChanged { containerSize = it }
     ) {
+        val ui = rememberUiSizing()
+        val headerPad = ui.pad
+        val headerSpacing = if (ui.isCompact) 8.dp else 16.dp
+        val balloonSizeDp = if (ui.isCompact) 58.dp else 72.dp
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cloudColor = Color.White.copy(alpha = 0.7f)
             val cloudRadius = size.minDimension * 0.08f
@@ -257,7 +244,7 @@ fun BonusBalloonGame(
             drawCircle(cloudColor, cloudRadius * 0.8f, center = androidx.compose.ui.geometry.Offset(size.width * 0.41f, size.height * 0.32f))
         }
 
-        val balloonSizePx = with(density) { 72.dp.toPx() }
+        val balloonSizePx = with(density) { balloonSizeDp.toPx() }
 
         if (started && balloons.isEmpty() && widthPx > 0 && heightPx > 0) {
             repeat(balloonCount) { index ->
@@ -311,7 +298,7 @@ fun BonusBalloonGame(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(headerPad)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
@@ -319,19 +306,17 @@ fun BonusBalloonGame(
                     color = Color.White.copy(alpha = 0.85f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = headerSpacing, vertical = if (ui.isCompact) 6.dp else 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Bonus Round 🎈", fontWeight = FontWeight.ExtraBold)
-                        Spacer(Modifier.width(16.dp))
+                        Spacer(Modifier.width(headerSpacing))
                         Text("Tempo: ${formatMs(elapsedMs)}", fontWeight = FontWeight.Bold)
                     }
                 }
-                Spacer(Modifier.width(10.dp))
-                SmallCircleButton("🏆") { showLeaderboard = true }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(if (ui.isCompact) 8.dp else 12.dp))
 
             Text(
                 "Scoppia tutti i palloncini!",
@@ -429,54 +414,40 @@ fun BonusBalloonGame(
             }
         }
 
-        if (showLeaderboard) {
-            val entries = remember(refreshToken) {
-                loadEntries(context, balloonBoardId).sortedBy { it.value }
-            }
-            LeaderboardDialog(
-                title = "Classifica Palloncini",
-                entries = entries,
-                valueFormatter = { formatMs(it) },
-                onDismiss = { showLeaderboard = false }
-            )
-        }
-
-        if (finished) {
+        if (showNameEntry) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0x99000000)),
+                    .background(Color(0xCC0F172A)),
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color.White
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "Finito! Tempo: ${formatMs(elapsedMs)}",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = {
-                                if (!saved) {
-                                    saved = true
-                                    addTimeEntry(
-                                        context,
-                                        balloonBoardId,
-                                        ScoreEntry(playerName, elapsedMs)
-                                    )
-                                    refreshToken++
-                                    onBackToMath()
-                                }
-                            }
-                        ) { Text("Continua") }
-                    }
+                SeaGlassPanel(title = "Salva il tuo tempo") {
+                    Text("Scrivi il tuo nome (max 12 caratteri)")
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = playerName,
+                        onValueChange = { newValue ->
+                            playerName = newValue.trimStart().trimEnd().take(12)
+                        },
+                        singleLine = true,
+                        label = { Text("Nome") }
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            if (saved) return@Button
+                            val trimmed = playerName.trim()
+                            val finalName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
+                            saved = true
+                            addTimeEntry(
+                                context,
+                                GLOBAL_BALLOONS_LEADERBOARD_ID,
+                                ScoreEntry(finalName, elapsedMs)
+                            )
+                            showNameEntry = false
+                            onFinish()
+                        }
+                    ) { Text("Salva e vai alla classifica") }
                 }
             }
         }

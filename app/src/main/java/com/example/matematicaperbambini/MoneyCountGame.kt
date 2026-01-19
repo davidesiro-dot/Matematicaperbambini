@@ -29,18 +29,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.random.Random
 
 @Composable
 fun MoneyCountGame(
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     var items by remember { mutableStateOf<List<MoneyItem>>(emptyList()) }
@@ -78,6 +80,9 @@ fun MoneyCountGame(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val actionHeight = if (ui.isCompact) 44.dp else 52.dp
+
         GameScreenFrame(
             title = "Conta i soldi",
             soundEnabled = soundEnabled,
@@ -86,33 +91,61 @@ fun MoneyCountGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Somma il valore delle monete e delle banconote e scrivi il totale in euro.",
+            ui = ui,
             message = message,
             content = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                     SeaGlassPanel(title = "Modalità") {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
+                        if (ui.isCompact) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Text(
                                     text = if (coinsOnly) "Solo monete" else "Monete + banconote",
                                     fontWeight = FontWeight.Bold
                                 )
-                                Text(
-                                    text = if (coinsOnly) {
-                                        "Solo centesimi e euro in moneta."
-                                    } else {
-                                        "Monete e banconote fino a 50€."
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium
+                                Switch(
+                                    checked = coinsOnly,
+                                    onCheckedChange = { coinsOnly = it }
                                 )
                             }
-                            Switch(
-                                checked = coinsOnly,
-                                onCheckedChange = { coinsOnly = it }
+                            Text(
+                                text = if (coinsOnly) {
+                                    "Solo centesimi e euro in moneta."
+                                } else {
+                                    "Monete e banconote fino a 50€."
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(
+                                        text = if (coinsOnly) "Solo monete" else "Monete + banconote",
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = if (coinsOnly) {
+                                            "Solo centesimi e euro in moneta."
+                                        } else {
+                                            "Monete e banconote fino a 50€."
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                                Switch(
+                                    checked = coinsOnly,
+                                    onCheckedChange = { coinsOnly = it }
+                                )
+                            }
                         }
                     }
 
@@ -123,13 +156,14 @@ fun MoneyCountGame(
                             columns = columns,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(6.dp)
+                                .padding(if (ui.isCompact) 4.dp else 6.dp),
+                            ui = ui
                         )
                     }
 
                     SeaGlassPanel(title = "Scrivi il totale") {
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(ui.spacing),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -139,14 +173,13 @@ fun MoneyCountGame(
                                     input = value.filter { it.isDigit() || it == ',' || it == '.' }
                                 },
                                 placeholder = { Text("Es. 3,50") },
-
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(ui.spacing)
                             ) {
                                 Button(
                                     onClick = {
@@ -168,7 +201,7 @@ fun MoneyCountGame(
                                             if (soundEnabled) fx.wrong()
                                         }
                                     },
-                                    modifier = Modifier.weight(1f).height(52.dp)
+                                    modifier = Modifier.weight(1f).height(actionHeight)
                                 ) {
                                     Text("Verifica")
                                 }
@@ -177,7 +210,7 @@ fun MoneyCountGame(
                                     onClick = {
                                         generateRound(clearMessage = true)
                                     },
-                                    modifier = Modifier.weight(1f).height(52.dp)
+                                    modifier = Modifier.weight(1f).height(actionHeight)
                                 ) {
                                     Text("Nuovo")
                                 }
@@ -186,7 +219,7 @@ fun MoneyCountGame(
                             if (wrongAttempts >= 2 && !revealSolution) {
                                 OutlinedButton(
                                     onClick = { revealSolution = true },
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth().height(actionHeight)
                                 ) {
                                     Text("Mostra soluzione")
                                 }
@@ -208,10 +241,11 @@ fun MoneyCountGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
-            onRewardEarned = { rewardsEarned += 1 }
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
+            onRewardEarned = { rewardsEarned += 1 },
+            onRewardSkipped = { rewardsEarned += 1 }
         )
     }
 }
@@ -220,23 +254,24 @@ fun MoneyCountGame(
 private fun MoneyItemsGrid(
     items: List<MoneyItem>,
     columns: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    ui: UiSizing
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(ui.spacing),
         modifier = modifier
     ) {
         items.chunked(columns).forEach { rowItems ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(ui.spacing)
             ) {
                 rowItems.forEach { item ->
                     Box(
                         modifier = Modifier.weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        MoneyItemImage(item)
+                        MoneyItemImage(item, ui)
                     }
                 }
                 repeat((columns - rowItems.size).coerceAtLeast(0)) {
@@ -248,7 +283,7 @@ private fun MoneyItemsGrid(
 }
 
 @Composable
-private fun MoneyItemImage(item: MoneyItem) {
+private fun MoneyItemImage(item: MoneyItem, ui: UiSizing) {
     val painter = remember(item.drawableRes) {
         runCatching { item.drawableRes }.getOrNull()
     }
@@ -271,14 +306,14 @@ private fun MoneyItemImage(item: MoneyItem) {
             painter = painterResource(id = id),
             contentDescription = item.label,
             modifier = Modifier
-                .size(110.dp)
-                .padding(4.dp)
+                .size(if (ui.isCompact) 86.dp else 110.dp)
+                .padding(if (ui.isCompact) 2.dp else 4.dp)
         )
     } else {
         Box(
             modifier = Modifier
-                .size(110.dp)
-                .padding(4.dp)
+                .size(if (ui.isCompact) 86.dp else 110.dp)
+                .padding(if (ui.isCompact) 2.dp else 4.dp)
                 .background(Color.White.copy(alpha = 0.75f)),
             contentAlignment = Alignment.Center
         ) {
@@ -290,4 +325,3 @@ private fun MoneyItemImage(item: MoneyItem) {
         }
     }
 }
-

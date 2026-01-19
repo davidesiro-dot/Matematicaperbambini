@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
@@ -58,10 +57,9 @@ data class StarState(
 fun FallingStarsGame(
     starCount: Int = 10,
     durationMs: Long = 30_000,
-    boardId: String,
     soundEnabled: Boolean,
     fx: SoundFx,
-    onBackToMath: () -> Unit
+    onFinish: () -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -71,65 +69,21 @@ fun FallingStarsGame(
     var elapsedMs by remember { mutableStateOf(0L) }
     var score by remember { mutableStateOf(0) }
     var finished by remember { mutableStateOf(false) }
-    var started by remember { mutableStateOf(false) }
-    var showNameDialog by remember { mutableStateOf(true) }
-    var playerName by remember { mutableStateOf("Bimbo") }
+    var started by remember { mutableStateOf(true) }
+    var showNameEntry by remember { mutableStateOf(false) }
+    var playerName by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
-    var showLeaderboard by remember { mutableStateOf(false) }
-    var refreshToken by remember { mutableStateOf(0) }
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
     var lastFrameNs by remember { mutableStateOf(0L) }
 
     val widthPx = containerSize.width.toFloat()
     val heightPx = containerSize.height.toFloat()
-    val paused = showNameDialog || showLeaderboard || finished
-    val starsBoardId = starsBoardId(boardId)
+    val paused = showNameEntry || finished
 
-    fun createStar(id: Int, startInView: Boolean): StarState {
-        val sizePx = with(density) { rng.nextInt(36, 56).dp.toPx() }
-        val x = rng.nextFloat() * (widthPx - sizePx).coerceAtLeast(0f)
-        val y = if (startInView) {
-            rng.nextFloat() * (heightPx - sizePx).coerceAtLeast(0f)
-        } else {
-            -sizePx - rng.nextFloat() * heightPx
+    LaunchedEffect(finished) {
+        if (finished && !saved) {
+            showNameEntry = true
         }
-        val vy = with(density) { rng.nextInt(60, 140).dp.toPx() } * 3f
-        val isGolden = rng.nextInt(6) == 0
-        return StarState(id = id, x = x, y = y, vy = vy, sizePx = sizePx, isGolden = isGolden)
-    }
-
-    if (showNameDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Nome del bimbo") },
-            text = {
-                Column {
-                    Text("Scrivi il tuo nome per iniziare!")
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = playerName,
-                        onValueChange = { newValue ->
-                            val filtered = newValue.trimStart().trimEnd().take(12)
-                            playerName = filtered
-                        },
-                        singleLine = true,
-                        label = { Text("Nome") }
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val trimmed = playerName.trim()
-                        playerName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
-                        showNameDialog = false
-                        started = true
-                    }
-                ) {
-                    Text("Inizia")
-                }
-            }
-        )
     }
 
     Box(
@@ -144,6 +98,28 @@ fun FallingStarsGame(
             .padding(8.dp)
             .onSizeChanged { containerSize = it }
     ) {
+        val ui = rememberUiSizing()
+        val headerPad = ui.pad
+        val headerSpacing = if (ui.isCompact) 8.dp else 16.dp
+        val hintFont = if (ui.isCompact) 14.sp else 16.sp
+        val starMin = if (ui.isCompact) 30 else 36
+        val starMax = if (ui.isCompact) 46 else 56
+        val hitExtra = if (ui.isCompact) 18.dp else 24.dp
+        val hitExtraPx = with(density) { hitExtra.toPx() }
+
+        fun createStar(id: Int, startInView: Boolean): StarState {
+            val sizePx = with(density) { rng.nextInt(starMin, starMax).dp.toPx() }
+            val x = rng.nextFloat() * (widthPx - sizePx).coerceAtLeast(0f)
+            val y = if (startInView) {
+                rng.nextFloat() * (heightPx - sizePx).coerceAtLeast(0f)
+            } else {
+                -sizePx - rng.nextFloat() * heightPx
+            }
+            val vy = with(density) { rng.nextInt(60, 140).dp.toPx() } * 3f
+            val isGolden = rng.nextInt(6) == 0
+            return StarState(id = id, x = x, y = y, vy = vy, sizePx = sizePx, isGolden = isGolden)
+        }
+
         if (started && stars.isEmpty() && widthPx > 0f && heightPx > 0f) {
             repeat(starCount) { index ->
                 stars += createStar(index, startInView = true)
@@ -189,7 +165,7 @@ fun FallingStarsGame(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(8.dp)
+                .padding(headerPad)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
@@ -198,7 +174,7 @@ fun FallingStarsGame(
                 ) {
                     Text(
                         "Punti: $score",
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = headerSpacing, vertical = if (ui.isCompact) 6.dp else 8.dp),
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -213,29 +189,31 @@ fun FallingStarsGame(
                     val sec = remainingSec % 60
                     Text(
                         "Tempo: %02d:%02d".format(min, sec),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = headerSpacing, vertical = if (ui.isCompact) 6.dp else 8.dp),
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(Modifier.width(10.dp))
-                SmallCircleButton("🏆") { showLeaderboard = true }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(if (ui.isCompact) 8.dp else 12.dp))
 
             Text(
                 "Tocca le stelle!",
                 color = Color(0xFFE2E8F0),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = hintFont
             )
         }
 
         for (i in stars.indices) {
             val star = stars[i]
+            val hitSizePx = star.sizePx + hitExtraPx
+            val offsetX = (star.x - (hitExtraPx / 2f)).roundToInt()
+            val offsetY = (star.y - (hitExtraPx / 2f)).roundToInt()
             Box(
                 modifier = Modifier
-                    .offset { IntOffset(star.x.roundToInt(), star.y.roundToInt()) }
-                    .size(with(density) { star.sizePx.toDp() })
+                    .offset { IntOffset(offsetX, offsetY) }
+                    .size(with(density) { hitSizePx.toDp() })
                     .clickable {
                         if (!finished) {
                             val gain = if (star.isGolden) 3 else 1
@@ -255,54 +233,42 @@ fun FallingStarsGame(
             }
         }
 
-        if (finished) {
+        if (showNameEntry) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0x99000000)),
+                    .background(Color(0xCC0F172A)),
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color.White
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "Finito! Punti: $score",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = {
-                                if (!saved) {
-                                    saved = true
-                                    addScoreEntry(context, starsBoardId, ScoreEntry(playerName, score.toLong()))
-                                    refreshToken++
-                                    onBackToMath()
-                                }
-                            }
-                        ) {
-                            Text("Continua")
+                SeaGlassPanel(title = "Salva i tuoi punti") {
+                    Text("Scrivi il tuo nome (max 12 caratteri)")
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = playerName,
+                        onValueChange = { newValue ->
+                            playerName = newValue.trimStart().trimEnd().take(12)
+                        },
+                        singleLine = true,
+                        label = { Text("Nome") }
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            if (saved) return@Button
+                            val trimmed = playerName.trim()
+                            val finalName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
+                            saved = true
+                            addScoreEntry(
+                                context,
+                                GLOBAL_STARS_LEADERBOARD_ID,
+                                ScoreEntry(finalName, score.toLong())
+                            )
+                            showNameEntry = false
+                            onFinish()
                         }
-                    }
+                    ) { Text("Salva e vai alla classifica") }
                 }
             }
-        }
-
-        if (showLeaderboard) {
-            val entries = remember(refreshToken) {
-                loadEntries(context, starsBoardId).sortedByDescending { it.value }
-            }
-            LeaderboardDialog(
-                title = "Classifica Stelline",
-                entries = entries,
-                valueFormatter = { it.toString() },
-                onDismiss = { showLeaderboard = false }
-            )
         }
     }
 }

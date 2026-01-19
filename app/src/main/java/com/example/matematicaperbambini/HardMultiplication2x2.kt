@@ -17,16 +17,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.random.Random
 
 /* -------------------------------------------------------------------------
-   MOLTIPLICAZIONE DIFFICILE 2x2 GUIDATA (come il tuo codice originale)
-   - UNA sola casella attiva
-   - riporto gestito
-   - hint passo-passo
-   - integra SoundFx (correct/wrong)
+   MOLTIPLICAZIONE DIFFICILE 2x2 GUIDATA
    ------------------------------------------------------------------------- */
 
 private enum class HMRowKey { CARRY_P1, P1, CARRY_P2, P2, CARRY_SUM, SUM }
@@ -116,18 +114,13 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
     val p2_4 = hmPad4(p2)
     val res_4 = hmPad4(res)
 
-    /* ✅ L’ULTIMO RIPORTO A SINISTRA NON VA NELLA CASELLA PICCOLA.
-       - carryP1: mostro SOLO c11 (entra nelle decine). c12 va in P1 col1.
-       - carryP2: mostro SOLO c21 (entra nelle centinaia). c22 va in P2 col0.
-       - carrySUM: mostro carry unità->decine e decine->centinaia. carry centinaia->migliaia NO.
-     */
+    // riporti (vedi tue note)
     val carryP1 = CharArray(4) { ' ' }
     if (c11 > 0) carryP1[2] = c11.toString()[0]
 
     val carryP2 = CharArray(4) { ' ' }
     if (c21 > 0) carryP2[1] = c21.toString()[0]
 
-    // carry somma
     val p1d = p1_4.map { if (it == ' ') 0 else it - '0' }
     val p2d = p2_4.map { if (it == ' ') 0 else it - '0' }
     val carrySUM = CharArray(4) { ' ' }
@@ -143,31 +136,30 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
         carry = s / 10
         if (carry > 0) carrySUM[1] = carry.toString()[0]
     }
-    // carry verso migliaia NON in carrySUM[0]
 
-    // targets in ordine “elementari”
     val targets = mutableListOf<HMTarget>()
 
     fun addDigit(row: HMRowKey, col: Int, ch: Char, hint: String) {
         targets += HMTarget(row, col, HMCellKind.DIGIT, ch, hint)
     }
+
     fun addCarry(row: HMRowKey, col: Int, ch: Char, hint: String) {
         targets += HMTarget(row, col, HMCellKind.CARRY, ch, hint)
     }
 
-    // --- P1
+    // P1
     addDigit(HMRowKey.P1, 3, w11.toString()[0], "${aU}×${bU} = $m1 → scrivi $w11 nelle unità")
     if (c11 > 0) addCarry(HMRowKey.CARRY_P1, 2, c11.toString()[0], "${aU}×${bU} = $m1 → riporta $c11 nelle decine")
     addDigit(HMRowKey.P1, 2, w12.toString()[0], "${aT}×${bU} = $m2raw${if (c11 > 0) " + $c11 = $m2" else ""} → scrivi $w12 nelle decine")
     if (c12 > 0) addDigit(HMRowKey.P1, 1, c12.toString()[0], "Ultimo riporto riga 1: scrivi $c12 nella casella delle centinaia")
 
-    // --- P2 (unità = trattino fisso)
+    // P2
     addDigit(HMRowKey.P2, 2, w21.toString()[0], "Riga decine: ${aU}×${bT} = $n1 → scrivi $w21 (unità è un trattino)")
     if (c21 > 0) addCarry(HMRowKey.CARRY_P2, 1, c21.toString()[0], "Riporta $c21 nelle centinaia (riga 2)")
     addDigit(HMRowKey.P2, 1, w22.toString()[0], "${aT}×${bT} = $n2raw${if (c21 > 0) " + $c21 = $n2" else ""} → scrivi $w22 nelle centinaia")
     if (c22 > 0) addDigit(HMRowKey.P2, 0, c22.toString()[0], "Ultimo riporto riga 2: scrivi $c22 nella casella delle migliaia")
 
-    // --- SOMMA
+    // SOMMA
     fun addSum(col: Int, carryIn: Int, carryOut: Int, digit: Int) {
         addDigit(
             HMRowKey.SUM, col, digit.toString()[0],
@@ -206,23 +198,22 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
     )
 }
 
-/* ----------------------------- GAME COMPOSABLE (integrata in app) ----------------------------- */
+/* ----------------------------- GAME ----------------------------- */
 
 @Composable
 fun HardMultiplication2x2Game(
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     var plan by remember { mutableStateOf(hmComputePlan(47, 36)) }
     var step by remember { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
 
-    // input arrays
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
     var inP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
     var inCarryP2 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -237,21 +228,13 @@ fun HardMultiplication2x2Game(
     var errCarrySUM by remember { mutableStateOf(BooleanArray(4) { false }) }
     var errSUM by remember { mutableStateOf(BooleanArray(4) { false }) }
 
-    // dimensioni (scalano in base alla larghezza disponibile)
-    val baseDigitW = 40.dp
-    val baseDigitH = 56.dp
-    val baseCarryW = 24.dp
-    val baseCarryH = 30.dp
-    val baseSignW = 26.dp
-    val baseGap = 6.dp
-
     fun reset(newA: Int, newB: Int) {
         plan = hmComputePlan(newA, newB)
         step = 0
         inCarryP1 = CharArray(4) { '\u0000' }
         inP1 = CharArray(4) { '\u0000' }
         inCarryP2 = CharArray(4) { '\u0000' }
-        inP2 = CharArray(4) { '\u0000' }.also { it[3] = '-' } // trattino fisso
+        inP2 = CharArray(4) { '\u0000' }.also { it[3] = '-' }
         inCarrySUM = CharArray(4) { '\u0000' }
         inSUM = CharArray(4) { '\u0000' }
 
@@ -292,7 +275,6 @@ fun HardMultiplication2x2Game(
         HMRowKey.SUM -> 5
     }
 
-    // il riporto sbiadisce SOLO DOPO che hai scritto la cifra che lo usa
     fun carryShouldFade(carryRow: HMRowKey, carryCol: Int): Boolean {
         val t = current ?: return false
         val relatedDigitRow = when (carryRow) {
@@ -305,11 +287,7 @@ fun HardMultiplication2x2Game(
         val relatedStage = stageIndex(relatedDigitRow)
 
         if (curStage > relatedStage) return true
-
-        if (t.row == relatedDigitRow) {
-            return t.col < carryCol
-        }
-
+        if (t.row == relatedDigitRow) return t.col < carryCol
         if (t.row == carryRow) return false
         return false
     }
@@ -350,13 +328,19 @@ fun HardMultiplication2x2Game(
         }
     }
 
-    val hint = if (done) {
-        "Bravo! ✅ Risultato: ${plan.result}"
-    } else {
-        current!!.hint
-    }
+    val hint = if (done) "Bravo! ✅ Risultato: ${plan.result}" else current!!.hint
 
     Box(Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val digitW = if (ui.isCompact) 34.dp else 44.dp
+        val digitH = if (ui.isCompact) 48.dp else 56.dp
+        val carryW = if (ui.isCompact) 20.dp else 24.dp
+        val carryH = if (ui.isCompact) 26.dp else 30.dp
+        val signW = if (ui.isCompact) 20.dp else 26.dp
+        val gap = if (ui.isCompact) 4.dp else 6.dp
+        val carryFont = if (ui.isCompact) 14.sp else 16.sp
+        val digitFont = if (ui.isCompact) 18.sp else 22.sp
+
         GameScreenFrame(
             title = "Moltiplicazioni difficili",
             soundEnabled = soundEnabled,
@@ -365,48 +349,36 @@ fun HardMultiplication2x2Game(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = hint,
+            ui = ui,
             content = {
-            SeaGlassPanel(title = "Esercizio") {
-                Text(
-                    "Esercizio: ${plan.a} × ${plan.b}",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.height(8.dp))
-
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val totalCols = 4
-                    val totalItems = totalCols + 1
-                    val baseTotalWidth = baseSignW + (baseDigitW * totalCols) + (baseGap * (totalItems - 1))
-                    val scale = (maxWidth.value / baseTotalWidth.value).coerceAtMost(1f)
-
-                    val digitW = baseDigitW * scale
-                    val digitH = baseDigitH * scale
-                    val carryW = baseCarryW * scale
-                    val carryH = baseCarryH * scale
-                    val signW = baseSignW * scale
-                    val gap = baseGap * scale
+                SeaGlassPanel(title = "Esercizio") {
+                    Text(
+                        "Esercizio: ${plan.a} × ${plan.b}",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
 
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         HMGridRowRight(signW, gap) {
-                            HMFixedDigit(plan.a4[0], digitW, digitH)
-                            HMFixedDigit(plan.a4[1], digitW, digitH)
-                            HMFixedDigit(plan.a4[2], digitW, digitH)
-                            HMFixedDigit(plan.a4[3], digitW, digitH)
+                            HMFixedDigit(plan.a4[0], digitW, digitH, digitFont)
+                            HMFixedDigit(plan.a4[1], digitW, digitH, digitFont)
+                            HMFixedDigit(plan.a4[2], digitW, digitH, digitFont)
+                            HMFixedDigit(plan.a4[3], digitW, digitH, digitFont)
                             HMSignCell("", signW)
                         }
 
                         HMGridRowRight(signW, gap) {
-                            HMFixedDigit(plan.b4[0], digitW, digitH)
-                            HMFixedDigit(plan.b4[1], digitW, digitH)
-                            HMFixedDigit(plan.b4[2], digitW, digitH)
-                            HMFixedDigit(plan.b4[3], digitW, digitH)
+                            HMFixedDigit(plan.b4[0], digitW, digitH, digitFont)
+                            HMFixedDigit(plan.b4[1], digitW, digitH, digitFont)
+                            HMFixedDigit(plan.b4[2], digitW, digitH, digitFont)
+                            HMFixedDigit(plan.b4[3], digitW, digitH, digitFont)
                             HMSignCell("×", signW)
                         }
 
-                        Divider(thickness = 2.dp)
+                        Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
 
                         HMCarryRowRight(
                             signW, gap, digitW, carryW, carryH,
@@ -416,7 +388,8 @@ fun HardMultiplication2x2Game(
                             enabled = { c -> enabled(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
                             isActive = { c -> isActive(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
                             shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P1, c) },
-                            onChange = { c, v -> onTyped(HMRowKey.CARRY_P1, c, HMCellKind.CARRY, v) }
+                            onChange = { c, v -> onTyped(HMRowKey.CARRY_P1, c, HMCellKind.CARRY, v) },
+                            fontSize = carryFont
                         )
 
                         HMDigitRowRight(
@@ -426,7 +399,8 @@ fun HardMultiplication2x2Game(
                             err = errP1,
                             enabled = { c -> enabled(HMRowKey.P1, c, HMCellKind.DIGIT) },
                             isActive = { c -> isActive(HMRowKey.P1, c, HMCellKind.DIGIT) },
-                            onChange = { c, v -> onTyped(HMRowKey.P1, c, HMCellKind.DIGIT, v) }
+                            onChange = { c, v -> onTyped(HMRowKey.P1, c, HMCellKind.DIGIT, v) },
+                            fontSize = digitFont
                         )
 
                         HMCarryRowRight(
@@ -437,7 +411,8 @@ fun HardMultiplication2x2Game(
                             enabled = { c -> enabled(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
                             isActive = { c -> isActive(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
                             shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P2, c) },
-                            onChange = { c, v -> onTyped(HMRowKey.CARRY_P2, c, HMCellKind.CARRY, v) }
+                            onChange = { c, v -> onTyped(HMRowKey.CARRY_P2, c, HMCellKind.CARRY, v) },
+                            fontSize = carryFont
                         )
 
                         HMDigitRowRight(
@@ -448,10 +423,11 @@ fun HardMultiplication2x2Game(
                             enabled = { c -> enabled(HMRowKey.P2, c, HMCellKind.DIGIT) },
                             isActive = { c -> isActive(HMRowKey.P2, c, HMCellKind.DIGIT) },
                             onChange = { c, v -> onTyped(HMRowKey.P2, c, HMCellKind.DIGIT, v) },
-                            fixedUnitDash = true
+                            fixedUnitDash = true,
+                            fontSize = digitFont
                         )
 
-                        Divider(thickness = 2.dp)
+                        Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
 
                         HMCarryRowRight(
                             signW, gap, digitW, carryW, carryH,
@@ -461,7 +437,8 @@ fun HardMultiplication2x2Game(
                             enabled = { c -> enabled(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
                             isActive = { c -> isActive(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
                             shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_SUM, c) },
-                            onChange = { c, v -> onTyped(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY, v) }
+                            onChange = { c, v -> onTyped(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY, v) },
+                            fontSize = carryFont
                         )
 
                         HMDigitRowRight(
@@ -471,63 +448,66 @@ fun HardMultiplication2x2Game(
                             err = errSUM,
                             enabled = { c -> enabled(HMRowKey.SUM, c, HMCellKind.DIGIT) },
                             isActive = { c -> isActive(HMRowKey.SUM, c, HMCellKind.DIGIT) },
-                            onChange = { c, v -> onTyped(HMRowKey.SUM, c, HMCellKind.DIGIT, v) }
+                            onChange = { c, v -> onTyped(HMRowKey.SUM, c, HMCellKind.DIGIT, v) },
+                            fontSize = digitFont
                         )
                     }
                 }
-            }
 
-            SeaGlassPanel(title = "Stato") {
-                if (done) {
-                    Text("Operazione completata.", style = MaterialTheme.typography.bodyLarge)
-                } else {
-                    Text("Passo ${step + 1}/${plan.targets.size}", style = MaterialTheme.typography.bodyLarge)
-                    Text("Casella attiva: ${hmRowLabel(current!!.row)} – ${hmColLabel(current.col)}")
+                SeaGlassPanel(title = "Stato") {
+                    if (done) {
+                        Text("Operazione completata.", style = MaterialTheme.typography.bodyLarge)
+                    } else {
+                        Text("Passo ${step + 1}/${plan.targets.size}", style = MaterialTheme.typography.bodyLarge)
+                        Text("Casella attiva: ${hmRowLabel(current!!.row)} – ${hmColLabel(current.col)}")
+                    }
                 }
-            }
-        },
-        bottomBar = {
-            GameBottomActions(
-                leftText = "Ricomincia",
-                onLeft = { reset(plan.a, plan.b) },
-                rightText = "Nuovo",
-                onRight = { reset(Random.nextInt(10, 100), Random.nextInt(10, 100)) },
-                center = {
-                    OutlinedButton(onClick = {
-                        for (c in 0..3) {
-                            val cp1 = plan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
-                            val cp2 = plan.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)
-                            val cs = plan.carrySUM[c]; if (cs != ' ') setCell(HMRowKey.CARRY_SUM, c, cs, false)
+            },
+            bottomBar = {
+                GameBottomActions(
+                    leftText = "Ricomincia",
+                    onLeft = { reset(plan.a, plan.b) },
+                    rightText = "Nuovo",
+                    onRight = { reset(Random.nextInt(10, 100), Random.nextInt(10, 100)) },
+                    center = {
+                        OutlinedButton(
+                            onClick = {
+                                for (c in 0..3) {
+                                    val cp1 = plan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
+                                    val cp2 = plan.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)
+                                    val cs = plan.carrySUM[c]; if (cs != ' ') setCell(HMRowKey.CARRY_SUM, c, cs, false)
 
-                            val d1 = plan.p1_4[c]; if (d1 != ' ') setCell(HMRowKey.P1, c, d1, false)
-                            val d2 = plan.p2_4[c]; if (d2 != ' ') setCell(HMRowKey.P2, c, d2, false)
-                            val dr = plan.res_4[c]; if (dr != ' ') setCell(HMRowKey.SUM, c, dr, false)
-                        }
-                        setCell(HMRowKey.P2, 3, '-', false)
-                        step = plan.targets.size
-                    }) { Text("Soluzione") }
-                }
-            )
+                                    val d1 = plan.p1_4[c]; if (d1 != ' ') setCell(HMRowKey.P1, c, d1, false)
+                                    val d2 = plan.p2_4[c]; if (d2 != ' ') setCell(HMRowKey.P2, c, d2, false)
+                                    val dr = plan.res_4[c]; if (dr != ' ') setCell(HMRowKey.SUM, c, dr, false)
+                                }
+                                setCell(HMRowKey.P2, 3, '-', false)
+                                step = plan.targets.size
+                            }
+                        ) { Text("Soluzione") }
+                    }
+                )
             }
         )
 
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
-            onRewardEarned = { rewardsEarned += 1 }
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
+            onRewardEarned = { rewardsEarned += 1 },
+            onRewardSkipped = { rewardsEarned += 1 }
         )
     }
 }
 
-/* ----------------------------- GRID UI (RIGHT-ALIGNED) ----------------------------- */
+/* ----------------------------- GRID UI ----------------------------- */
 
 @Composable
 private fun HMGridRowRight(
-    signW: androidx.compose.ui.unit.Dp,
-    gap: androidx.compose.ui.unit.Dp,
+    signW: Dp,
+    gap: Dp,
     content: @Composable RowScope.() -> Unit
 ) {
     Row(
@@ -539,7 +519,7 @@ private fun HMGridRowRight(
 }
 
 @Composable
-private fun HMSignCell(text: String, w: androidx.compose.ui.unit.Dp) {
+private fun HMSignCell(text: String, w: Dp) {
     Box(modifier = Modifier.width(w), contentAlignment = Alignment.Center) {
         Text(
             text,
@@ -551,7 +531,12 @@ private fun HMSignCell(text: String, w: androidx.compose.ui.unit.Dp) {
 }
 
 @Composable
-private fun HMFixedDigit(ch: Char, w: androidx.compose.ui.unit.Dp, h: androidx.compose.ui.unit.Dp) {
+private fun HMFixedDigit(
+    ch: Char,
+    w: Dp,
+    h: Dp,
+    fontSize: TextUnit
+) {
     val shape = RoundedCornerShape(10.dp)
     Box(
         modifier = Modifier
@@ -567,7 +552,7 @@ private fun HMFixedDigit(ch: Char, w: androidx.compose.ui.unit.Dp, h: androidx.c
             if (ch == ' ') "" else ch.toString(),
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
-            fontSize = 22.sp,
+            fontSize = fontSize,
             color = color,
             textAlign = TextAlign.Center
         )
@@ -576,18 +561,19 @@ private fun HMFixedDigit(ch: Char, w: androidx.compose.ui.unit.Dp, h: androidx.c
 
 @Composable
 private fun HMCarryRowRight(
-    signW: androidx.compose.ui.unit.Dp,
-    gap: androidx.compose.ui.unit.Dp,
-    digitW: androidx.compose.ui.unit.Dp,
-    carryW: androidx.compose.ui.unit.Dp,
-    carryH: androidx.compose.ui.unit.Dp,
+    signW: Dp,
+    gap: Dp,
+    digitW: Dp,
+    carryW: Dp,
+    carryH: Dp,
     expected: CharArray,
     input: CharArray,
     err: BooleanArray,
     enabled: (Int) -> Boolean,
     isActive: (Int) -> Boolean,
     shouldFade: (Int) -> Boolean,
-    onChange: (Int, String) -> Unit
+    onChange: (Int, String) -> Unit,
+    fontSize: TextUnit
 ) {
     HMGridRowRight(signW, gap) {
         for (col in 0..3) {
@@ -610,7 +596,7 @@ private fun HMCarryRowRight(
                         isError = err[col],
                         w = carryW,
                         h = carryH,
-                        fontSize = 16.sp,
+                        fontSize = fontSize,
                         onValueChange = { onChange(col, it) }
                     )
                 }
@@ -622,29 +608,30 @@ private fun HMCarryRowRight(
 
 @Composable
 private fun HMDigitRowRight(
-    signW: androidx.compose.ui.unit.Dp,
-    gap: androidx.compose.ui.unit.Dp,
-    digitW: androidx.compose.ui.unit.Dp,
-    digitH: androidx.compose.ui.unit.Dp,
+    signW: Dp,
+    gap: Dp,
+    digitW: Dp,
+    digitH: Dp,
     expected: String,
     input: CharArray,
     err: BooleanArray,
     enabled: (Int) -> Boolean,
     isActive: (Int) -> Boolean,
     onChange: (Int, String) -> Unit,
-    fixedUnitDash: Boolean = false
+    fixedUnitDash: Boolean = false,
+    fontSize: TextUnit
 ) {
     HMGridRowRight(signW, gap) {
         for (col in 0..3) {
             val exp = expected[col]
 
             if (fixedUnitDash && col == 3) {
-                HMFixedDigit('-', digitW, digitH)
+                HMFixedDigit('-', digitW, digitH, fontSize)
                 continue
             }
 
             if (exp == ' ') {
-                HMFixedDigit(' ', digitW, digitH)
+                HMFixedDigit(' ', digitW, digitH, fontSize)
             } else {
                 val txt = if (input[col] == '\u0000') "" else input[col].toString()
                 HMInputBox(
@@ -654,7 +641,7 @@ private fun HMDigitRowRight(
                     isError = err[col],
                     w = digitW,
                     h = digitH,
-                    fontSize = 22.sp,
+                    fontSize = fontSize,
                     onValueChange = { onChange(col, it) }
                 )
             }
@@ -663,17 +650,15 @@ private fun HMDigitRowRight(
     }
 }
 
-/* ----------------------------- INPUT BOX ----------------------------- */
-
 @Composable
 private fun HMInputBox(
     value: String,
     enabled: Boolean,
     isActive: Boolean,
     isError: Boolean,
-    w: androidx.compose.ui.unit.Dp,
-    h: androidx.compose.ui.unit.Dp,
-    fontSize: androidx.compose.ui.unit.TextUnit,
+    w: Dp,
+    h: Dp,
+    fontSize: TextUnit,
     onValueChange: (String) -> Unit
 ) {
     val shape = RoundedCornerShape(10.dp)
