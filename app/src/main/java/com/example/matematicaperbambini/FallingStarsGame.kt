@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
@@ -85,19 +86,6 @@ fun FallingStarsGame(
     val paused = showNameDialog || showLeaderboard || finished
     val starsBoardId = starsBoardId(boardId)
 
-    fun createStar(id: Int, startInView: Boolean): StarState {
-        val sizePx = with(density) { rng.nextInt(36, 56).dp.toPx() }
-        val x = rng.nextFloat() * (widthPx - sizePx).coerceAtLeast(0f)
-        val y = if (startInView) {
-            rng.nextFloat() * (heightPx - sizePx).coerceAtLeast(0f)
-        } else {
-            -sizePx - rng.nextFloat() * heightPx
-        }
-        val vy = with(density) { rng.nextInt(60, 140).dp.toPx() } * 3f
-        val isGolden = rng.nextInt(6) == 0
-        return StarState(id = id, x = x, y = y, vy = vy, sizePx = sizePx, isGolden = isGolden)
-    }
-
     if (showNameDialog) {
         AlertDialog(
             onDismissRequest = {},
@@ -144,6 +132,31 @@ fun FallingStarsGame(
             .padding(8.dp)
             .onSizeChanged { containerSize = it }
     ) {
+        val ui = rememberUiSizing()
+        val headerPad = ui.pad
+        val headerSpacing = if (ui.isCompact) 8.dp else 16.dp
+        val buttonSize = if (ui.isCompact) 34.dp else 40.dp
+        val buttonFont = if (ui.isCompact) 16.sp else 18.sp
+        val buttonIcon = if (ui.isCompact) 18.dp else 22.dp
+        val hintFont = if (ui.isCompact) 14.sp else 16.sp
+        val starMin = if (ui.isCompact) 30 else 36
+        val starMax = if (ui.isCompact) 46 else 56
+        val hitExtra = if (ui.isCompact) 18.dp else 24.dp
+        val hitExtraPx = with(density) { hitExtra.toPx() }
+
+        fun createStar(id: Int, startInView: Boolean): StarState {
+            val sizePx = with(density) { rng.nextInt(starMin, starMax).dp.toPx() }
+            val x = rng.nextFloat() * (widthPx - sizePx).coerceAtLeast(0f)
+            val y = if (startInView) {
+                rng.nextFloat() * (heightPx - sizePx).coerceAtLeast(0f)
+            } else {
+                -sizePx - rng.nextFloat() * heightPx
+            }
+            val vy = with(density) { rng.nextInt(60, 140).dp.toPx() } * 3f
+            val isGolden = rng.nextInt(6) == 0
+            return StarState(id = id, x = x, y = y, vy = vy, sizePx = sizePx, isGolden = isGolden)
+        }
+
         if (started && stars.isEmpty() && widthPx > 0f && heightPx > 0f) {
             repeat(starCount) { index ->
                 stars += createStar(index, startInView = true)
@@ -189,7 +202,7 @@ fun FallingStarsGame(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(8.dp)
+                .padding(headerPad)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
@@ -198,7 +211,7 @@ fun FallingStarsGame(
                 ) {
                     Text(
                         "Punti: $score",
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = headerSpacing, vertical = if (ui.isCompact) 6.dp else 8.dp),
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -213,29 +226,39 @@ fun FallingStarsGame(
                     val sec = remainingSec % 60
                     Text(
                         "Tempo: %02d:%02d".format(min, sec),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = headerSpacing, vertical = if (ui.isCompact) 6.dp else 8.dp),
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(Modifier.width(10.dp))
-                SmallCircleButton("🏆") { showLeaderboard = true }
+                Spacer(Modifier.width(if (ui.isCompact) 6.dp else 10.dp))
+                SmallCircleButton(
+                    "🏆",
+                    onClick = { showLeaderboard = true },
+                    size = buttonSize,
+                    iconSize = buttonIcon,
+                    fontSize = buttonFont
+                )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(if (ui.isCompact) 8.dp else 12.dp))
 
             Text(
                 "Tocca le stelle!",
                 color = Color(0xFFE2E8F0),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = hintFont
             )
         }
 
         for (i in stars.indices) {
             val star = stars[i]
+            val hitSizePx = star.sizePx + hitExtraPx
+            val offsetX = (star.x - (hitExtraPx / 2f)).roundToInt()
+            val offsetY = (star.y - (hitExtraPx / 2f)).roundToInt()
             Box(
                 modifier = Modifier
-                    .offset { IntOffset(star.x.roundToInt(), star.y.roundToInt()) }
-                    .size(with(density) { star.sizePx.toDp() })
+                    .offset { IntOffset(offsetX, offsetY) }
+                    .size(with(density) { hitSizePx.toDp() })
                     .clickable {
                         if (!finished) {
                             val gain = if (star.isGolden) 3 else 1

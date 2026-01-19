@@ -214,14 +214,6 @@ fun LongAdditionGame(
         }
     }
 
-    // UI sizes (scalano in base alla larghezza disponibile)
-    val baseDigitW = 40.dp
-    val baseDigitH = 56.dp
-    val baseCarryW = 24.dp
-    val baseCarryH = 30.dp
-    val baseSignW = 26.dp
-    val baseGap = 6.dp
-
     val hint = if (done) {
         "Bravo! ✅ Risultato: ${plan.result}"
     } else {
@@ -229,6 +221,16 @@ fun LongAdditionGame(
     }
 
     Box(Modifier.fillMaxSize()) {
+        val ui = rememberUiSizing()
+        val digitW = if (ui.isCompact) 34.dp else 44.dp
+        val digitH = if (ui.isCompact) 48.dp else 56.dp
+        val carryW = if (ui.isCompact) 20.dp else 24.dp
+        val carryH = if (ui.isCompact) 26.dp else 30.dp
+        val signW = if (ui.isCompact) 20.dp else 26.dp
+        val gap = if (ui.isCompact) 4.dp else 6.dp
+        val carryFont = if (ui.isCompact) 14.sp else 16.sp
+        val sumFont = if (ui.isCompact) 18.sp else 22.sp
+
         GameScreenFrame(
             title = "Addizioni in colonna",
             soundEnabled = soundEnabled,
@@ -237,103 +239,92 @@ fun LongAdditionGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = hint,
+            ui = ui,
             content = {
             SeaGlassPanel(title = "Esercizio") {
                 Text(
                     "Esercizio: ${plan.a} + ${plan.b}",
                     style = MaterialTheme.typography.titleMedium
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
 
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val totalCols = plan.digits + 1
-                    val totalItems = totalCols + 1
-                    val baseTotalWidth = baseSignW + (baseDigitW * totalCols) + (baseGap * (totalItems - 1))
-                    val scale = (maxWidth.value / baseTotalWidth.value).coerceAtMost(1f)
+                val totalCols = plan.digits + 1
 
-                    val digitW = baseDigitW * scale
-                    val digitH = baseDigitH * scale
-                    val carryW = baseCarryW * scale
-                    val carryH = baseCarryH * scale
-                    val signW = baseSignW * scale
-                    val gap = baseGap * scale
-
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Riga carry (caselline piccole) allineate alle cifre A/B
-                        GridRowRight(signW, gap) {
-                            for (displayCol in 0 until totalCols) {
-                                if (displayCol == 0) {
-                                    Box(Modifier.width(digitW).height(carryH))
-                                } else {
-                                    val col = displayCol - 1
-                                    val expected = plan.carry[col]
-                                    Box(modifier = Modifier.width(digitW), contentAlignment = Alignment.Center) {
-                                        if (expected == ' ') {
-                                            Box(Modifier.width(carryW).height(carryH))
-                                        } else {
-                                            val txt = carryIn.value[col].let { if (it == '\u0000') "" else it.toString() }
-                                            InputBox(
-                                                value = txt,
-                                                enabled = enabled(AddRowKey.CARRY, col, AddCellKind.CARRY),
-                                                isActive = isActive(AddRowKey.CARRY, col, AddCellKind.CARRY),
-                                                isError = errCarry.value[col],
-                                                w = carryW,
-                                                h = carryH,
-                                                fontSize = 16.sp,
-                                                onValueChange = { onTyped(AddRowKey.CARRY, col, AddCellKind.CARRY, it) }
-                                            )
-                                        }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Riga carry (caselline piccole) allineate alle cifre A/B
+                    GridRowRight(signW, gap) {
+                        for (displayCol in 0 until totalCols) {
+                            if (displayCol == 0) {
+                                Box(Modifier.width(digitW).height(carryH))
+                            } else {
+                                val col = displayCol - 1
+                                val expected = plan.carry[col]
+                                Box(modifier = Modifier.width(digitW), contentAlignment = Alignment.Center) {
+                                    if (expected == ' ') {
+                                        Box(Modifier.width(carryW).height(carryH))
+                                    } else {
+                                        val txt = carryIn.value[col].let { if (it == '\u0000') "" else it.toString() }
+                                        InputBox(
+                                            value = txt,
+                                            enabled = enabled(AddRowKey.CARRY, col, AddCellKind.CARRY),
+                                            isActive = isActive(AddRowKey.CARRY, col, AddCellKind.CARRY),
+                                            isError = errCarry.value[col],
+                                            w = carryW,
+                                            h = carryH,
+                                            fontSize = carryFont,
+                                            onValueChange = { onTyped(AddRowKey.CARRY, col, AddCellKind.CARRY, it) }
+                                        )
                                     }
                                 }
                             }
-                            SignCell("", signW)
                         }
+                        SignCell("", signW)
+                    }
 
-                        // Riga A
-                        GridRowRight(signW, gap) {
-                            for (displayCol in 0 until totalCols) {
-                                val ch = if (displayCol == 0) ' ' else plan.aStr[displayCol - 1]
-                                FixedDigit(ch, digitW, digitH)
+                    // Riga A
+                    GridRowRight(signW, gap) {
+                        for (displayCol in 0 until totalCols) {
+                            val ch = if (displayCol == 0) ' ' else plan.aStr[displayCol - 1]
+                            FixedDigit(ch, digitW, digitH)
+                        }
+                        SignCell("", signW)
+                    }
+
+                    // Riga B con segno +
+                    GridRowRight(signW, gap) {
+                        for (displayCol in 0 until totalCols) {
+                            val ch = if (displayCol == 0) ' ' else plan.bStr[displayCol - 1]
+                            FixedDigit(ch, digitW, digitH)
+                        }
+                        SignCell("+", signW)
+                    }
+
+                    Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
+
+                    // Risultato (digits+1)
+                    GridRowRight(signW, gap) {
+                        for (col in 0 until totalCols) {
+                            val exp = plan.res[col]
+                            if (exp == ' ') {
+                                FixedDigit(' ', digitW, digitH)
+                            } else {
+                                val txt = sumIn.value[col].let { if (it == '\u0000') "" else it.toString() }
+                                InputBox(
+                                    value = txt,
+                                    enabled = enabled(AddRowKey.SUM, col, AddCellKind.DIGIT),
+                                    isActive = isActive(AddRowKey.SUM, col, AddCellKind.DIGIT),
+                                    isError = errSum.value[col],
+                                    w = digitW,
+                                    h = digitH,
+                                    fontSize = sumFont,
+                                    onValueChange = { onTyped(AddRowKey.SUM, col, AddCellKind.DIGIT, it) }
+                                )
                             }
-                            SignCell("", signW)
                         }
-
-                        // Riga B con segno +
-                        GridRowRight(signW, gap) {
-                            for (displayCol in 0 until totalCols) {
-                                val ch = if (displayCol == 0) ' ' else plan.bStr[displayCol - 1]
-                                FixedDigit(ch, digitW, digitH)
-                            }
-                            SignCell("+", signW)
-                        }
-
-                        Divider(thickness = 2.dp)
-
-                        // Risultato (digits+1)
-                        GridRowRight(signW, gap) {
-                            for (col in 0 until totalCols) {
-                                val exp = plan.res[col]
-                                if (exp == ' ') {
-                                    FixedDigit(' ', digitW, digitH)
-                                } else {
-                                    val txt = sumIn.value[col].let { if (it == '\u0000') "" else it.toString() }
-                                    InputBox(
-                                        value = txt,
-                                        enabled = enabled(AddRowKey.SUM, col, AddCellKind.DIGIT),
-                                        isActive = isActive(AddRowKey.SUM, col, AddCellKind.DIGIT),
-                                        isError = errSum.value[col],
-                                        w = digitW,
-                                        h = digitH,
-                                        fontSize = 22.sp,
-                                        onValueChange = { onTyped(AddRowKey.SUM, col, AddCellKind.DIGIT, it) }
-                                    )
-                                }
-                            }
-                            SignCell("", signW)
-                        }
+                        SignCell("", signW)
                     }
                 }
             }
