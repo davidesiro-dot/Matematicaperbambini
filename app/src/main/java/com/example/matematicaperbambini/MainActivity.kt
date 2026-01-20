@@ -21,9 +21,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
@@ -33,8 +36,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +50,7 @@ import java.net.URLEncoder
 import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -569,80 +575,201 @@ private fun HomeMenuKids(
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-
-        Image(
-            painter = painterResource(R.drawable.math_kids_logo),
-            contentDescription = "Math Kids",
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 22.dp)
-                .fillMaxWidth(0.90f),
-            contentScale = ContentScale.Fit
-        )
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-            SmallCircleButton("🏆") { onOpenLeaderboard() }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        val sizeProfile = when {
+            maxHeight < 620.dp -> MenuSizeProfile.Small
+            maxHeight < 760.dp -> MenuSizeProfile.Normal
+            else -> MenuSizeProfile.Large
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(top = 200.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            KidsMenuButton(
+        val buttonHeight = when (sizeProfile) {
+            MenuSizeProfile.Small -> 56.dp
+            MenuSizeProfile.Normal -> 64.dp
+            MenuSizeProfile.Large -> 72.dp
+        }
+        val buttonSpacing = when (sizeProfile) {
+            MenuSizeProfile.Small -> 10.dp
+            MenuSizeProfile.Normal -> 12.dp
+            MenuSizeProfile.Large -> 16.dp
+        }
+        val cardPadding = when (sizeProfile) {
+            MenuSizeProfile.Small -> 14.dp
+            MenuSizeProfile.Normal -> 18.dp
+            MenuSizeProfile.Large -> 22.dp
+        }
+        val titleFont = when (sizeProfile) {
+            MenuSizeProfile.Small -> 14.sp
+            MenuSizeProfile.Normal -> 16.sp
+            MenuSizeProfile.Large -> 18.sp
+        }
+        val buttonTextSize = when (sizeProfile) {
+            MenuSizeProfile.Small -> 16.sp
+            MenuSizeProfile.Normal -> 18.sp
+            MenuSizeProfile.Large -> 20.sp
+        }
+        val bonusTextSize = when (sizeProfile) {
+            MenuSizeProfile.Small -> 11.sp
+            MenuSizeProfile.Normal -> 12.sp
+            MenuSizeProfile.Large -> 13.sp
+        }
+
+        val logoPainter = remember {
+            runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+        }
+
+        val buttons = listOf(
+            MenuButtonData(
                 title = "Addizioni",
                 baseColor = Color(0xFFE74C3C),
-                icon = { Text("＋", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                iconText = "＋",
                 onClick = { onPickDigitsFor(GameMode.ADD) }
-            )
-            KidsMenuButton(
+            ),
+            MenuButtonData(
                 title = "Sottrazioni",
                 baseColor = Color(0xFF2ECC71),
-                icon = { Text("−", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                iconText = "−",
                 onClick = { onPickDigitsFor(GameMode.SUB) }
-            )
-            KidsMenuButton(
+            ),
+            MenuButtonData(
                 title = "Tabelline",
                 baseColor = Color(0xFFF39C12),
-                icon = { Text("×", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                iconText = "×",
                 onClick = { onPlayDirect(GameMode.MULT) }
-            )
-            KidsMenuButton(
+            ),
+            MenuButtonData(
                 title = "Moltiplicazioni difficili",
                 baseColor = Color(0xFF8B5CF6),
-                icon = { Text("××", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black) },
+                iconText = "××",
                 onClick = { onPlayDirect(GameMode.MULT_HARD) }
-            )
-            KidsMenuButton(
+            ),
+            MenuButtonData(
                 title = "Divisioni",
                 baseColor = Color(0xFF3498DB),
-                icon = { Text("÷", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                iconText = "÷",
                 onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
-            )
-            KidsMenuButton(
+            ),
+            MenuButtonData(
                 title = "Conta i soldi (Euro)",
                 baseColor = Color(0xFFF1C40F),
-                icon = { Text("€", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
+                iconText = "€",
                 onClick = { onPlayDirect(GameMode.MONEY) }
             )
+        )
 
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Completa gli esercizi e vinci il BONUS! 🎈",
-                color = Color.White.copy(alpha = 0.92f),
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 13.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+        val animationsReady = remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { animationsReady.value = true }
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                if (logoPainter != null) {
+                    Image(
+                        painter = logoPainter,
+                        contentDescription = "Math Kids",
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .fillMaxWidth(0.85f),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.HelpOutline,
+                        contentDescription = "Logo mancante",
+                        tint = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .size(48.dp)
+                    )
+                }
+
+                TopActionsPill(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 6.dp)
+                ) {
+                    SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+                    SmallCircleButton("🏆") { onOpenLeaderboard() }
+                }
+            }
+
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                padding = cardPadding
+            ) {
+                val offsetPx = with(LocalDensity.current) {
+                    when (sizeProfile) {
+                        MenuSizeProfile.Small -> 12.dp.toPx()
+                        MenuSizeProfile.Normal -> 16.dp.toPx()
+                        MenuSizeProfile.Large -> 18.dp.toPx()
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(buttonSpacing)
+                ) {
+                    TitlePill(
+                        text = "Scegli un gioco!",
+                        fontSize = titleFont
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(buttonSpacing)
+                    ) {
+                        buttons.forEachIndexed { index, data ->
+                            val alpha by animateFloatAsState(
+                                targetValue = if (animationsReady.value) 1f else 0f,
+                                animationSpec = tween(
+                                    durationMillis = 220,
+                                    delayMillis = index * 60
+                                ),
+                                label = "menuAlpha$index"
+                            )
+                            val offsetY by animateFloatAsState(
+                                targetValue = if (animationsReady.value) 0f else offsetPx,
+                                animationSpec = tween(
+                                    durationMillis = 220,
+                                    delayMillis = index * 60
+                                ),
+                                label = "menuOffset$index"
+                            )
+
+                            KidsMenuButton(
+                                title = data.title,
+                                baseColor = data.baseColor,
+                                icon = {
+                                    Text(
+                                        data.iconText,
+                                        color = Color.White,
+                                        fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                },
+                                onClick = data.onClick,
+                                height = buttonHeight,
+                                textSize = buttonTextSize,
+                                modifier = Modifier.graphicsLayer {
+                                    this.alpha = alpha
+                                    translationY = offsetY
+                                }
+                            )
+                        }
+                    }
+
+                    BonusPill(
+                        text = "Completa gli esercizi e vinci il BONUS! 🎈",
+                        fontSize = bonusTextSize
+                    )
+                }
+            }
         }
     }
 }
@@ -653,27 +780,33 @@ private fun KidsMenuButton(
     baseColor: Color,
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    height: Dp = 72.dp,
+    textSize: TextUnit = 18.sp
 ) {
     val dark = baseColor
     val light = lerp(baseColor, Color.White, 0.35f)
-
-    var pressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (pressed) 0.985f else 1f, label = "kidsBtnScale")
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(targetValue = if (pressed) 0.98f else 1f, label = "kidsBtnScale")
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(72.dp)
-            .shadow(10.dp, RoundedCornerShape(999.dp))
+            .height(height)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(12.dp, RoundedCornerShape(999.dp))
             .clip(RoundedCornerShape(999.dp))
             .background(Brush.verticalGradient(colors = listOf(light, dark)))
-            .border(3.dp, dark.copy(alpha = 0.55f), RoundedCornerShape(999.dp))
-            .clickable {
-                pressed = true
-                onClick()
-            }
-            .padding(horizontal = 18.dp),
+            .border(2.dp, dark.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(bounded = true, color = Color.White.copy(alpha = 0.45f))
+            ) { onClick() }
+            .padding(horizontal = 22.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Box(
@@ -702,18 +835,108 @@ private fun KidsMenuButton(
             Text(
                 title,
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = textSize,
                 fontWeight = FontWeight.Black
             )
         }
     }
+}
 
-    LaunchedEffect(pressed) {
-        if (pressed) {
-            kotlinx.coroutines.delay(70)
-            pressed = false
-        }
+private enum class MenuSizeProfile {
+    Small,
+    Normal,
+    Large
+}
+
+private data class MenuButtonData(
+    val title: String,
+    val baseColor: Color,
+    val iconText: String,
+    val onClick: () -> Unit
+)
+
+@Composable
+private fun GlassCard(
+    modifier: Modifier = Modifier,
+    padding: Dp = 18.dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .shadow(14.dp, RoundedCornerShape(26.dp))
+            .clip(RoundedCornerShape(26.dp))
+            .background(Color.White.copy(alpha = 0.14f))
+            .border(1.5.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(26.dp))
+            .padding(padding)
+    ) {
+        Column(content = content)
     }
+}
+
+@Composable
+private fun TitlePill(
+    text: String,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.White.copy(alpha = 0.75f))
+            .border(1.dp, Color.White.copy(alpha = 0.65f), RoundedCornerShape(999.dp))
+            .padding(vertical = 8.dp, horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            color = Color(0xFF1F2937),
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = fontSize
+        )
+    }
+}
+
+@Composable
+private fun BonusPill(
+    text: String,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color(0xFF111827).copy(alpha = 0.55f))
+            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(999.dp))
+            .padding(vertical = 8.dp, horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            color = Color.White.copy(alpha = 0.96f),
+            fontWeight = FontWeight.Bold,
+            fontSize = fontSize,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun TopActionsPill(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.White.copy(alpha = 0.18f))
+            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(999.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content
+    )
 }
 
 // -----------------------------
