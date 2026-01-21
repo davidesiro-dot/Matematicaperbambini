@@ -26,7 +26,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
@@ -55,6 +55,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.foundation.BorderStroke
+
 
 
 // -----------------------------
@@ -229,10 +231,14 @@ private fun AppBackground(content: @Composable () -> Unit) {
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.12f)))
+
+        // ✅ RIMOSSO: overlay rettangolare semi-trasparente che “sporca” il layout
+        // Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.12f)))
+
         content()
     }
 }
+
 
 // -----------------------------
 // GLASS PANEL
@@ -278,7 +284,7 @@ fun SmallCircleButton(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.78f))
+            .background(Color.White.copy(alpha = 0.31f))
             .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -582,11 +588,13 @@ private fun HomeMenuKids(
             else -> MenuSizeProfile.Large
         }
 
-        val buttonHeight = when (sizeProfile) {
-            MenuSizeProfile.Small -> 56.dp
-            MenuSizeProfile.Normal -> 64.dp
-            MenuSizeProfile.Large -> 72.dp
-        }
+        val baseButtonHeight = when (sizeProfile) {
+        MenuSizeProfile.Small -> 56.dp
+        MenuSizeProfile.Normal -> 64.dp
+        MenuSizeProfile.Large -> 72.dp
+    }
+        val buttonHeight = baseButtonHeight * 0.75f
+
         val buttonSpacing = when (sizeProfile) {
             MenuSizeProfile.Small -> 10.dp
             MenuSizeProfile.Normal -> 12.dp
@@ -613,9 +621,8 @@ private fun HomeMenuKids(
             MenuSizeProfile.Large -> 13.sp
         }
 
-        val logoPainter = remember {
-            runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
-        }
+        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+
 
         val buttons = listOf(
             MenuButtonData(
@@ -660,10 +667,16 @@ private fun HomeMenuKids(
         LaunchedEffect(Unit) { animationsReady.value = true }
 
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
+                .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(
+
+
+        Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.TopCenter
             ) {
@@ -697,82 +710,73 @@ private fun HomeMenuKids(
                 }
             }
 
-            GlassCard(
+            // ✅ BOTTONI SENZA PANNELLO "GLASSCARD" + alzati di 20dp
+            val offsetPx = with(LocalDensity.current) {
+                when (sizeProfile) {
+                    MenuSizeProfile.Small -> 12.dp.toPx()
+                    MenuSizeProfile.Normal -> 16.dp.toPx()
+                    MenuSizeProfile.Large -> 18.dp.toPx()
+                }
+            }
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                padding = cardPadding
+                    .weight(1f)
+                    .offset(y = (-10).dp),   // ✅ 20px/20dp più in alto
+                verticalArrangement = Arrangement.spacedBy(buttonSpacing)
             ) {
-                val offsetPx = with(LocalDensity.current) {
-                    when (sizeProfile) {
-                        MenuSizeProfile.Small -> 12.dp.toPx()
-                        MenuSizeProfile.Normal -> 16.dp.toPx()
-                        MenuSizeProfile.Large -> 18.dp.toPx()
-                    }
+                TitlePill(
+                    text = "Scegli un gioco!",
+                    fontSize = titleFont
+                )
+
+                buttons.forEachIndexed { index, data ->
+                    val alpha by animateFloatAsState(
+                        targetValue = if (animationsReady.value) 1f else 0f,
+                        animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                        label = "menuAlpha$index"
+                    )
+                    val offsetY by animateFloatAsState(
+                        targetValue = if (animationsReady.value) 0f else offsetPx,
+                        animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                        label = "menuOffset$index"
+                    )
+
+                    KidsMenuButton(
+                        title = data.title,
+                        baseColor = data.baseColor,
+                        icon = {
+                            Text(
+                                data.iconText,
+                                color = Color.White,
+                                fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        },
+                        onClick = data.onClick,
+                        height = buttonHeight,
+                        textSize = buttonTextSize,
+                        modifier = Modifier.graphicsLayer {
+                            this.alpha = alpha
+                            translationY = offsetY
+                        }
+                    )
                 }
 
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(buttonSpacing)
-                ) {
-                    TitlePill(
-                        text = "Scegli un gioco!",
-                        fontSize = titleFont
-                    )
+                BonusPill(
+                    text = "Completa gli esercizi e vinci il BONUS! 🎈",
+                    fontSize = bonusTextSize
+                )
+            }
 
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(buttonSpacing)
-                    ) {
-                        buttons.forEachIndexed { index, data ->
-                            val alpha by animateFloatAsState(
-                                targetValue = if (animationsReady.value) 1f else 0f,
-                                animationSpec = tween(
-                                    durationMillis = 220,
-                                    delayMillis = index * 60
-                                ),
-                                label = "menuAlpha$index"
-                            )
-                            val offsetY by animateFloatAsState(
-                                targetValue = if (animationsReady.value) 0f else offsetPx,
-                                animationSpec = tween(
-                                    durationMillis = 220,
-                                    delayMillis = index * 60
-                                ),
-                                label = "menuOffset$index"
-                            )
 
-                            KidsMenuButton(
-                                title = data.title,
-                                baseColor = data.baseColor,
-                                icon = {
-                                    Text(
-                                        data.iconText,
-                                        color = Color.White,
-                                        fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                },
-                                onClick = data.onClick,
-                                height = buttonHeight,
-                                textSize = buttonTextSize,
-                                modifier = Modifier.graphicsLayer {
-                                    this.alpha = alpha
-                                    translationY = offsetY
-                                }
-                            )
-                        }
-                    }
 
-                    BonusPill(
-                        text = "Completa gli esercizi e vinci il BONUS! 🎈",
-                        fontSize = bonusTextSize
-                    )
                 }
             }
         }
-    }
-}
+
+
 
 @Composable
 private fun KidsMenuButton(
@@ -786,9 +790,13 @@ private fun KidsMenuButton(
 ) {
     val dark = baseColor
     val light = lerp(baseColor, Color.White, 0.35f)
+
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (pressed) 0.98f else 1f, label = "kidsBtnScale")
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        label = "kidsBtnScale"
+    )
 
     Box(
         modifier = modifier
@@ -804,11 +812,15 @@ private fun KidsMenuButton(
             .border(2.dp, dark.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
             .clickable(
                 interactionSource = interactionSource,
-                indication = rememberRipple(bounded = true, color = Color.White.copy(alpha = 0.45f))
+                indication = ripple(
+                    bounded = true,
+                    color = Color.White.copy(alpha = 0.45f)
+                )
             ) { onClick() }
             .padding(horizontal = 22.dp),
         contentAlignment = Alignment.CenterStart
     ) {
+        // highlight top gloss
         Box(
             Modifier
                 .fillMaxWidth()
@@ -817,30 +829,38 @@ private fun KidsMenuButton(
                 .clip(RoundedCornerShape(999.dp))
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.40f), Color.Transparent)
+                        colors = listOf(Color.White.copy(alpha = 0.90f), Color.Transparent)
                     )
                 )
         )
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Box(
                 Modifier
                     .size(44.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White.copy(alpha = 0.22f))
-                    .border(2.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
+                    .background(Color.White.copy(alpha = 0.01f))
+                    .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
-            ) { icon() }
+            ) {
+                icon()
+            }
 
             Text(
-                title,
+                text = title,
                 color = Color.White,
                 fontSize = textSize,
-                fontWeight = FontWeight.Black
+                fontWeight = FontWeight.Black,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
+
 
 private enum class MenuSizeProfile {
     Small,
@@ -861,17 +881,25 @@ private fun GlassCard(
     padding: Dp = 18.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .shadow(14.dp, RoundedCornerShape(26.dp))
-            .clip(RoundedCornerShape(26.dp))
-            .background(Color.White.copy(alpha = 0.14f))
-            .border(1.5.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(26.dp))
-            .padding(padding)
+    val shape = RoundedCornerShape(26.dp)
+
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = Color.White.copy(alpha = 0.14f),
+        tonalElevation = 0.dp,
+        shadowElevation = 14.dp,
+        border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.22f))
     ) {
-        Column(content = content)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(padding),
+            content = content
+        )
     }
 }
+
 
 @Composable
 private fun TitlePill(
@@ -883,7 +911,7 @@ private fun TitlePill(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(999.dp))
-            .background(Color.White.copy(alpha = 0.75f))
+            .background(Color.White.copy(alpha = 0.55f))
             .border(1.dp, Color.White.copy(alpha = 0.65f), RoundedCornerShape(999.dp))
             .padding(vertical = 8.dp, horizontal = 16.dp),
         contentAlignment = Alignment.Center
@@ -907,7 +935,7 @@ private fun BonusPill(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(999.dp))
-            .background(Color(0xFF111827).copy(alpha = 0.55f))
+            .background(Color(0xFF111827).copy(alpha = 0.65f))
             .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(999.dp))
             .padding(vertical = 8.dp, horizontal = 12.dp),
         contentAlignment = Alignment.Center
@@ -930,7 +958,7 @@ private fun TopActionsPill(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(Color.White.copy(alpha = 0.18f))
+            .background(Color.White.copy(alpha = 0.29f))
             .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

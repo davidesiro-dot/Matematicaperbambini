@@ -1,48 +1,33 @@
 package com.example.matematicaperbambini
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
 import kotlin.random.Random
-import androidx.compose.foundation.layout.width
-
-
 
 data class StarState(
     val id: Int,
@@ -64,165 +49,168 @@ fun FallingStarsGame(
     val context = LocalContext.current
     val density = LocalDensity.current
     val rng = remember { Random(System.currentTimeMillis()) }
+
     val stars = remember { mutableStateListOf<StarState>() }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
+
     var elapsedMs by remember { mutableStateOf(0L) }
     var score by remember { mutableStateOf(0) }
     var finished by remember { mutableStateOf(false) }
-    var started by remember { mutableStateOf(true) }
     var showNameEntry by remember { mutableStateOf(false) }
     var playerName by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
+
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
     var lastFrameNs by remember { mutableStateOf(0L) }
 
     val widthPx = containerSize.width.toFloat()
     val heightPx = containerSize.height.toFloat()
-    val paused = showNameEntry || finished
+
+    // ✅ terreno
+    val groundHeightDp = 20.dp
+    val groundHeightPx = with(density) { groundHeightDp.toPx() }
 
     LaunchedEffect(finished) {
-        if (finished && !saved) {
-            showNameEntry = true
+        if (finished && !saved) showNameEntry = true
+    }
+
+    fun createStar(id: Int, startInView: Boolean): StarState {
+        val sizePx = with(density) { rng.nextInt(32, 52).dp.toPx() }
+
+        val safeWidth = (widthPx - sizePx).coerceAtLeast(1f)
+        val x = rng.nextFloat() * safeWidth
+
+        val safeHeight = (heightPx - groundHeightPx - sizePx).coerceAtLeast(1f)
+        val y = if (startInView) {
+            rng.nextFloat() * safeHeight
+        } else {
+            -sizePx - rng.nextFloat() * (heightPx.coerceAtLeast(1f))
         }
+
+        val vy = with(density) { rng.nextInt(160, 260).dp.toPx() }
+        val isGolden = rng.nextInt(6) == 0
+        return StarState(id, x, y, vy, sizePx, isGolden)
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF1E3A8A), Color(0xFF0F172A))
-                )
-            )
-            .zIndex(2f)
-            .padding(8.dp)
             .onSizeChanged { containerSize = it }
     ) {
-        val ui = rememberUiSizing()
-        val headerPad = ui.pad
-        val headerSpacing = if (ui.isCompact) 8.dp else 16.dp
-        val hintFont = if (ui.isCompact) 14.sp else 16.sp
-        val starMin = if (ui.isCompact) 30 else 36
-        val starMax = if (ui.isCompact) 46 else 56
-        val hitExtra = if (ui.isCompact) 18.dp else 24.dp
-        val hitExtraPx = with(density) { hitExtra.toPx() }
 
-        fun createStar(id: Int, startInView: Boolean): StarState {
-            val sizePx = with(density) { rng.nextInt(starMin, starMax).dp.toPx() }
-            val x = rng.nextFloat() * (widthPx - sizePx).coerceAtLeast(0f)
-            val y = if (startInView) {
-                rng.nextFloat() * (heightPx - sizePx).coerceAtLeast(0f)
-            } else {
-                -sizePx - rng.nextFloat() * heightPx
-            }
-            val vy = with(density) { rng.nextInt(60, 140).dp.toPx() } * 3f
-            val isGolden = rng.nextInt(6) == 0
-            return StarState(id = id, x = x, y = y, vy = vy, sizePx = sizePx, isGolden = isGolden)
-        }
+        // ✅ BACKGROUND IMMAGINE
+        Image(
+            painter = painterResource(id = R.drawable.stars_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
-        if (started && stars.isEmpty() && widthPx > 0f && heightPx > 0f) {
-            repeat(starCount) { index ->
-                stars += createStar(index, startInView = true)
-            }
-        }
+        // (opzionale) overlay leggero per leggere meglio testi
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0x33000000),
+                            Color(0x77000000)
+                        )
+                    )
+                )
+        )
 
-        LaunchedEffect(widthPx, heightPx, finished, started, paused) {
-            if (!started || finished || widthPx <= 0f || heightPx <= 0f) return@LaunchedEffect
-            if (paused) {
-                startTimeNs = null
-                lastFrameNs = 0L
-                return@LaunchedEffect
-            }
-
-            while (isActive && !finished) {
-                withFrameNanos { now ->
-                    if (startTimeNs == null) startTimeNs = now - (elapsedMs * 1_000_000)
-                    if (lastFrameNs == 0L) lastFrameNs = now
-                    val dt = (now - lastFrameNs) / 1_000_000_000f
-                    lastFrameNs = now
-
-                    val elapsed = ((now - (startTimeNs ?: now)) / 1_000_000)
-                    elapsedMs = elapsed
-                    if (elapsedMs >= durationMs) {
-                        elapsedMs = durationMs
-                        finished = true
-                        return@withFrameNanos
-                    }
-
-                    for (i in stars.indices) {
-                        val star = stars[i]
-                        val ny = star.y + star.vy * dt
-                        if (ny > heightPx + star.sizePx) {
-                            stars[i] = createStar(star.id, startInView = false)
-                        } else {
-                            stars[i] = star.copy(y = ny)
-                        }
-                    }
-                }
-            }
-        }
-
+        // --- header ---
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(headerPad)
+                .padding(8.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color.White.copy(alpha = 0.85f)
-                ) {
+                Surface(shape = RoundedCornerShape(18.dp), color = Color.White.copy(alpha = 0.85f)) {
                     Text(
                         "Punti: $score",
-                        modifier = Modifier.padding(horizontal = headerSpacing, vertical = if (ui.isCompact) 6.dp else 8.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color.White.copy(alpha = 0.85f)
-                ) {
-                    val remainingMs = (durationMs - elapsedMs).coerceAtLeast(0L)
-                    val remainingSec = (remainingMs / 1000).toInt()
-                    val min = remainingSec / 60
-                    val sec = remainingSec % 60
+                Surface(shape = RoundedCornerShape(18.dp), color = Color.White.copy(alpha = 0.85f)) {
+                    val remaining = ((durationMs - elapsedMs) / 1000).coerceAtLeast(0)
                     Text(
-                        "Tempo: %02d:%02d".format(min, sec),
-                        modifier = Modifier.padding(horizontal = headerSpacing, vertical = if (ui.isCompact) 6.dp else 8.dp),
+                        "Tempo: %02d:%02d".format(remaining / 60, remaining % 60),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            Spacer(Modifier.height(if (ui.isCompact) 8.dp else 12.dp))
-
-            Text(
-                "Tocca le stelle!",
-                color = Color(0xFFE2E8F0),
-                fontWeight = FontWeight.Bold,
-                fontSize = hintFont
-            )
+            Spacer(Modifier.height(8.dp))
+            Text("Tocca le stelle!", color = Color.White, fontWeight = FontWeight.Bold)
         }
 
-        for (i in stars.indices) {
-            val star = stars[i]
+        // --- spawn iniziale ---
+        if (stars.isEmpty() && widthPx > 0f && heightPx > 0f) {
+            repeat(starCount) { i -> stars += createStar(i, true) }
+        }
+
+        // --- loop animazione ---
+        LaunchedEffect(widthPx, heightPx, finished) {
+            if (widthPx <= 0f || heightPx <= 0f || finished) return@LaunchedEffect
+
+            while (isActive && !finished) {
+                withFrameNanos { now ->
+                    if (startTimeNs == null) startTimeNs = now
+                    if (lastFrameNs == 0L) lastFrameNs = now
+
+                    val dt = (now - lastFrameNs) / 1_000_000_000f
+                    lastFrameNs = now
+
+                    elapsedMs = (now - (startTimeNs ?: now)) / 1_000_000
+                    if (elapsedMs >= durationMs) {
+                        finished = true
+                        return@withFrameNanos
+                    }
+
+                    val bottomLimit = heightPx - groundHeightPx
+
+                    for (i in stars.indices) {
+                        val s = stars[i]
+                        val ny = s.y + s.vy * dt
+                        stars[i] =
+                            if (ny > bottomLimit) createStar(s.id, false)
+                            else s.copy(y = ny)
+                    }
+                }
+            }
+        }
+
+        // --- stelle (tap compatibile) ---
+        stars.forEachIndexed { i, star ->
+            val hitExtraPx = with(density) { 24.dp.toPx() }
             val hitSizePx = star.sizePx + hitExtraPx
-            val offsetX = (star.x - (hitExtraPx / 2f)).roundToInt()
-            val offsetY = (star.y - (hitExtraPx / 2f)).roundToInt()
+            val offsetX = (star.x - hitExtraPx / 2f).roundToInt()
+            val offsetY = (star.y - hitExtraPx / 2f).roundToInt()
+
             Box(
                 modifier = Modifier
                     .offset { IntOffset(offsetX, offsetY) }
                     .size(with(density) { hitSizePx.toDp() })
-                    .clickable {
-                        if (!finished) {
-                            val gain = if (star.isGolden) 3 else 1
-                            score += gain
-                            if (soundEnabled) {
-                                if (star.isGolden) fx.bonus() else fx.correct()
+                    .pointerInput(finished, soundEnabled, star.id, star.isGolden) {
+                        detectTapGestures(
+                            onTap = {
+                                if (!finished) {
+                                    val gain = if (star.isGolden) 3 else 1
+                                    score += gain
+
+                                    if (soundEnabled) {
+                                        if (star.isGolden) fx.bonus() else fx.correct()
+                                    }
+
+                                    stars[i] = createStar(star.id, false)
+                                }
                             }
-                            stars[i] = createStar(star.id, startInView = false)
-                        }
+                        )
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -233,9 +221,29 @@ fun FallingStarsGame(
             }
         }
 
+        // --- terreno (blocca tap in basso) ---
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(groundHeightDp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFF14532D), Color(0xFF16A34A))
+                    )
+                )
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                    }
+                }
+                .zIndex(10f)
+        )
+
+        // --- salvataggio nome ---
         if (showNameEntry) {
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxSize()
                     .background(Color(0xCC0F172A)),
                 contentAlignment = Alignment.Center
@@ -245,9 +253,7 @@ fun FallingStarsGame(
                     Spacer(Modifier.height(16.dp))
                     OutlinedTextField(
                         value = playerName,
-                        onValueChange = { newValue ->
-                            playerName = newValue.trimStart().trimEnd().take(12)
-                        },
+                        onValueChange = { playerName = it.take(12) },
                         singleLine = true,
                         label = { Text("Nome") }
                     )
@@ -255,18 +261,21 @@ fun FallingStarsGame(
                     Button(
                         onClick = {
                             if (saved) return@Button
-                            val trimmed = playerName.trim()
-                            val finalName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
                             saved = true
+                            val name = playerName.ifBlank { "Bimbo" }
+
                             addScoreEntry(
                                 context,
                                 GLOBAL_STARS_LEADERBOARD_ID,
-                                ScoreEntry(finalName, score.toLong())
+                                ScoreEntry(name, score.toLong())
                             )
+
                             showNameEntry = false
                             onFinish()
                         }
-                    ) { Text("Salva e vai alla classifica") }
+                    ) {
+                        Text("Salva e vai alla classifica")
+                    }
                 }
             }
         }
