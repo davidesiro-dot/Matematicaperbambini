@@ -22,104 +22,137 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.pow
 import kotlin.random.Random
 
-private enum class DivRow { QUOTIENT, PRODUCT, REMAINDER }
+private enum class DivMode { DIV_1DIG, DIV_2DIG }
+
+private enum class DivTargetType { QUOTIENT, PRODUCT, REMAINDER, BRING_DOWN }
 
 private data class DivTarget(
-    val row: DivRow,
+    val type: DivTargetType,
     val stepIndex: Int,
     val col: Int,
-    val expected: Char,
+    val expected: Char?,
     val hint: String
 )
 
 private data class DivStep(
     val endPos: Int,
-    val chunk: Int,
+    val partial: Int,
     val qDigit: Int,
     val product: Int,
-    val remainder: Int
+    val remainder: Int,
+    val bringDownDigit: Int?
 )
 
 private data class DivPlan(
     val dividend: Int,
     val divisor: Int,
     val dividendDigits: List<Int>,
-    val quotientDigits: List<Int?>,
+    val quotientDigits: List<Int>,
     val steps: List<DivStep>,
     val targets: List<DivTarget>,
     val finalQuotient: Int,
     val finalRemainder: Int
 )
 
-private fun generateDivision(rng: Random): Pair<Int, Int> {
-    val divisor = rng.nextInt(2, 10) // 2..9
-    val digits = if (rng.nextBoolean()) 2 else 3
-    val min = if (digits == 2) 10 else 100
-    val max = if (digits == 2) 99 else 999
-    val dividend = rng.nextInt(min, max + 1)
+private data class DivConfig(
+    val dividendDigitsRange: IntRange,
+    val divisorRange: IntRange
+)
+
+private fun configFor(mode: DivMode): DivConfig = when (mode) {
+    DivMode.DIV_1DIG -> DivConfig(dividendDigitsRange = 2..4, divisorRange = 2..9)
+    DivMode.DIV_2DIG -> DivConfig(dividendDigitsRange = 3..5, divisorRange = 10..79)
+}
+
+private fun generateDivision(rng: Random, mode: DivMode): Pair<Int, Int> {
+    val config = configFor(mode)
+    val digits = rng.nextInt(config.dividendDigitsRange.first, config.dividendDigitsRange.last + 1)
+    val minDividend = 10.0.pow(digits - 1).toInt()
+    val maxDividend = (10.0.pow(digits.toDouble()).toInt()) - 1
+    val dividend = rng.nextInt(minDividend, maxDividend + 1)
+    val divisor = rng.nextInt(config.divisorRange.first, config.divisorRange.last + 1)
     return dividend to divisor
 }
 
-private fun computeDivisionPlan(dividend: Int, divisor: Int): DivPlan {
+private fun estimateQuotientDigit(partial: Int, divisor: Int): Int {
+    if (partial < divisor) return 0
+    if (divisor < 10) return partial / divisor
+
+    val leadingDivisor = divisor / 10
+    val partialStr = partial.toString()
+    val leadingPartial = if (partialStr.length >= 2) {
+        partialStr.substring(0, 2).toInt()
+    } else {
+        partialStr.toInt()
+    }
+    var qDigit = minOf(9, leadingPartial / leadingDivisor)
+    while (qDigit > 0 && divisor * qDigit > partial) {
+        qDigit--
+    }
+    return qDigit
+}
+
+internal fun generateDivisionPlan(dividend: Int, divisor: Int): DivPlan {
     val ds = dividend.toString().map { it.digitToInt() }
     val n = ds.size
 
     val steps = mutableListOf<DivStep>()
-    val quotient = MutableList<Int?>(n) { null }
-
-    var acc = 0
-    var started = false
-    var qValue = 0
-
-    for (i in 0 until n) {
-        acc = acc * 10 + ds[i]
-
-        if (!started && acc < divisor) {
-            continue
-        }
-
-        started = true
-        val qDigit = acc / divisor
-        val product = qDigit * divisor
-        val rem = acc - product
-
-        quotient[i] = qDigit
-        steps += DivStep(
-            endPos = i,
-            chunk = acc,
-            qDigit = qDigit,
-            product = product,
-            remainder = rem
-        )
-
-        acc = rem
-        qValue = qValue * 10 + qDigit
+    var index = 0
+    var partial = ds.first()
+    while (partial < divisor && index < n - 1) {
+        index++
+        partial = partial * 10 + ds[index]
     }
 
-    val finalQuotient = if (qValue == 0) 0 else qValue
-    val finalRemainder = acc
+    while (true) {
+        val qDigit = if (partial < divisor) 0 else estimateQuotientDigit(partial, divisor)
+        val product = qDigit * divisor
+        val rem = partial - product
+        val bringDownDigit = if (index < n - 1) ds[index + 1] else null
+
+        steps += DivStep(
+            endPos = index,
+            partial = partial,
+            qDigit = qDigit,
+            product = product,
+            remainder = rem,
+            bringDownDigit = bringDownDigit
+        )
+
+        if (index >= n - 1) {
+            break
+        }
+        index++
+        partial = rem * 10 + ds[index]
+    }
+
+    val quotientDigits = steps.map { it.qDigit }
+    val quotientString = quotientDigits.joinToString("")
+    val finalQuotient = quotientString.trimStart('0').ifEmpty { "0" }.toInt()
+    val finalRemainder = steps.lastOrNull()?.remainder ?: 0
 
     val targets = mutableListOf<DivTarget>()
-    fun add(row: DivRow, stepIndex: Int, col: Int, expected: Char, hint: String) {
-        targets += DivTarget(row, stepIndex, col, expected, hint)
+    fun add(type: DivTargetType, stepIndex: Int, col: Int, expected: Char?, hint: String) {
+        targets += DivTarget(type, stepIndex, col, expected, hint)
     }
 
     steps.forEachIndexed { si, st ->
         val qCh = st.qDigit.toString()[0]
         add(
-            row = DivRow.QUOTIENT,
+            type = DivTargetType.QUOTIENT,
             stepIndex = si,
             col = 0,
             expected = qCh,
-            hint = "Trova il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${st.chunk}. Scrivi la cifra del quoziente."
+            hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${st.partial}."
         )
 
         val prodStr = st.product.toString()
-        for (k in prodStr.indices.reversed()) {
+        for (k in prodStr.indices) {
             add(
-                row = DivRow.PRODUCT,
+                type = DivTargetType.PRODUCT,
                 stepIndex = si,
                 col = k,
                 expected = prodStr[k],
@@ -128,20 +161,27 @@ private fun computeDivisionPlan(dividend: Int, divisor: Int): DivPlan {
         }
 
         val remStr = st.remainder.toString()
-        val nextDigit = ds.getOrNull(st.endPos + 1)
         val remainderHint = buildString {
-            append("Sottrai: ${st.chunk} − ${st.product} = ${st.remainder}. Scrivi il resto.")
-            if (nextDigit != null) {
-                append(" Poi abbassa la cifra successiva ($nextDigit) e ripeti.")
-            }
+            append("Sottrai: ${st.partial} − ${st.product} = ${st.remainder}. Scrivi il resto.")
         }
-        for (k in remStr.indices.reversed()) {
+        for (k in remStr.indices) {
             add(
-                row = DivRow.REMAINDER,
+                type = DivTargetType.REMAINDER,
                 stepIndex = si,
                 col = k,
                 expected = remStr[k],
                 hint = remainderHint
+            )
+        }
+
+        if (st.bringDownDigit != null) {
+            val bringDownHint = "Abbassa la cifra successiva (${st.bringDownDigit}) accanto al resto per formare il nuovo parziale."
+            add(
+                type = DivTargetType.BRING_DOWN,
+                stepIndex = si,
+                col = 0,
+                expected = null,
+                hint = bringDownHint
             )
         }
     }
@@ -150,7 +190,7 @@ private fun computeDivisionPlan(dividend: Int, divisor: Int): DivPlan {
         dividend = dividend,
         divisor = divisor,
         dividendDigits = ds,
-        quotientDigits = quotient,
+        quotientDigits = quotientDigits,
         steps = steps,
         targets = targets,
         finalQuotient = finalQuotient,
@@ -245,6 +285,37 @@ private fun FixedBox(
 }
 
 @Composable
+private fun ActionBox(
+    text: String,
+    active: Boolean,
+    w: Dp = 44.dp,
+    h: Dp = 56.dp,
+    fontSize: Int = 20
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val bg = if (active) Color(0xFFFFF3CC) else Color.White.copy(alpha = 0.70f)
+    val border = if (active) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.45f)
+    Box(
+        modifier = Modifier
+            .width(w)
+            .height(h)
+            .clip(shape)
+            .background(bg)
+            .border(if (active) 3.dp else 2.dp, border, shape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = fontSize.sp,
+            textAlign = TextAlign.Center,
+            color = Color(0xFF111827)
+        )
+    }
+}
+
+@Composable
 fun DivisionStepGame(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
@@ -253,10 +324,11 @@ fun DivisionStepGame(
     onOpenLeaderboard: () -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
+    var mode by remember { mutableStateOf(DivMode.DIV_1DIG) }
 
     fun newPlan(): DivPlan {
-        val (dividend, divisor) = generateDivision(rng)
-        return computeDivisionPlan(dividend, divisor)
+        val (dividend, divisor) = generateDivision(rng, mode)
+        return generateDivisionPlan(dividend, divisor)
     }
 
     var plan by remember { mutableStateOf(newPlan()) }
@@ -290,6 +362,7 @@ fun DivisionStepGame(
     val prodErr = remember(plan) { mutableStateListOf<MutableList<Boolean>>().apply { prodInputs.forEach { add(MutableList(it.size) { false }) } } }
     val remErr = remember(plan) { mutableStateListOf<MutableList<Boolean>>().apply { remInputs.forEach { add(MutableList(it.size) { false }) } } }
     val qErr = remember(plan) { mutableStateListOf<Boolean>().apply { repeat(plan.steps.size) { add(false) } } }
+    val bringDownDone = remember(plan) { mutableStateListOf<Boolean>().apply { repeat(plan.steps.size) { add(false) } } }
 
     fun resetSame() {
         stepIndex = 0
@@ -302,6 +375,7 @@ fun DivisionStepGame(
         for (si in remInputs.indices) {
             for (c in remInputs[si].indices) { remInputs[si][c] = ""; remErr[si][c] = false }
         }
+        for (i in bringDownDone.indices) { bringDownDone[i] = false }
     }
 
     fun resetNew() {
@@ -312,43 +386,80 @@ fun DivisionStepGame(
     fun playCorrect() { if (soundEnabled) fx.correct() }
     fun playWrong() { if (soundEnabled) fx.wrong() }
 
-    fun isActive(row: DivRow, si: Int, col: Int): Boolean {
+    fun isActive(type: DivTargetType, si: Int, col: Int): Boolean {
         val t = current ?: return false
-        return t.row == row && t.stepIndex == si && t.col == col
+        return t.type == type && t.stepIndex == si && t.col == col
     }
 
-    fun onTyped(row: DivRow, si: Int, col: Int, v: String) {
+    fun advanceStep() {
+        stepIndex++
+        if (stepIndex >= plan.targets.size) {
+            correctCount++
+            message = "✅ Finito! Quoziente ${plan.finalQuotient} resto ${plan.finalRemainder}"
+        }
+    }
+
+    fun onTyped(type: DivTargetType, si: Int, col: Int, v: String) {
         val t = current ?: return
-        if (t.row != row || t.stepIndex != si || t.col != col) return
+        if (t.type != type || t.stepIndex != si || t.col != col) return
 
         val d = v.firstOrNull() ?: return
         val ok = d == t.expected
 
         if (!ok) {
-            when (row) {
-                DivRow.QUOTIENT -> { qErr[si] = true; qInputs[si] = "" }
-                DivRow.PRODUCT -> { prodErr[si][col] = true; prodInputs[si][col] = "" }
-                DivRow.REMAINDER -> { remErr[si][col] = true; remInputs[si][col] = "" }
+            when (type) {
+                DivTargetType.QUOTIENT -> { qErr[si] = true; qInputs[si] = "" }
+                DivTargetType.PRODUCT -> { prodErr[si][col] = true; prodInputs[si][col] = "" }
+                DivTargetType.REMAINDER -> { remErr[si][col] = true; remInputs[si][col] = "" }
+                DivTargetType.BRING_DOWN -> Unit
             }
             message = "❌ Riprova"
             playWrong()
             return
         }
 
-        when (row) {
-            DivRow.QUOTIENT -> { qErr[si] = false; qInputs[si] = d.toString() }
-            DivRow.PRODUCT -> { prodErr[si][col] = false; prodInputs[si][col] = d.toString() }
-            DivRow.REMAINDER -> { remErr[si][col] = false; remInputs[si][col] = d.toString() }
+        when (type) {
+            DivTargetType.QUOTIENT -> { qErr[si] = false; qInputs[si] = d.toString() }
+            DivTargetType.PRODUCT -> { prodErr[si][col] = false; prodInputs[si][col] = d.toString() }
+            DivTargetType.REMAINDER -> { remErr[si][col] = false; remInputs[si][col] = d.toString() }
+            DivTargetType.BRING_DOWN -> Unit
         }
 
         message = null
         playCorrect()
-        stepIndex++
+        advanceStep()
+    }
 
-        if (stepIndex >= plan.targets.size) {
-            correctCount++
-            message = "✅ Finito! Quoziente ${plan.finalQuotient} resto ${plan.finalRemainder}"
+    fun onBringDown(si: Int) {
+        val t = current ?: return
+        if (t.type != DivTargetType.BRING_DOWN || t.stepIndex != si) return
+        bringDownDone[si] = true
+        message = null
+        playCorrect()
+        advanceStep()
+    }
+
+    fun fillSolution() {
+        plan.steps.forEachIndexed { si, st ->
+            qInputs[si] = st.qDigit.toString()
+            qErr[si] = false
+            val prodStr = st.product.toString()
+            prodStr.forEachIndexed { idx, ch ->
+                prodInputs[si][idx] = ch.toString()
+                prodErr[si][idx] = false
+            }
+            val remStr = st.remainder.toString()
+            remStr.forEachIndexed { idx, ch ->
+                remInputs[si][idx] = ch.toString()
+                remErr[si][idx] = false
+            }
+            if (st.bringDownDigit != null) {
+                bringDownDone[si] = true
+            }
         }
+        stepIndex = plan.targets.size
+        message = "✅ Soluzione completata! Quoziente ${plan.finalQuotient} resto ${plan.finalRemainder}"
+        showSuccessDialog = true
     }
 
     val hint = if (done) {
@@ -362,13 +473,14 @@ fun DivisionStepGame(
     }
 
     val activeStepNumber = current?.stepIndex?.plus(1) ?: plan.steps.size
-    val activeAction = when (current?.row) {
-        DivRow.QUOTIENT -> "Scrivi la cifra del quoziente."
-        DivRow.PRODUCT -> "Scrivi il prodotto."
-        DivRow.REMAINDER -> "Scrivi il resto."
+    val activeAction = when (current?.type) {
+        DivTargetType.QUOTIENT -> "Scrivi la cifra del quoziente."
+        DivTargetType.PRODUCT -> "Scrivi il prodotto."
+        DivTargetType.REMAINDER -> "Scrivi il resto."
+        DivTargetType.BRING_DOWN -> "Abbassa la cifra successiva."
         null -> "Hai completato tutti i passi!"
     }
-    val activeChunk = current?.stepIndex?.let { plan.steps[it].chunk }
+    val activeChunk = current?.stepIndex?.let { plan.steps[it].partial }
 
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
@@ -411,6 +523,55 @@ fun DivisionStepGame(
                     }
                 }
 
+                SeaGlassPanel(title = "Modalità") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        val oneDigitSelected = mode == DivMode.DIV_1DIG
+                        val twoDigitSelected = mode == DivMode.DIV_2DIG
+                        if (oneDigitSelected) {
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    mode = DivMode.DIV_1DIG
+                                    resetNew()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Divisore 1 cifra")
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = {
+                                    mode = DivMode.DIV_1DIG
+                                    resetNew()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Divisore 1 cifra")
+                            }
+                        }
+                        if (twoDigitSelected) {
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    mode = DivMode.DIV_2DIG
+                                    resetNew()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Divisore 2 cifre")
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = {
+                                    mode = DivMode.DIV_2DIG
+                                    resetNew()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Divisore 2 cifre")
+                            }
+                        }
+                    }
+                }
+
                 SeaGlassPanel(title = "Esercizio") {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -440,10 +601,10 @@ fun DivisionStepGame(
                         plan.steps.forEachIndexed { si, _ ->
                             DigitBox(
                                 value = qInputs[si],
-                                enabled = isActive(DivRow.QUOTIENT, si, 0),
-                                active = isActive(DivRow.QUOTIENT, si, 0),
+                                enabled = isActive(DivTargetType.QUOTIENT, si, 0),
+                                active = isActive(DivTargetType.QUOTIENT, si, 0),
                                 isError = qErr[si],
-                                onValueChange = { onTyped(DivRow.QUOTIENT, si, 0, it) },
+                                onValueChange = { onTyped(DivTargetType.QUOTIENT, si, 0, it) },
                                 w = digitW,
                                 h = digitH,
                                 fontSize = fontLarge
@@ -465,7 +626,7 @@ fun DivisionStepGame(
                                 .padding(if (ui.isCompact) 8.dp else 10.dp),
                             verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)
                         ) {
-                            Text("Passo ${si + 1}: ${st.chunk} ÷ ${plan.divisor}", fontWeight = FontWeight.Black)
+                            Text("Passo ${si + 1}: ${st.partial} ÷ ${plan.divisor}", fontWeight = FontWeight.Black)
                             Text("Prima il quoziente, poi prodotto e resto.", color = Color(0xFF6B7280))
 
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)) {
@@ -474,10 +635,10 @@ fun DivisionStepGame(
                                     for (c in prodStr.indices) {
                                         DigitBox(
                                             value = prodInputs[si][c],
-                                            enabled = isActive(DivRow.PRODUCT, si, c),
-                                            active = isActive(DivRow.PRODUCT, si, c),
+                                            enabled = isActive(DivTargetType.PRODUCT, si, c),
+                                            active = isActive(DivTargetType.PRODUCT, si, c),
                                             isError = prodErr[si][c],
-                                            onValueChange = { onTyped(DivRow.PRODUCT, si, c, it) },
+                                            onValueChange = { onTyped(DivTargetType.PRODUCT, si, c, it) },
                                             w = digitSmallW,
                                             h = digitSmallH,
                                             fontSize = fontSmall
@@ -492,14 +653,33 @@ fun DivisionStepGame(
                                     for (c in remStr.indices) {
                                         DigitBox(
                                             value = remInputs[si][c],
-                                            enabled = isActive(DivRow.REMAINDER, si, c),
-                                            active = isActive(DivRow.REMAINDER, si, c),
+                                            enabled = isActive(DivTargetType.REMAINDER, si, c),
+                                            active = isActive(DivTargetType.REMAINDER, si, c),
                                             isError = remErr[si][c],
-                                            onValueChange = { onTyped(DivRow.REMAINDER, si, c, it) },
+                                            onValueChange = { onTyped(DivTargetType.REMAINDER, si, c, it) },
                                             w = digitSmallW,
                                             h = digitSmallH,
                                             fontSize = fontSmall
                                         )
+                                    }
+                                }
+                            }
+
+                            if (st.bringDownDigit != null) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)) {
+                                    Text("Abbassa", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                                    ActionBox(
+                                        text = st.bringDownDigit.toString(),
+                                        active = isActive(DivTargetType.BRING_DOWN, si, 0),
+                                        w = digitSmallW,
+                                        h = digitSmallH,
+                                        fontSize = fontSmall
+                                    )
+                                    OutlinedButton(
+                                        onClick = { onBringDown(si) },
+                                        enabled = isActive(DivTargetType.BRING_DOWN, si, 0)
+                                    ) {
+                                        Text(if (bringDownDone[si]) "Abbassato" else "Abbassa")
                                     }
                                 }
                             }
@@ -509,14 +689,18 @@ fun DivisionStepGame(
             }
             },
             bottomBar = {
-                Row(horizontalArrangement = Arrangement.spacedBy(ui.spacing), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = { resetSame() }, modifier = Modifier.weight(1f)) {
-                        Text("Ricomincia")
+                GameBottomActions(
+                    leftText = "Ricomincia",
+                    onLeft = { resetSame() },
+                    rightText = "Nuovo",
+                    onRight = { resetNew() },
+                    modifier = Modifier.fillMaxWidth(),
+                    center = {
+                        OutlinedButton(onClick = { fillSolution() }) {
+                            Text("Soluzione")
+                        }
                     }
-                    OutlinedButton(onClick = { resetNew() }, modifier = Modifier.weight(1f)) {
-                        Text("Nuovo")
-                    }
-                }
+                )
             }
         )
 
