@@ -95,7 +95,7 @@ private fun estimateQuotientDigit(partial: Int, divisor: Int): Int {
     return qDigit
 }
 
-internal fun generateDivisionPlan(dividend: Int, divisor: Int): DivPlan {
+private fun generateDivisionPlan(dividend: Int, divisor: Int): DivPlan {
     val ds = dividend.toString().map { it.digitToInt() }
     val n = ds.size
 
