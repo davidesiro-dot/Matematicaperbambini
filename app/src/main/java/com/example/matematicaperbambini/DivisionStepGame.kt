@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -209,19 +208,21 @@ private fun DigitBox(
     h: Dp = 56.dp,
     fontSize: Int = 22
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(10.dp)
 
     val bg = when {
-        active -> Color(0xFFFFF3CC)
-        value.isNotBlank() && !isError -> Color(0xFFDCFCE7)
-        else -> Color.White.copy(alpha = 0.85f)
+        active -> MaterialTheme.colorScheme.tertiaryContainer
+        value.isNotBlank() && !isError -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val border = when {
-        isError -> Color(0xFFEF4444)
-        active -> MaterialTheme.colorScheme.primary
-        else -> Color.White.copy(alpha = 0.55f)
+        isError -> MaterialTheme.colorScheme.error
+        active -> MaterialTheme.colorScheme.tertiary
+        enabled -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outline
     }
+    val borderW = if (active) 3.dp else 2.dp
 
     Box(
         modifier = Modifier
@@ -229,7 +230,7 @@ private fun DigitBox(
             .height(h)
             .clip(shape)
             .background(bg)
-            .border(if (active) 3.dp else 2.dp, border, shape),
+            .border(borderW, border, shape),
         contentAlignment = Alignment.Center
     ) {
         BasicTextField(
@@ -243,10 +244,10 @@ private fun DigitBox(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = TextStyle(
                 fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 fontSize = fontSize.sp,
                 textAlign = TextAlign.Center,
-                color = Color(0xFF111827)
+                color = MaterialTheme.colorScheme.onSurface
             ),
             modifier = Modifier.fillMaxSize(),
             decorationBox = { inner ->
@@ -263,23 +264,23 @@ private fun FixedBox(
     h: Dp = 56.dp,
     fontSize: Int = 22
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(10.dp)
     Box(
         modifier = Modifier
             .width(w)
             .height(h)
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.70f))
-            .border(2.dp, Color.White.copy(alpha = 0.45f), shape),
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
             fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.Bold,
             fontSize = fontSize.sp,
             textAlign = TextAlign.Center,
-            color = Color(0xFF111827)
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -292,9 +293,9 @@ private fun ActionBox(
     h: Dp = 56.dp,
     fontSize: Int = 20
 ) {
-    val shape = RoundedCornerShape(12.dp)
-    val bg = if (active) Color(0xFFFFF3CC) else Color.White.copy(alpha = 0.70f)
-    val border = if (active) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.45f)
+    val shape = RoundedCornerShape(10.dp)
+    val bg = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val border = if (active) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant
     Box(
         modifier = Modifier
             .width(w)
@@ -307,11 +308,207 @@ private fun ActionBox(
         Text(
             text = text,
             fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.Bold,
             fontSize = fontSize.sp,
             textAlign = TextAlign.Center,
-            color = Color(0xFF111827)
+            color = MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+private fun startColForEnd(endPos: Int, len: Int): Int {
+    return (endPos - len + 1).coerceAtLeast(0)
+}
+
+@Composable
+private fun DivisionDigitRow(
+    columns: Int,
+    cellW: Dp,
+    cellH: Dp,
+    gap: Dp,
+    modifier: Modifier = Modifier,
+    cell: @Composable (Int) -> Unit
+) {
+    val rowWidth = cellW * columns + gap * (columns - 1)
+    Row(
+        modifier = modifier.width(rowWidth),
+        horizontalArrangement = Arrangement.spacedBy(gap)
+    ) {
+        for (col in 0 until columns) {
+            Box(
+                modifier = Modifier.width(cellW).height(cellH),
+                contentAlignment = Alignment.Center
+            ) {
+                cell(col)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DivisionCompactWorksheet(
+    plan: DivPlan,
+    qInputs: List<String>,
+    qErr: List<Boolean>,
+    prodInputs: List<List<String>>,
+    prodErr: List<List<Boolean>>,
+    remInputs: List<List<String>>,
+    remErr: List<List<Boolean>>,
+    bringDownDone: List<Boolean>,
+    isActive: (DivTargetType, Int, Int) -> Boolean,
+    onTyped: (DivTargetType, Int, Int, String) -> Unit,
+    onBringDown: (Int) -> Unit,
+    ui: UiSizing
+) {
+    val digitW = if (ui.isCompact) 36.dp else 44.dp
+    val digitH = if (ui.isCompact) 48.dp else 56.dp
+    val digitSmallW = if (ui.isCompact) 34.dp else 40.dp
+    val digitSmallH = if (ui.isCompact) 46.dp else 52.dp
+    val fontLarge = if (ui.isCompact) 18 else 22
+    val fontSmall = if (ui.isCompact) 16 else 20
+    val gap = if (ui.isCompact) 4.dp else 6.dp
+    val columns = plan.dividendDigits.size
+    val divisorDigits = plan.divisor.toString()
+    val divisorWidth = digitW * divisorDigits.length + gap * (divisorDigits.length - 1)
+    val dividerHeight = digitH + digitH + gap
+    val stepGap = if (ui.isCompact) 6.dp else 8.dp
+
+    Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(gap)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
+                DivisionDigitRow(
+                    columns = columns,
+                    cellW = digitW,
+                    cellH = digitH,
+                    gap = gap
+                ) { col ->
+                    val digit = plan.dividendDigits[col]
+                    FixedBox(digit.toString(), w = digitW, h = digitH, fontSize = fontLarge)
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .width(if (ui.isCompact) 2.dp else 3.dp)
+                    .height(dividerHeight)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    divisorDigits.forEach { ch ->
+                        FixedBox(ch.toString(), w = digitW, h = digitH, fontSize = fontLarge)
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .width(divisorWidth)
+                        .height(if (ui.isCompact) 2.dp else 3.dp)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    plan.steps.forEachIndexed { si, _ ->
+                        DigitBox(
+                            value = qInputs[si],
+                            enabled = isActive(DivTargetType.QUOTIENT, si, 0),
+                            active = isActive(DivTargetType.QUOTIENT, si, 0),
+                            isError = qErr[si],
+                            onValueChange = { onTyped(DivTargetType.QUOTIENT, si, 0, it) },
+                            w = digitW,
+                            h = digitH,
+                            fontSize = fontLarge
+                        )
+                    }
+                }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
+            plan.steps.forEachIndexed { si, st ->
+                val prodStr = st.product.toString()
+                val remStr = st.remainder.toString()
+                val prodStart = startColForEnd(st.endPos, prodStr.length)
+                val remStart = startColForEnd(st.endPos, remStr.length)
+
+                DivisionDigitRow(
+                    columns = columns,
+                    cellW = digitSmallW,
+                    cellH = digitSmallH,
+                    gap = gap
+                ) { col ->
+                    if (col in prodStart until (prodStart + prodStr.length)) {
+                        val idx = col - prodStart
+                        DigitBox(
+                            value = prodInputs[si][idx],
+                            enabled = isActive(DivTargetType.PRODUCT, si, idx),
+                            active = isActive(DivTargetType.PRODUCT, si, idx),
+                            isError = prodErr[si][idx],
+                            onValueChange = { onTyped(DivTargetType.PRODUCT, si, idx, it) },
+                            w = digitSmallW,
+                            h = digitSmallH,
+                            fontSize = fontSmall
+                        )
+                    }
+                }
+
+                DivisionDigitRow(
+                    columns = columns,
+                    cellW = digitSmallW,
+                    cellH = digitSmallH,
+                    gap = gap
+                ) { col ->
+                    if (col in remStart until (remStart + remStr.length)) {
+                        val idx = col - remStart
+                        DigitBox(
+                            value = remInputs[si][idx],
+                            enabled = isActive(DivTargetType.REMAINDER, si, idx),
+                            active = isActive(DivTargetType.REMAINDER, si, idx),
+                            isError = remErr[si][idx],
+                            onValueChange = { onTyped(DivTargetType.REMAINDER, si, idx, it) },
+                            w = digitSmallW,
+                            h = digitSmallH,
+                            fontSize = fontSmall
+                        )
+                    }
+                }
+
+                if (st.bringDownDigit != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(gap)
+                    ) {
+                        DivisionDigitRow(
+                            columns = columns,
+                            cellW = digitSmallW,
+                            cellH = digitSmallH,
+                            gap = gap
+                        ) { col ->
+                            if (col == st.endPos + 1) {
+                                ActionBox(
+                                    text = st.bringDownDigit.toString(),
+                                    active = isActive(DivTargetType.BRING_DOWN, si, 0),
+                                    w = digitSmallW,
+                                    h = digitSmallH,
+                                    fontSize = fontSmall
+                                )
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = { onBringDown(si) },
+                            enabled = isActive(DivTargetType.BRING_DOWN, si, 0)
+                        ) {
+                            Text(if (bringDownDone[si]) "Abbassato" else "Abbassa")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -473,26 +670,8 @@ fun DivisionStepGame(
     }
 
     val activeStepNumber = current?.stepIndex?.plus(1) ?: plan.steps.size
-    val activeAction = when (current?.type) {
-        DivTargetType.QUOTIENT -> "Scrivi la cifra del quoziente."
-        DivTargetType.PRODUCT -> "Scrivi il prodotto."
-        DivTargetType.REMAINDER -> "Scrivi il resto."
-        DivTargetType.BRING_DOWN -> "Abbassa la cifra successiva."
-        null -> "Hai completato tutti i passi!"
-    }
-    val activeChunk = current?.stepIndex?.let { plan.steps[it].partial }
-
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
-        val digitW = if (ui.isCompact) 36.dp else 44.dp
-        val digitH = if (ui.isCompact) 48.dp else 56.dp
-        val digitSmallW = if (ui.isCompact) 34.dp else 40.dp
-        val digitSmallH = if (ui.isCompact) 46.dp else 52.dp
-        val fontLarge = if (ui.isCompact) 18 else 22
-        val fontSmall = if (ui.isCompact) 16 else 20
-        val dividerFont = if (ui.isCompact) 28.sp else 34.sp
-        val divisorW = if (ui.isCompact) 44.dp else 52.dp
-        val divisorH = if (ui.isCompact) 50.dp else 56.dp
 
         GameScreenFrame(
             title = "Divisioni passo passo",
@@ -506,187 +685,87 @@ fun DivisionStepGame(
             message = message,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
-                SeaGlassPanel(title = "Come si fa") {
-                    Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
-                        Text("1) Allinea il dividendo a sinistra e il divisore a destra: il quoziente va sotto la linea.", color = Color(0xFF374151))
-                        Text("2) Prendi il minimo numero di cifre del dividendo (da sinistra) che sia ≥ del divisore.", color = Color(0xFF374151))
-                        Text("3) Trova il numero più grande che, moltiplicato per il divisore, resta ≤ al numero scelto.", color = Color(0xFF374151))
-                        Text("4) Moltiplica, scrivi il prodotto sotto le cifre scelte e sottrai per ottenere il resto.", color = Color(0xFF374151))
-                        Text("5) Abbassa la cifra successiva del dividendo accanto al resto e ripeti 3-4.", color = Color(0xFF374151))
-                        Spacer(Modifier.height(if (ui.isCompact) 4.dp else 6.dp))
-                        Text(
-                            text = if (done) "Hai completato tutti i passi!"
-                            else "Adesso: passo $activeStepNumber/${plan.steps.size} • $activeChunk ÷ ${plan.divisor} • $activeAction",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                    SeaGlassPanel(title = "Modalità") {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            val oneDigitSelected = mode == DivMode.DIV_1DIG
+                            val twoDigitSelected = mode == DivMode.DIV_2DIG
+                            if (oneDigitSelected) {
+                                androidx.compose.material3.Button(
+                                    onClick = {
+                                        mode = DivMode.DIV_1DIG
+                                        resetNew()
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Divisore 1 cifra")
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick = {
+                                        mode = DivMode.DIV_1DIG
+                                        resetNew()
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Divisore 1 cifra")
+                                }
+                            }
+                            if (twoDigitSelected) {
+                                androidx.compose.material3.Button(
+                                    onClick = {
+                                        mode = DivMode.DIV_2DIG
+                                        resetNew()
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Divisore 2 cifre")
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick = {
+                                        mode = DivMode.DIV_2DIG
+                                        resetNew()
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Divisore 2 cifre")
+                                }
+                            }
+                        }
+                    }
+
+                    SeaGlassPanel(title = "Calcolo") {
+                        DivisionCompactWorksheet(
+                            plan = plan,
+                            qInputs = qInputs,
+                            qErr = qErr,
+                            prodInputs = prodInputs,
+                            prodErr = prodErr,
+                            remInputs = remInputs,
+                            remErr = remErr,
+                            bringDownDone = bringDownDone,
+                            isActive = ::isActive,
+                            onTyped = ::onTyped,
+                            onBringDown = ::onBringDown,
+                            ui = ui
                         )
                     }
-                }
 
-                SeaGlassPanel(title = "Modalità") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        val oneDigitSelected = mode == DivMode.DIV_1DIG
-                        val twoDigitSelected = mode == DivMode.DIV_2DIG
-                        if (oneDigitSelected) {
-                            androidx.compose.material3.Button(
-                                onClick = {
-                                    mode = DivMode.DIV_1DIG
-                                    resetNew()
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Divisore 1 cifra")
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = {
-                                    mode = DivMode.DIV_1DIG
-                                    resetNew()
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Divisore 1 cifra")
-                            }
-                        }
-                        if (twoDigitSelected) {
-                            androidx.compose.material3.Button(
-                                onClick = {
-                                    mode = DivMode.DIV_2DIG
-                                    resetNew()
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Divisore 2 cifre")
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = {
-                                    mode = DivMode.DIV_2DIG
-                                    resetNew()
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Divisore 2 cifre")
-                            }
-                        }
-                    }
-                }
-
-                SeaGlassPanel(title = "Esercizio") {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(ui.spacing)
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
-                            plan.dividendDigits.forEach { d ->
-                                FixedBox(d.toString(), w = digitW, h = digitH, fontSize = fontLarge)
-                            }
-                        }
-                        Text("│", fontSize = dividerFont, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            FixedBox(plan.divisor.toString(), w = divisorW, h = divisorH, fontSize = fontLarge)
-                            Box(
-                                modifier = Modifier
-                                    .width(divisorW)
-                                    .height(if (ui.isCompact) 2.dp else 3.dp)
-                                    .background(MaterialTheme.colorScheme.primary)
+                    SeaGlassPanel(title = "Aiuto") {
+                        Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
+                            Text(
+                                text = hint,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (done) "Passo ${plan.steps.size}/${plan.steps.size}"
+                                else "Passo $activeStepNumber/${plan.steps.size}",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
-
-                    Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
-
-                    Text("Quoziente (sotto il divisore)", fontWeight = FontWeight.Bold, color = Color(0xFF374151))
-                    Row(horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
-                        plan.steps.forEachIndexed { si, _ ->
-                            DigitBox(
-                                value = qInputs[si],
-                                enabled = isActive(DivTargetType.QUOTIENT, si, 0),
-                                active = isActive(DivTargetType.QUOTIENT, si, 0),
-                                isError = qErr[si],
-                                onValueChange = { onTyped(DivTargetType.QUOTIENT, si, 0, it) },
-                                w = digitW,
-                                h = digitH,
-                                fontSize = fontLarge
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(if (ui.isCompact) 8.dp else 10.dp))
-
-                    plan.steps.forEachIndexed { si, st ->
-                        val prodStr = st.product.toString()
-                        val remStr = st.remainder.toString()
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = if (ui.isCompact) 6.dp else 10.dp)
-                                .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                                .padding(if (ui.isCompact) 8.dp else 10.dp),
-                            verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)
-                        ) {
-                            Text("Passo ${si + 1}: ${st.partial} ÷ ${plan.divisor}", fontWeight = FontWeight.Black)
-                            Text("Prima il quoziente, poi prodotto e resto.", color = Color(0xFF6B7280))
-
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)) {
-                                Text("Prodotto", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                                Row(horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
-                                    for (c in prodStr.indices) {
-                                        DigitBox(
-                                            value = prodInputs[si][c],
-                                            enabled = isActive(DivTargetType.PRODUCT, si, c),
-                                            active = isActive(DivTargetType.PRODUCT, si, c),
-                                            isError = prodErr[si][c],
-                                            onValueChange = { onTyped(DivTargetType.PRODUCT, si, c, it) },
-                                            w = digitSmallW,
-                                            h = digitSmallH,
-                                            fontSize = fontSmall
-                                        )
-                                    }
-                                }
-                            }
-
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)) {
-                                Text("Resto", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                                Row(horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
-                                    for (c in remStr.indices) {
-                                        DigitBox(
-                                            value = remInputs[si][c],
-                                            enabled = isActive(DivTargetType.REMAINDER, si, c),
-                                            active = isActive(DivTargetType.REMAINDER, si, c),
-                                            isError = remErr[si][c],
-                                            onValueChange = { onTyped(DivTargetType.REMAINDER, si, c, it) },
-                                            w = digitSmallW,
-                                            h = digitSmallH,
-                                            fontSize = fontSmall
-                                        )
-                                    }
-                                }
-                            }
-
-                            if (st.bringDownDigit != null) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (ui.isCompact) 6.dp else 8.dp)) {
-                                    Text("Abbassa", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                                    ActionBox(
-                                        text = st.bringDownDigit.toString(),
-                                        active = isActive(DivTargetType.BRING_DOWN, si, 0),
-                                        w = digitSmallW,
-                                        h = digitSmallH,
-                                        fontSize = fontSmall
-                                    )
-                                    OutlinedButton(
-                                        onClick = { onBringDown(si) },
-                                        enabled = isActive(DivTargetType.BRING_DOWN, si, 0)
-                                    ) {
-                                        Text(if (bringDownDone[si]) "Abbassato" else "Abbassa")
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
-            }
             },
             bottomBar = {
                 GameBottomActions(
