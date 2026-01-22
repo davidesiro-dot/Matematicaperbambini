@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -414,24 +415,42 @@ fun DivisionStepGame(
 
     val qInputs = remember(plan) { mutableStateListOf<String>().apply { repeat(plan.steps.size) { add("") } } }
     val prodInputs = remember(plan) {
-        mutableStateListOf<MutableList<String>>().apply {
+        mutableStateListOf<SnapshotStateList<String>>().apply {
             plan.steps.forEach { st ->
-                val len = st.product.toString().length
-                add(MutableList(len) { "" })
+                add(mutableStateListOf<String>().apply {
+                    repeat(st.product.toString().length) { add("") }
+                })
             }
         }
     }
     val remInputs = remember(plan) {
-        mutableStateListOf<MutableList<String>>().apply {
+        mutableStateListOf<SnapshotStateList<String>>().apply {
             plan.steps.forEach { st ->
-                val len = st.remainder.toString().length
-                add(MutableList(len) { "" })
+                add(mutableStateListOf<String>().apply {
+                    repeat(st.remainder.toString().length) { add("") }
+                })
             }
         }
     }
 
-    val prodErr = remember(plan) { mutableStateListOf<MutableList<Boolean>>().apply { prodInputs.forEach { add(MutableList(it.size) { false }) } } }
-    val remErr = remember(plan) { mutableStateListOf<MutableList<Boolean>>().apply { remInputs.forEach { add(MutableList(it.size) { false }) } } }
+    val prodErr = remember(plan) {
+        mutableStateListOf<SnapshotStateList<Boolean>>().apply {
+            prodInputs.forEach { row ->
+                add(mutableStateListOf<Boolean>().apply {
+                    repeat(row.size) { add(false) }
+                })
+            }
+        }
+    }
+    val remErr = remember(plan) {
+        mutableStateListOf<SnapshotStateList<Boolean>>().apply {
+            remInputs.forEach { row ->
+                add(mutableStateListOf<Boolean>().apply {
+                    repeat(row.size) { add(false) }
+                })
+            }
+        }
+    }
     val qErr = remember(plan) { mutableStateListOf<Boolean>().apply { repeat(plan.steps.size) { add(false) } } }
     val bringDownDone = remember(plan) { mutableStateListOf<Boolean>().apply { repeat(plan.steps.size) { add(false) } } }
 
