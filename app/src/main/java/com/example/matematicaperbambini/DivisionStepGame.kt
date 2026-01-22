@@ -1,7 +1,10 @@
 package com.example.matematicaperbambini
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -13,6 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -53,12 +59,14 @@ private fun DigitBox(
     enabled: Boolean,
     active: Boolean,
     isError: Boolean,
+    debugLabel: String? = null,
     onValueChange: (String) -> Unit,
     w: Dp = 44.dp,
     h: Dp = 56.dp,
     fontSize: Int = 22
 ) {
     val shape = RoundedCornerShape(10.dp)
+    val focusRequester = remember { FocusRequester() }
 
     val bg = when {
         active -> MaterialTheme.colorScheme.tertiaryContainer
@@ -80,7 +88,8 @@ private fun DigitBox(
             .height(h)
             .clip(shape)
             .background(bg)
-            .border(borderW, border, shape),
+            .border(borderW, border, shape)
+            .clickable(enabled = enabled) { focusRequester.requestFocus() },
         contentAlignment = Alignment.Center
     ) {
         BasicTextField(
@@ -92,6 +101,7 @@ private fun DigitBox(
             enabled = enabled,
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             textStyle = TextStyle(
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
@@ -99,11 +109,24 @@ private fun DigitBox(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface
             ),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(focusRequester)
+                .focusable(true),
             decorationBox = { inner ->
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { inner() }
             }
         )
+        if (debugLabel != null) {
+            Text(
+                text = debugLabel,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(2.dp),
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -267,6 +290,7 @@ private fun DivisionCompactWorksheet(
                             enabled = isActive(DivTargetType.QUOTIENT, si, si),
                             active = isActive(DivTargetType.QUOTIENT, si, si),
                             isError = qErr[si],
+                            debugLabel = "Q si=$si col=$si",
                             onValueChange = { onTyped(DivTargetType.QUOTIENT, si, si, it) },
                             w = digitW,
                             h = digitH,
@@ -297,6 +321,7 @@ private fun DivisionCompactWorksheet(
                             enabled = isActive(DivTargetType.PRODUCT, si, col),
                             active = isActive(DivTargetType.PRODUCT, si, col),
                             isError = prodErr[si][idx],
+                            debugLabel = "P si=$si absCol=$col idx=$idx",
                             onValueChange = { onTyped(DivTargetType.PRODUCT, si, col, it) },
                             w = digitSmallW,
                             h = digitSmallH,
@@ -318,6 +343,7 @@ private fun DivisionCompactWorksheet(
                             enabled = isActive(DivTargetType.REMAINDER, si, col),
                             active = isActive(DivTargetType.REMAINDER, si, col),
                             isError = remErr[si][idx],
+                            debugLabel = "R si=$si absCol=$col idx=$idx",
                             onValueChange = { onTyped(DivTargetType.REMAINDER, si, col, it) },
                             w = digitSmallW,
                             h = digitSmallH,
@@ -464,8 +490,17 @@ fun DivisionStepGame(
     }
 
     fun onTyped(type: DivTargetType, si: Int, col: Int, v: String) {
-        val t = current ?: return
-        if (t.type != type || t.stepIndex != si || t.col != col) return
+        Log.d("DIV", "onTyped incoming type=$type si=$si col=$col v=$v")
+        val t = current
+        if (t == null) {
+            Log.d("DIV", "onTyped current target is null")
+            return
+        }
+        Log.d("DIV", "onTyped current type=${t.type} si=${t.stepIndex} col=${t.col} expected=${t.expected}")
+        if (t.type != type || t.stepIndex != si || t.col != col) {
+            Log.d("DIV", "IGNORED mismatch")
+            return
+        }
         val localIndex = when (type) {
             DivTargetType.PRODUCT, DivTargetType.REMAINDER -> localIndexFor(type, si, col) ?: return
             else -> col
@@ -624,6 +659,14 @@ fun DivisionStepGame(
 
                     SeaGlassPanel(title = "Aiuto") {
                         Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
+                            Text(
+                                text = "DEBUG current = ${current?.type ?: "NONE"} " +
+                                    "step=${current?.stepIndex ?: "-"} " +
+                                    "col=${current?.col ?: "-"} " +
+                                    "expected=${current?.expected ?: "-"}",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Text(
                                 text = hint,
                                 color = MaterialTheme.colorScheme.onSurface
