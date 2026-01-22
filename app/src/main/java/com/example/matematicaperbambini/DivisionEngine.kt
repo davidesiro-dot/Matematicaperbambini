@@ -101,23 +101,25 @@ internal fun generateDivisionPlan(dividend: Int, divisor: Int): DivPlan {
         add(
             type = DivTargetType.QUOTIENT,
             stepIndex = si,
-            col = 0,
+            col = si,
             expected = qCh,
             hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${st.partial}."
         )
 
         val prodStr = st.product.toString()
+        val prodStart = startColForEnd(st.endPos, prodStr.length)
         for (k in prodStr.indices) {
             add(
                 type = DivTargetType.PRODUCT,
                 stepIndex = si,
-                col = k,
+                col = prodStart + k,
                 expected = prodStr[k],
                 hint = "Moltiplica: $divisor × ${st.qDigit} = ${st.product}. Scrivi il prodotto sotto le cifre selezionate."
             )
         }
 
         val remStr = st.remainder.toString()
+        val remStart = startColForEnd(st.endPos, remStr.length)
         val remainderHint = buildString {
             append("Sottrai: ${st.partial} − ${st.product} = ${st.remainder}. Scrivi il resto.")
         }
@@ -125,7 +127,7 @@ internal fun generateDivisionPlan(dividend: Int, divisor: Int): DivPlan {
             add(
                 type = DivTargetType.REMAINDER,
                 stepIndex = si,
-                col = k,
+                col = remStart + k,
                 expected = remStr[k],
                 hint = remainderHint
             )
@@ -136,7 +138,7 @@ internal fun generateDivisionPlan(dividend: Int, divisor: Int): DivPlan {
             add(
                 type = DivTargetType.BRING_DOWN,
                 stepIndex = si,
-                col = 0,
+                col = st.endPos + 1,
                 expected = null,
                 hint = bringDownHint
             )

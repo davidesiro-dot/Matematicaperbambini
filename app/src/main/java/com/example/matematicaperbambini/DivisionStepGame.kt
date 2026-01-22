@@ -33,7 +33,7 @@ private data class DivConfig(
 
 private fun configFor(mode: DivMode): DivConfig = when (mode) {
     DivMode.DIV_1DIG -> DivConfig(dividendDigitsRange = 2..4, divisorRange = 2..9)
-    DivMode.DIV_2DIG -> DivConfig(dividendDigitsRange = 3..5, divisorRange = 10..79)
+    DivMode.DIV_2DIG -> DivConfig(dividendDigitsRange = 3..4, divisorRange = 10..79)
 }
 
 private fun generateDivision(rng: Random, mode: DivMode): Pair<Int, Int> {
@@ -205,7 +205,7 @@ private fun DivisionCompactWorksheet(
     bringDownDone: List<Boolean>,
     isActive: (DivTargetType, Int, Int) -> Boolean,
     onTyped: (DivTargetType, Int, Int, String) -> Unit,
-    onBringDown: (Int) -> Unit,
+    onBringDown: (Int, Int) -> Unit,
     ui: UiSizing
 ) {
     val digitW = if (ui.isCompact) 36.dp else 44.dp
@@ -264,10 +264,10 @@ private fun DivisionCompactWorksheet(
                     plan.steps.forEachIndexed { si, _ ->
                         DigitBox(
                             value = qInputs[si],
-                            enabled = isActive(DivTargetType.QUOTIENT, si, 0),
-                            active = isActive(DivTargetType.QUOTIENT, si, 0),
+                            enabled = isActive(DivTargetType.QUOTIENT, si, si),
+                            active = isActive(DivTargetType.QUOTIENT, si, si),
                             isError = qErr[si],
-                            onValueChange = { onTyped(DivTargetType.QUOTIENT, si, 0, it) },
+                            onValueChange = { onTyped(DivTargetType.QUOTIENT, si, si, it) },
                             w = digitW,
                             h = digitH,
                             fontSize = fontLarge
@@ -294,10 +294,10 @@ private fun DivisionCompactWorksheet(
                         val idx = col - prodStart
                         DigitBox(
                             value = prodInputs[si][idx],
-                            enabled = isActive(DivTargetType.PRODUCT, si, idx),
-                            active = isActive(DivTargetType.PRODUCT, si, idx),
+                            enabled = isActive(DivTargetType.PRODUCT, si, col),
+                            active = isActive(DivTargetType.PRODUCT, si, col),
                             isError = prodErr[si][idx],
-                            onValueChange = { onTyped(DivTargetType.PRODUCT, si, idx, it) },
+                            onValueChange = { onTyped(DivTargetType.PRODUCT, si, col, it) },
                             w = digitSmallW,
                             h = digitSmallH,
                             fontSize = fontSmall
@@ -315,10 +315,10 @@ private fun DivisionCompactWorksheet(
                         val idx = col - remStart
                         DigitBox(
                             value = remInputs[si][idx],
-                            enabled = isActive(DivTargetType.REMAINDER, si, idx),
-                            active = isActive(DivTargetType.REMAINDER, si, idx),
+                            enabled = isActive(DivTargetType.REMAINDER, si, col),
+                            active = isActive(DivTargetType.REMAINDER, si, col),
                             isError = remErr[si][idx],
-                            onValueChange = { onTyped(DivTargetType.REMAINDER, si, idx, it) },
+                            onValueChange = { onTyped(DivTargetType.REMAINDER, si, col, it) },
                             w = digitSmallW,
                             h = digitSmallH,
                             fontSize = fontSmall
@@ -340,7 +340,7 @@ private fun DivisionCompactWorksheet(
                             if (col == st.endPos + 1) {
                                 ActionBox(
                                     text = st.bringDownDigit.toString(),
-                                    active = isActive(DivTargetType.BRING_DOWN, si, 0),
+                                    active = isActive(DivTargetType.BRING_DOWN, si, col),
                                     w = digitSmallW,
                                     h = digitSmallH,
                                     fontSize = fontSmall
@@ -348,8 +348,8 @@ private fun DivisionCompactWorksheet(
                             }
                         }
                         OutlinedButton(
-                            onClick = { onBringDown(si) },
-                            enabled = isActive(DivTargetType.BRING_DOWN, si, 0)
+                            onClick = { onBringDown(si, st.endPos + 1) },
+                            enabled = isActive(DivTargetType.BRING_DOWN, si, st.endPos + 1)
                         ) {
                             Text(if (bringDownDone[si]) "Abbassato" else "Abbassa")
                         }
@@ -436,6 +436,25 @@ fun DivisionStepGame(
         return t.type == type && t.stepIndex == si && t.col == col
     }
 
+    fun localIndexFor(type: DivTargetType, si: Int, col: Int): Int? {
+        val st = plan.steps.getOrNull(si) ?: return null
+        return when (type) {
+            DivTargetType.PRODUCT -> {
+                val prodLen = st.product.toString().length
+                val prodStart = startColForEnd(st.endPos, prodLen)
+                val idx = col - prodStart
+                idx.takeIf { it in 0 until prodLen }
+            }
+            DivTargetType.REMAINDER -> {
+                val remLen = st.remainder.toString().length
+                val remStart = startColForEnd(st.endPos, remLen)
+                val idx = col - remStart
+                idx.takeIf { it in 0 until remLen }
+            }
+            else -> col
+        }
+    }
+
     fun advanceStep() {
         stepIndex++
         if (stepIndex >= plan.targets.size) {
@@ -447,6 +466,10 @@ fun DivisionStepGame(
     fun onTyped(type: DivTargetType, si: Int, col: Int, v: String) {
         val t = current ?: return
         if (t.type != type || t.stepIndex != si || t.col != col) return
+        val localIndex = when (type) {
+            DivTargetType.PRODUCT, DivTargetType.REMAINDER -> localIndexFor(type, si, col) ?: return
+            else -> col
+        }
 
         val d = v.firstOrNull() ?: return
         val ok = d == t.expected
@@ -454,8 +477,8 @@ fun DivisionStepGame(
         if (!ok) {
             when (type) {
                 DivTargetType.QUOTIENT -> { qErr[si] = true; qInputs[si] = "" }
-                DivTargetType.PRODUCT -> { prodErr[si][col] = true; prodInputs[si][col] = "" }
-                DivTargetType.REMAINDER -> { remErr[si][col] = true; remInputs[si][col] = "" }
+                DivTargetType.PRODUCT -> { prodErr[si][localIndex] = true; prodInputs[si][localIndex] = "" }
+                DivTargetType.REMAINDER -> { remErr[si][localIndex] = true; remInputs[si][localIndex] = "" }
                 DivTargetType.BRING_DOWN -> Unit
             }
             message = "❌ Riprova"
@@ -465,8 +488,8 @@ fun DivisionStepGame(
 
         when (type) {
             DivTargetType.QUOTIENT -> { qErr[si] = false; qInputs[si] = d.toString() }
-            DivTargetType.PRODUCT -> { prodErr[si][col] = false; prodInputs[si][col] = d.toString() }
-            DivTargetType.REMAINDER -> { remErr[si][col] = false; remInputs[si][col] = d.toString() }
+            DivTargetType.PRODUCT -> { prodErr[si][localIndex] = false; prodInputs[si][localIndex] = d.toString() }
+            DivTargetType.REMAINDER -> { remErr[si][localIndex] = false; remInputs[si][localIndex] = d.toString() }
             DivTargetType.BRING_DOWN -> Unit
         }
 
@@ -475,9 +498,9 @@ fun DivisionStepGame(
         advanceStep()
     }
 
-    fun onBringDown(si: Int) {
+    fun onBringDown(si: Int, col: Int) {
         val t = current ?: return
-        if (t.type != DivTargetType.BRING_DOWN || t.stepIndex != si) return
+        if (t.type != DivTargetType.BRING_DOWN || t.stepIndex != si || t.col != col) return
         bringDownDone[si] = true
         message = null
         playCorrect()
