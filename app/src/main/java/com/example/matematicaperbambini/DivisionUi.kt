@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -58,16 +59,20 @@ fun DivisionFixedDigit(
     text: String,
     w: Dp,
     h: Dp,
-    fontSize: TextUnit
+    fontSize: TextUnit,
+    highlight: Boolean = false
 ) {
     val shape = RoundedCornerShape(10.dp)
+    val highlightColor = Color(0xFF22C55E)
+    val borderColor = if (highlight) highlightColor else MaterialTheme.colorScheme.outlineVariant
+    val borderW = if (highlight) 3.dp else 1.dp
     Box(
         modifier = Modifier
             .width(w)
             .height(h)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+            .border(borderW, borderColor, shape),
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.material3.Text(
@@ -88,18 +93,25 @@ fun DivisionActionDigit(
     w: Dp,
     h: Dp,
     fontSize: TextUnit,
+    highlight: Boolean = false,
     microLabel: String? = null
 ) {
     val shape = RoundedCornerShape(10.dp)
     val bg = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
-    val border = if (active) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant
+    val highlightColor = Color(0xFF22C55E)
+    val border = when {
+        highlight -> highlightColor
+        active -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+    val borderW = if (highlight || active) 3.dp else 2.dp
     Box(
         modifier = Modifier
             .width(w)
             .height(h)
             .clip(shape)
             .background(bg)
-            .border(if (active) 3.dp else 2.dp, border, shape),
+            .border(borderW, border, shape),
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.material3.Text(
@@ -129,6 +141,7 @@ fun DivisionDigitBox(
     enabled: Boolean,
     active: Boolean,
     isError: Boolean,
+    highlight: Boolean,
     w: Dp,
     h: Dp,
     fontSize: TextUnit,
@@ -137,6 +150,7 @@ fun DivisionDigitBox(
 ) {
     val shape = RoundedCornerShape(10.dp)
     val focusRequester = remember { FocusRequester() }
+    val highlightColor = Color(0xFF22C55E)
 
     val bg = when {
         active -> MaterialTheme.colorScheme.tertiaryContainer
@@ -146,11 +160,16 @@ fun DivisionDigitBox(
 
     val border = when {
         isError -> MaterialTheme.colorScheme.error
+        highlight -> highlightColor
         active -> MaterialTheme.colorScheme.tertiary
         enabled -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outline
     }
-    val borderW = if (active) 3.dp else 2.dp
+    val borderW = when {
+        isError -> 2.dp
+        highlight || active -> 3.dp
+        else -> 2.dp
+    }
 
     LaunchedEffect(active, enabled) {
         if (active && enabled) {

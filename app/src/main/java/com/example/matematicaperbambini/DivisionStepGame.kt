@@ -250,6 +250,25 @@ fun DivisionStepGame(
     val dividerHeight = digitH + digitH + gap
     val stepGap = if (ui.isCompact) 6.dp else 8.dp
 
+    val activeStep = currentTarget?.let { plan.steps[it.stepIndex] }
+    val activePartialRange = activeStep?.let {
+        val len = it.partial.toString().length
+        startColForEnd(it.endPos, len)..it.endPos
+    }
+    val highlightDividend: (Int) -> Boolean = { col ->
+        val type = currentTarget?.type
+        val range = activePartialRange
+        (type == DivisionTargetType.QUOTIENT || type == DivisionTargetType.REMAINDER) &&
+            range != null && col in range
+    }
+    val highlightDivisor = currentTarget?.type == DivisionTargetType.QUOTIENT ||
+        currentTarget?.type == DivisionTargetType.PRODUCT
+    val highlightQuotientCol = if (currentTarget?.type == DivisionTargetType.PRODUCT) {
+        activeStep?.endPos
+    } else {
+        null
+    }
+
     Box(Modifier.fillMaxSize()) {
         GameScreenFrame(
             title = "Divisioni passo passo",
@@ -330,7 +349,8 @@ fun DivisionStepGame(
                                             text = digit.toString(),
                                             w = digitW,
                                             h = digitH,
-                                            fontSize = fontLarge
+                                            fontSize = fontLarge,
+                                            highlight = highlightDividend(col)
                                         )
                                     }
                                 }
@@ -352,7 +372,8 @@ fun DivisionStepGame(
                                                 text = ch.toString(),
                                                 w = digitW,
                                                 h = digitH,
-                                                fontSize = fontLarge
+                                                fontSize = fontLarge,
+                                                highlight = highlightDivisor
                                             )
                                         }
                                     }
@@ -378,6 +399,7 @@ fun DivisionStepGame(
                                                 enabled = active,
                                                 active = active,
                                                 isError = quotientErrors[col].value,
+                                                highlight = highlightQuotientCol == col,
                                                 microLabel = target.microLabel,
                                                 onValueChange = { onDigitInput(target, it) },
                                                 w = quotientDigitW,
@@ -390,6 +412,7 @@ fun DivisionStepGame(
                                                 enabled = false,
                                                 active = false,
                                                 isError = false,
+                                                highlight = highlightQuotientCol == col,
                                                 onValueChange = {},
                                                 w = quotientDigitW,
                                                 h = digitH,
@@ -411,6 +434,10 @@ fun DivisionStepGame(
                                     val bringDownTarget = plan.targets.firstOrNull {
                                         it.type == DivisionTargetType.BRING_DOWN && it.stepIndex == si
                                     }
+                                    val highlightProduct = currentTarget?.type == DivisionTargetType.REMAINDER &&
+                                        currentTarget?.stepIndex == si
+                                    val highlightRemainder = currentTarget?.type == DivisionTargetType.BRING_DOWN &&
+                                        currentTarget?.stepIndex == si
 
                                     DivisionDigitRow(
                                         columns = columns,
@@ -426,6 +453,7 @@ fun DivisionStepGame(
                                                 enabled = active,
                                                 active = active,
                                                 isError = productErrors[si][target.idx].value,
+                                                highlight = highlightProduct,
                                                 microLabel = target.microLabel,
                                                 onValueChange = { onDigitInput(target, it) },
                                                 w = digitSmallW,
@@ -449,6 +477,7 @@ fun DivisionStepGame(
                                                 enabled = active,
                                                 active = active,
                                                 isError = remainderErrors[si][target.idx].value,
+                                                highlight = highlightRemainder,
                                                 microLabel = target.microLabel,
                                                 onValueChange = { onDigitInput(target, it) },
                                                 w = digitSmallW,
@@ -469,16 +498,27 @@ fun DivisionStepGame(
                                                 cellH = digitSmallH,
                                                 gap = gap
                                             ) { col ->
-                                                if (col == bringDownTarget.gridCol) {
-                                                    val active = bringDownTarget == currentTarget
-                                                    DivisionActionDigit(
-                                                        text = step.bringDownDigit.toString(),
-                                                        active = active,
-                                                        microLabel = bringDownTarget.microLabel,
+                                                val remainderTarget = remainderTargets.firstOrNull { it.gridCol == col }
+                                                when {
+                                                    remainderTarget != null -> DivisionFixedDigit(
+                                                        text = remainderInputs[si][remainderTarget.idx].value,
                                                         w = digitSmallW,
                                                         h = digitSmallH,
-                                                        fontSize = fontSmall
+                                                        fontSize = fontSmall,
+                                                        highlight = highlightRemainder
                                                     )
+                                                    col == bringDownTarget.gridCol -> {
+                                                        val active = bringDownTarget == currentTarget
+                                                        DivisionActionDigit(
+                                                            text = step.bringDownDigit.toString(),
+                                                            active = active,
+                                                            microLabel = bringDownTarget.microLabel,
+                                                            w = digitSmallW,
+                                                            h = digitSmallH,
+                                                            fontSize = fontSmall,
+                                                            highlight = highlightRemainder
+                                                        )
+                                                    }
                                                 }
                                             }
                                             OutlinedButton(
