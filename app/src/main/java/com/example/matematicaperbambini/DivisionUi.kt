@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun DivisionDigitRow(
@@ -86,7 +87,8 @@ fun DivisionActionDigit(
     active: Boolean,
     w: Dp,
     h: Dp,
-    fontSize: TextUnit
+    fontSize: TextUnit,
+    microLabel: String? = null
 ) {
     val shape = RoundedCornerShape(10.dp)
     val bg = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
@@ -108,6 +110,16 @@ fun DivisionActionDigit(
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface
         )
+        if (active && microLabel != null) {
+            androidx.compose.material3.Text(
+                text = microLabel,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 4.dp)
+            )
+        }
     }
 }
 
@@ -120,6 +132,7 @@ fun DivisionDigitBox(
     w: Dp,
     h: Dp,
     fontSize: TextUnit,
+    microLabel: String? = null,
     onValueChange: (String) -> Unit
 ) {
     val shape = RoundedCornerShape(10.dp)
@@ -180,5 +193,15 @@ fun DivisionDigitBox(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { inner() }
             }
         )
+        if (active && microLabel != null) {
+            androidx.compose.material3.Text(
+                text = microLabel,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 4.dp)
+            )
+        }
     }
 }
