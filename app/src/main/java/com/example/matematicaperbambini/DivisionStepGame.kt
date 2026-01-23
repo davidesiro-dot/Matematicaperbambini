@@ -537,27 +537,45 @@ fun DivisionStepGame(
                                             }
                                         }
 
-                                        DivisionDigitRow(
-                                            columns = columns,
-                                            cellW = digitSmallW,
-                                            cellH = digitSmallH,
-                                            gap = gap
-                                        ) { col ->
-                                            val target = remainderTargets.firstOrNull { it.gridCol == col }
-                                            if (target != null) {
-                                                val active = target == currentTarget
-                                                DivisionDigitBox(
-                                                    value = remainderInputs[si][target.idx].value,
-                                                    enabled = active,
-                                                    active = active,
-                                                    isError = remainderErrors[si][target.idx].value,
-                                                    highlight = highlightRemainder,
-                                                    microLabel = target.microLabel,
-                                                    onValueChange = { onDigitInput(target, it) },
-                                                    w = digitSmallW,
-                                                    h = digitSmallH,
-                                                    fontSize = fontSmall
-                                                )
+                                        val remainderRow: @Composable () -> Unit = {
+                                            DivisionDigitRow(
+                                                columns = columns,
+                                                cellW = digitSmallW,
+                                                cellH = digitSmallH,
+                                                gap = gap
+                                            ) { col ->
+                                                val target = remainderTargets.firstOrNull { it.gridCol == col }
+                                                when {
+                                                    target != null -> {
+                                                        val active = target == currentTarget
+                                                        DivisionDigitBox(
+                                                            value = remainderInputs[si][target.idx].value,
+                                                            enabled = active,
+                                                            active = active,
+                                                            isError = remainderErrors[si][target.idx].value,
+                                                            highlight = highlightRemainder,
+                                                            microLabel = target.microLabel,
+                                                            onValueChange = { onDigitInput(target, it) },
+                                                            w = digitSmallW,
+                                                            h = digitSmallH,
+                                                            fontSize = fontSmall
+                                                        )
+                                                    }
+                                                    bringDownTarget != null &&
+                                                        step.bringDownDigit != null &&
+                                                        col == bringDownTarget.gridCol -> {
+                                                        val active = bringDownTarget == currentTarget
+                                                        DivisionActionDigit(
+                                                            text = step.bringDownDigit.toString(),
+                                                            active = active,
+                                                            microLabel = bringDownTarget.microLabel,
+                                                            w = digitSmallW,
+                                                            h = digitSmallH,
+                                                            fontSize = fontSmall,
+                                                            highlight = highlightRemainder
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
 
@@ -566,35 +584,7 @@ fun DivisionStepGame(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(gap)
                                             ) {
-                                                DivisionDigitRow(
-                                                    columns = columns,
-                                                    cellW = digitSmallW,
-                                                    cellH = digitSmallH,
-                                                    gap = gap
-                                                ) { col ->
-                                                    val remainderTarget = remainderTargets.firstOrNull { it.gridCol == col }
-                                                    when {
-                                                        remainderTarget != null -> DivisionFixedDigit(
-                                                            text = remainderInputs[si][remainderTarget.idx].value,
-                                                            w = digitSmallW,
-                                                            h = digitSmallH,
-                                                            fontSize = fontSmall,
-                                                            highlight = highlightRemainder
-                                                        )
-                                                        col == bringDownTarget.gridCol -> {
-                                                            val active = bringDownTarget == currentTarget
-                                                            DivisionActionDigit(
-                                                                text = step.bringDownDigit.toString(),
-                                                                active = active,
-                                                                microLabel = bringDownTarget.microLabel,
-                                                                w = digitSmallW,
-                                                                h = digitSmallH,
-                                                                fontSize = fontSmall,
-                                                                highlight = highlightRemainder
-                                                            )
-                                                        }
-                                                    }
-                                                }
+                                                remainderRow()
                                                 OutlinedButton(
                                                     onClick = { onBringDown(bringDownTarget) },
                                                     enabled = bringDownTarget == currentTarget
@@ -602,6 +592,8 @@ fun DivisionStepGame(
                                                     Text(if (bringDownDone[si].value) "Abbassato" else "Abbassa")
                                                 }
                                             }
+                                        } else {
+                                            remainderRow()
                                         }
                                     }
                                 }
