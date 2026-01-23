@@ -271,13 +271,41 @@ fun DivisionStepGame(
     val activeStep = currentTarget?.let { p?.steps?.get(it.stepIndex) }
     val activePartialRange = activeStep?.let {
         val len = it.partial.toString().length
-        startColForEnd(it.endPos, len)..it.endPos
+        val start = startColForEnd(it.endPos, len)
+        start..it.endPos
     }
-    val highlightDividend: (Int) -> Boolean = { col ->
-        val type = currentTarget?.type
-        val range = activePartialRange
-        (type == DivisionTargetType.QUOTIENT || type == DivisionTargetType.REMAINDER) &&
-            range != null && col in range
+    val activeProductRange = activeStep?.let {
+        val len = it.product.toString().length
+        val start = startColForEnd(it.endPos, len)
+        start..it.endPos
+    }
+    val activeRemainderRange = activeStep?.let {
+        val len = it.remainder.toString().length
+        val start = startColForEnd(it.endPos, len)
+        start..it.endPos
+    }
+    val bringCol = activeStep?.let {
+        if (it.bringDownDigit != null) it.endPos + 1 else null
+    }
+    val highlightDividendCol: (Int) -> Boolean = { col ->
+        when (currentTarget?.type) {
+            DivisionTargetType.QUOTIENT,
+            DivisionTargetType.PRODUCT,
+            DivisionTargetType.REMAINDER -> activePartialRange?.let { col in it } == true
+            DivisionTargetType.BRING_DOWN -> bringCol == col
+            null -> false
+        }
+    }
+    val highlightProductCol: (Int) -> Boolean = { col ->
+        currentTarget?.type == DivisionTargetType.REMAINDER &&
+            activeProductRange?.let { col in it } == true
+    }
+    val highlightRemainderCol: (Int) -> Boolean = { col ->
+        currentTarget?.type == DivisionTargetType.BRING_DOWN &&
+            activeRemainderRange?.let { col in it } == true
+    }
+    val highlightBringCol: (Int) -> Boolean = { col ->
+        currentTarget?.type == DivisionTargetType.BRING_DOWN && bringCol == col
     }
     val highlightDivisor = currentTarget?.type == DivisionTargetType.QUOTIENT ||
         currentTarget?.type == DivisionTargetType.PRODUCT
@@ -422,7 +450,7 @@ fun DivisionStepGame(
                                                 w = digitW,
                                                 h = digitH,
                                                 fontSize = fontLarge,
-                                                highlight = highlightDividend(col)
+                                                highlight = highlightDividendCol(col)
                                             )
                                         }
                                     }
@@ -497,6 +525,7 @@ fun DivisionStepGame(
 
                                 Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
                                     activePlan.steps.forEachIndexed { si, step ->
+                                        val isActiveStep = currentTarget?.stepIndex == si
                                         val productTargets = activePlan.targets.filter {
                                             it.type == DivisionTargetType.PRODUCT && it.stepIndex == si
                                         }
@@ -506,11 +535,6 @@ fun DivisionStepGame(
                                         val bringDownTarget = activePlan.targets.firstOrNull {
                                             it.type == DivisionTargetType.BRING_DOWN && it.stepIndex == si
                                         }
-                                        val highlightProduct = currentTarget?.type == DivisionTargetType.REMAINDER &&
-                                            currentTarget?.stepIndex == si
-                                        val highlightRemainder = currentTarget?.type == DivisionTargetType.BRING_DOWN &&
-                                            currentTarget?.stepIndex == si
-
                                         DivisionDigitRow(
                                             columns = columns,
                                             cellW = digitSmallW,
@@ -525,7 +549,7 @@ fun DivisionStepGame(
                                                     enabled = active,
                                                     active = active,
                                                     isError = productErrors[si][target.idx].value,
-                                                    highlight = highlightProduct,
+                                                    highlight = isActiveStep && highlightProductCol(col),
                                                     microLabel = target.microLabel,
                                                     onValueChange = { onDigitInput(target, it) },
                                                     w = digitSmallW,
@@ -551,7 +575,7 @@ fun DivisionStepGame(
                                                             enabled = active,
                                                             active = active,
                                                             isError = remainderErrors[si][target.idx].value,
-                                                            highlight = highlightRemainder,
+                                                            highlight = isActiveStep && highlightRemainderCol(col),
                                                             microLabel = target.microLabel,
                                                             onValueChange = { onDigitInput(target, it) },
                                                             w = digitSmallW,
@@ -570,7 +594,7 @@ fun DivisionStepGame(
                                                             w = digitSmallW,
                                                             h = digitSmallH,
                                                             fontSize = fontSmall,
-                                                            highlight = highlightRemainder
+                                                            highlight = isActiveStep && highlightBringCol(col)
                                                         )
                                                     }
                                                 }
