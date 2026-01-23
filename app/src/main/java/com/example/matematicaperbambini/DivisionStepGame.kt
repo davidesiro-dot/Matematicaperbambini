@@ -75,8 +75,9 @@ fun DivisionStepGame(
     var message by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
-    val quotientInputs = remember(plan) { List(plan.steps.size) { mutableStateOf("") } }
-    val quotientErrors = remember(plan) { List(plan.steps.size) { mutableStateOf(false) } }
+    val quotientSlotCount = plan.dividendDigits.size
+    val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
+    val quotientErrors = remember(plan) { List(quotientSlotCount) { mutableStateOf(false) } }
     val productInputs = remember(plan) {
         plan.steps.map { step ->
             List(step.product.toString().length) { mutableStateOf("") }
@@ -195,8 +196,9 @@ fun DivisionStepGame(
 
     fun fillSolution() {
         plan.steps.forEachIndexed { si, step ->
-            quotientInputs[si].value = step.qDigit.toString()
-            quotientErrors[si].value = false
+            val quotientCol = step.endPos
+            quotientInputs[quotientCol].value = step.qDigit.toString()
+            quotientErrors[quotientCol].value = false
             step.product.toString().forEachIndexed { idx, ch ->
                 productInputs[si][idx].value = ch.toString()
                 productErrors[si][idx].value = false
@@ -237,6 +239,11 @@ fun DivisionStepGame(
     val fontSmall = if (ui.isCompact) 16.sp else 20.sp
     val gap = if (ui.isCompact) 4.dp else 6.dp
     val columns = plan.dividendDigits.size
+    val quotientDigitW = if (columns == 4) {
+        if (ui.isCompact) 32.dp else 38.dp
+    } else {
+        digitW
+    }
     val divisorDigits = plan.divisor.toString()
     val divisorWidth = digitW * divisorDigits.length + gap * (divisorDigits.length - 1)
     val dividerHeight = digitH + digitH + gap
@@ -354,19 +361,36 @@ fun DivisionStepGame(
                                             .height(if (ui.isCompact) 2.dp else 3.dp)
                                             .background(MaterialTheme.colorScheme.primary)
                                     )
-                                    Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                                        plan.steps.forEachIndexed { si, _ ->
-                                            val target = plan.targets.firstOrNull {
-                                                it.type == DivisionTargetType.QUOTIENT && it.stepIndex == si
-                                            }
+                                    DivisionDigitRow(
+                                        columns = columns,
+                                        cellW = quotientDigitW,
+                                        cellH = digitH,
+                                        gap = gap
+                                    ) { col ->
+                                        val target = plan.targets.firstOrNull {
+                                            it.type == DivisionTargetType.QUOTIENT && it.gridCol == col
+                                        }
+                                        if (target != null) {
                                             val active = target == currentTarget
                                             DivisionDigitBox(
-                                                value = quotientInputs[si].value,
+                                                value = quotientInputs[col].value,
                                                 enabled = active,
                                                 active = active,
-                                                isError = quotientErrors[si].value,
-                                                onValueChange = { onDigitInput(target ?: return@DivisionDigitBox, it) },
-                                                w = digitW,
+                                                isError = quotientErrors[col].value,
+                                                microLabel = target.microLabel,
+                                                onValueChange = { onDigitInput(target, it) },
+                                                w = quotientDigitW,
+                                                h = digitH,
+                                                fontSize = fontLarge
+                                            )
+                                        } else {
+                                            DivisionDigitBox(
+                                                value = "",
+                                                enabled = false,
+                                                active = false,
+                                                isError = false,
+                                                onValueChange = {},
+                                                w = quotientDigitW,
                                                 h = digitH,
                                                 fontSize = fontLarge
                                             )
@@ -401,6 +425,7 @@ fun DivisionStepGame(
                                                 enabled = active,
                                                 active = active,
                                                 isError = productErrors[si][target.idx].value,
+                                                microLabel = target.microLabel,
                                                 onValueChange = { onDigitInput(target, it) },
                                                 w = digitSmallW,
                                                 h = digitSmallH,
@@ -423,6 +448,7 @@ fun DivisionStepGame(
                                                 enabled = active,
                                                 active = active,
                                                 isError = remainderErrors[si][target.idx].value,
+                                                microLabel = target.microLabel,
                                                 onValueChange = { onDigitInput(target, it) },
                                                 w = digitSmallW,
                                                 h = digitSmallH,
@@ -447,6 +473,7 @@ fun DivisionStepGame(
                                                     DivisionActionDigit(
                                                         text = step.bringDownDigit.toString(),
                                                         active = active,
+                                                        microLabel = bringDownTarget.microLabel,
                                                         w = digitSmallW,
                                                         h = digitSmallH,
                                                         fontSize = fontSmall

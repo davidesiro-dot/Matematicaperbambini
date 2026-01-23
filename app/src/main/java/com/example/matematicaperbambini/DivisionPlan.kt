@@ -8,7 +8,8 @@ data class DivisionTarget(
     val gridCol: Int,
     val idx: Int,
     val expected: Char?,
-    val hint: String
+    val hint: String,
+    val microLabel: String?
 )
 
 data class DivisionStep(
@@ -99,7 +100,8 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
         gridCol: Int,
         idx: Int,
         expected: Char?,
-        hint: String
+        hint: String,
+        microLabel: String?
     ) {
         targets += DivisionTarget(
             type = type,
@@ -107,19 +109,22 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
             gridCol = gridCol,
             idx = idx,
             expected = expected,
-            hint = hint
+            hint = hint,
+            microLabel = microLabel
         )
     }
 
     steps.forEachIndexed { si, step ->
         val qChar = step.qDigit.toString()[0]
+        val quotientCol = step.endPos
         add(
             type = DivisionTargetType.QUOTIENT,
             stepIndex = si,
-            gridCol = si,
-            idx = si,
+            gridCol = quotientCol,
+            idx = quotientCol,
             expected = qChar,
-            hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${step.partial}."
+            hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${step.partial}.",
+            microLabel = "${step.partial}÷$divisor"
         )
 
         val productStr = step.product.toString()
@@ -132,7 +137,8 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
                 gridCol = productStart + idx,
                 idx = idx,
                 expected = ch,
-                hint = productHint
+                hint = productHint,
+                microLabel = "$divisor×${step.qDigit}"
             )
         }
 
@@ -146,7 +152,8 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
                 gridCol = remainderStart + idx,
                 idx = idx,
                 expected = ch,
-                hint = remainderHint
+                hint = remainderHint,
+                microLabel = "${step.partial}−${step.product}"
             )
         }
 
@@ -158,7 +165,8 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
                 gridCol = step.endPos + 1,
                 idx = 0,
                 expected = null,
-                hint = bringDownHint
+                hint = bringDownHint,
+                microLabel = "↓ ${step.bringDownDigit}"
             )
         }
     }
