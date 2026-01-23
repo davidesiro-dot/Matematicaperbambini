@@ -401,13 +401,25 @@ fun DivisionStepGame(
                                             gap = gap
                                         ) { col ->
                                             val digit = activePlan.dividendDigits[col]
-                                        DivisionFixedDigit(
-                                            text = digit.toString(),
-                                            w = digitW,
-                                            h = digitH,
-                                            fontSize = fontLarge,
-                                            highlight = currentTarget?.let { isHL(HLZone.DIVIDEND, it.stepIndex, col) } == true
-                                        )
+                                            val highlightDividendCell = currentTarget?.let { t ->
+                                                when (t.type) {
+                                                    DivisionTargetType.QUOTIENT,
+                                                    DivisionTargetType.PRODUCT,
+                                                    DivisionTargetType.BRING_DOWN -> isHL(
+                                                        HLZone.DIVIDEND,
+                                                        t.stepIndex,
+                                                        col
+                                                    )
+                                                    DivisionTargetType.REMAINDER -> false
+                                                }
+                                            } ?: false
+                                            DivisionFixedDigit(
+                                                text = digit.toString(),
+                                                w = digitW,
+                                                h = digitH,
+                                                fontSize = fontLarge,
+                                                highlight = highlightDividendCell
+                                            )
                                         }
                                     }
 
@@ -586,7 +598,28 @@ fun DivisionStepGame(
                             val showDebug = true // <-- temporaneo, poi lo metti a false
 
                             if (showDebug) {
-                                Text("DEBUG current = ...")
+                                val highlights = currentTarget?.highlights.orEmpty()
+                                val debugText = buildString {
+                                    append("type=")
+                                    append(currentTarget?.type?.name ?: "-")
+                                    append(" step=")
+                                    append(currentTarget?.stepIndex ?: "-")
+                                    append(" col=")
+                                    append(currentTarget?.gridCol ?: "-")
+                                    append(" HL: D=")
+                                    append(highlights.count { it.zone == HLZone.DIVIDEND })
+                                    append(" P=")
+                                    append(highlights.count { it.zone == HLZone.PRODUCT })
+                                    append(" R=")
+                                    append(highlights.count { it.zone == HLZone.REMAINDER })
+                                    append(" B=")
+                                    append(highlights.count { it.zone == HLZone.BRING })
+                                    append(" Q=")
+                                    append(highlights.count { it.zone == HLZone.QUOTIENT })
+                                    append(" S=")
+                                    append(highlights.count { it.zone == HLZone.DIVISOR })
+                                }
+                                Text(debugText)
                             }
 
                             Text(
