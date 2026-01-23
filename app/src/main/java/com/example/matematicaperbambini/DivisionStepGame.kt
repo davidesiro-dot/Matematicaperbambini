@@ -2,6 +2,8 @@ package com.example.matematicaperbambini
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -10,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
 import kotlin.math.pow
 import kotlin.random.Random
 
@@ -59,6 +62,8 @@ fun DivisionStepGame(
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit
 ) {
+    val debugHL = true
+    val debugScenario = true
     val rng = remember { Random(System.currentTimeMillis()) }
     var mode by remember { mutableStateOf(DivMode.ONE_DIGIT) }
 
@@ -67,8 +72,13 @@ fun DivisionStepGame(
         return generateDivisionPlan(dividend, divisor)
     }
 
-    var plan by remember(mode, startMode) {
-        mutableStateOf(if (startMode == StartMode.RANDOM) newPlan() else null)
+    val debugPlan = remember { generateDivisionPlan(854, 2) }
+    var plan by remember(mode, startMode, debugScenario) {
+        mutableStateOf(
+            if (debugScenario) debugPlan
+            else if (startMode == StartMode.RANDOM) newPlan()
+            else null
+        )
     }
 
     var manualDividend by remember { mutableStateOf("") }
@@ -133,7 +143,12 @@ fun DivisionStepGame(
     }
 
     fun resetNew() {
-        if (startMode == StartMode.MANUAL) {
+        if (debugScenario) {
+            plan = debugPlan
+            targetIndex = 0
+            message = null
+            showSuccessDialog = false
+        } else if (startMode == StartMode.MANUAL) {
             manualDividend = ""
             manualDivisor = ""
             manualNumbers = null
@@ -269,7 +284,31 @@ fun DivisionStepGame(
     val stepGap = if (ui.isCompact) 6.dp else 8.dp
 
     val hlSet = remember(currentTarget) { currentTarget?.highlights?.toSet() ?: emptySet() }
-    fun isHL(zone: HLZone, step: Int, col: Int) = HLCell(zone, step, col) in hlSet
+    fun shouldHighlight(zone: HLZone, step: Int, col: Int, t: DivisionTarget?): Boolean {
+        return t?.highlights?.contains(HLCell(zone, step, col)) == true
+    }
+
+    fun debugMismatch(zone: HLZone, step: Int, col: Int): Boolean {
+        if (!debugHL) return false
+        val inPlan = HLCell(zone, step, col) in hlSet
+        val inUi = shouldHighlight(zone, step, col, currentTarget)
+        if (inPlan != inUi) {
+            Log.d("DivisionHL", "MISMATCH zone=$zone step=$step col=$col")
+        }
+        return inPlan != inUi
+    }
+
+    fun debugLabel(zone: HLZone, step: Int, col: Int): String {
+        val zoneLabel = when (zone) {
+            HLZone.DIVIDEND -> "D"
+            HLZone.DIVISOR -> "S"
+            HLZone.QUOTIENT -> "Q"
+            HLZone.PRODUCT -> "P"
+            HLZone.REMAINDER -> "R"
+            HLZone.BRING -> "B"
+        }
+        return "$zoneLabel s$step c$col"
+    }
 
     Box(Modifier.fillMaxSize()) {
         GameScreenFrame(
@@ -284,9 +323,9 @@ fun DivisionStepGame(
             message = message,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
-                    if (startMode == StartMode.RANDOM) {
-                        SeaGlassPanel(title = "Modalità") {
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    if (startMode == StartMode.RANDOM && !debugScenario) {
+                                        SeaGlassPanel(title = "Modalità") {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 val oneDigitSelected = mode == DivMode.ONE_DIGIT
                                 val twoDigitSelected = mode == DivMode.TWO_DIGIT
                                 if (oneDigitSelected) {
@@ -335,9 +374,9 @@ fun DivisionStepGame(
                         }
                     }
 
-                    if (startMode == StartMode.MANUAL) {
-                        val dividendValue = manualDividend.toIntOrNull()
-                        val divisorValue = manualDivisor.toIntOrNull()
+                                    if (startMode == StartMode.MANUAL && !debugScenario) {
+                                        val dividendValue = manualDividend.toIntOrNull()
+                                        val divisorValue = manualDivisor.toIntOrNull()
                         val manualValid = dividendValue in 2..999 &&
                             divisorValue in 2..99 &&
                             (dividendValue ?: 0) > (divisorValue ?: 0)
@@ -383,45 +422,42 @@ fun DivisionStepGame(
                         }
                     }
 
-                    SeaGlassPanel(title = "Calcolo") {
-                        if (p == null) {
-                            Text("Inserisci dividendo e divisore e premi Avvia.")
-                        } else {
-                            val activePlan = p
-                            Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
-                                Row(
+                                    SeaGlassPanel(title = "Calcolo") {
+                                        if (p == null) {
+                                            Text("Inserisci dividendo e divisore e premi Avvia.")
+                                        } else {
+                                            val activePlan = p
+                                            Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
+                                                Row(
                                     verticalAlignment = Alignment.Top,
                                     horizontalArrangement = Arrangement.spacedBy(gap)
                                 ) {
                                     Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
-                                        DivisionDigitRow(
-                                            columns = columns,
-                                            cellW = digitW,
-                                            cellH = digitH,
-                                            gap = gap
-                                        ) { col ->
-                                            val digit = activePlan.dividendDigits[col]
-                                            val highlightDividendCell = currentTarget?.let { t ->
-                                                when (t.type) {
-                                                    DivisionTargetType.QUOTIENT,
-                                                    DivisionTargetType.PRODUCT,
-                                                    DivisionTargetType.BRING_DOWN -> isHL(
+                                                DivisionDigitRow(
+                                                    columns = columns,
+                                                    cellW = digitW,
+                                                    cellH = digitH,
+                                                    gap = gap
+                                                ) { col ->
+                                                    val digit = activePlan.dividendDigits[col]
+                                                    val step = currentTarget?.stepIndex ?: 0
+                                                    val highlightDividendCell = shouldHighlight(
                                                         HLZone.DIVIDEND,
-                                                        t.stepIndex,
-                                                        col
+                                                        step,
+                                                        col,
+                                                        currentTarget
                                                     )
-                                                    DivisionTargetType.REMAINDER -> false
+                                                    DivisionFixedDigit(
+                                                        text = digit.toString(),
+                                                        w = digitW,
+                                                        h = digitH,
+                                                        fontSize = fontLarge,
+                                                        highlight = highlightDividendCell,
+                                                        debugLabel = if (debugHL) debugLabel(HLZone.DIVIDEND, step, col) else null,
+                                                        debugMismatch = debugMismatch(HLZone.DIVIDEND, step, col)
+                                                    )
                                                 }
-                                            } ?: false
-                                            DivisionFixedDigit(
-                                                text = digit.toString(),
-                                                w = digitW,
-                                                h = digitH,
-                                                fontSize = fontLarge,
-                                                highlight = highlightDividendCell
-                                            )
-                                        }
-                                    }
+                                            }
 
                                     Box(
                                         modifier = Modifier
@@ -434,17 +470,20 @@ fun DivisionStepGame(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)
                                     ) {
-                                        Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                                            divisorDigits.forEachIndexed { idx, ch ->
-                                                DivisionFixedDigit(
-                                                    text = ch.toString(),
-                                                    w = digitW,
-                                                    h = digitH,
-                                                    fontSize = fontLarge,
-                                                    highlight = currentTarget?.let { isHL(HLZone.DIVISOR, it.stepIndex, idx) } == true
-                                                )
+                                            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                                                divisorDigits.forEachIndexed { idx, ch ->
+                                                    val step = currentTarget?.stepIndex ?: 0
+                                                    DivisionFixedDigit(
+                                                        text = ch.toString(),
+                                                        w = digitW,
+                                                        h = digitH,
+                                                        fontSize = fontLarge,
+                                                        highlight = shouldHighlight(HLZone.DIVISOR, step, idx, currentTarget),
+                                                        debugLabel = if (debugHL) debugLabel(HLZone.DIVISOR, step, idx) else null,
+                                                        debugMismatch = debugMismatch(HLZone.DIVISOR, step, idx)
+                                                    )
+                                                }
                                             }
-                                        }
                                         Box(
                                             modifier = Modifier
                                                 .width(divisorWidth)
@@ -460,9 +499,9 @@ fun DivisionStepGame(
                                             val target = activePlan.targets.firstOrNull {
                                                 it.type == DivisionTargetType.QUOTIENT && it.gridCol == col
                                             }
-                                            val highlightQuotient = currentTarget?.let {
-                                                isHL(HLZone.QUOTIENT, it.stepIndex, col)
-                                            } == true
+                                            val step = currentTarget?.stepIndex ?: 0
+                                            val highlightQuotient = shouldHighlight(HLZone.QUOTIENT, step, col, currentTarget)
+                                            val mismatch = debugMismatch(HLZone.QUOTIENT, step, col)
                                             if (target != null) {
                                                 val active = target == currentTarget
                                                 DivisionDigitBox(
@@ -475,7 +514,9 @@ fun DivisionStepGame(
                                                     onValueChange = { onDigitInput(target, it) },
                                                     w = quotientDigitW,
                                                     h = digitH,
-                                                    fontSize = fontLarge
+                                                    fontSize = fontLarge,
+                                                    debugLabel = if (debugHL) debugLabel(HLZone.QUOTIENT, step, col) else null,
+                                                    debugMismatch = mismatch
                                                 )
                                             } else {
                                                 DivisionDigitBox(
@@ -487,7 +528,9 @@ fun DivisionStepGame(
                                                     onValueChange = {},
                                                     w = quotientDigitW,
                                                     h = digitH,
-                                                    fontSize = fontLarge
+                                                    fontSize = fontLarge,
+                                                    debugLabel = if (debugHL) debugLabel(HLZone.QUOTIENT, step, col) else null,
+                                                    debugMismatch = mismatch
                                                 )
                                             }
                                         }
@@ -519,12 +562,21 @@ fun DivisionStepGame(
                                                     enabled = active,
                                                     active = active,
                                                     isError = productErrors[si][target.idx].value,
-                                                    highlight = currentTarget?.let { isHL(HLZone.PRODUCT, si, col) } == true,
+                                                    highlight = shouldHighlight(HLZone.PRODUCT, si, col, currentTarget),
                                                     microLabel = target.microLabel,
                                                     onValueChange = { onDigitInput(target, it) },
                                                     w = digitSmallW,
                                                     h = digitSmallH,
-                                                    fontSize = fontSmall
+                                                    fontSize = fontSmall,
+                                                    debugLabel = if (debugHL) debugLabel(HLZone.PRODUCT, si, col) else null,
+                                                    debugMismatch = debugMismatch(HLZone.PRODUCT, si, col)
+                                                )
+                                            } else if (debugHL) {
+                                                DivisionDebugCell(
+                                                    w = digitSmallW,
+                                                    h = digitSmallH,
+                                                    debugLabel = debugLabel(HLZone.PRODUCT, si, col),
+                                                    debugMismatch = debugMismatch(HLZone.PRODUCT, si, col)
                                                 )
                                             }
                                         }
@@ -545,12 +597,14 @@ fun DivisionStepGame(
                                                             enabled = active,
                                                             active = active,
                                                             isError = remainderErrors[si][target.idx].value,
-                                                            highlight = currentTarget?.let { isHL(HLZone.REMAINDER, si, col) } == true,
+                                                            highlight = shouldHighlight(HLZone.REMAINDER, si, col, currentTarget),
                                                             microLabel = target.microLabel,
                                                             onValueChange = { onDigitInput(target, it) },
                                                             w = digitSmallW,
                                                             h = digitSmallH,
-                                                            fontSize = fontSmall
+                                                            fontSize = fontSmall,
+                                                            debugLabel = if (debugHL) debugLabel(HLZone.REMAINDER, si, col) else null,
+                                                            debugMismatch = debugMismatch(HLZone.REMAINDER, si, col)
                                                         )
                                                     }
                                                     bringDownTarget != null &&
@@ -564,7 +618,17 @@ fun DivisionStepGame(
                                                             w = digitSmallW,
                                                             h = digitSmallH,
                                                             fontSize = fontSmall,
-                                                            highlight = currentTarget?.let { isHL(HLZone.BRING, si, col) } == true
+                                                            highlight = shouldHighlight(HLZone.BRING, si, col, currentTarget),
+                                                            debugLabel = if (debugHL) debugLabel(HLZone.BRING, si, col) else null,
+                                                            debugMismatch = debugMismatch(HLZone.BRING, si, col)
+                                                        )
+                                                    }
+                                                    debugHL -> {
+                                                        DivisionDebugCell(
+                                                            w = digitSmallW,
+                                                            h = digitSmallH,
+                                                            debugLabel = debugLabel(HLZone.REMAINDER, si, col),
+                                                            debugMismatch = debugMismatch(HLZone.REMAINDER, si, col)
                                                         )
                                                     }
                                                 }
@@ -595,31 +659,65 @@ fun DivisionStepGame(
 
                     SeaGlassPanel(title = "Aiuto") {
                         Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
-                            val showDebug = true // <-- temporaneo, poi lo metti a false
-
-                            if (showDebug) {
-                                val highlights = currentTarget?.highlights.orEmpty()
-                                val debugText = buildString {
-                                    append("type=")
-                                    append(currentTarget?.type?.name ?: "-")
-                                    append(" step=")
-                                    append(currentTarget?.stepIndex ?: "-")
-                                    append(" col=")
-                                    append(currentTarget?.gridCol ?: "-")
-                                    append(" HL: D=")
-                                    append(highlights.count { it.zone == HLZone.DIVIDEND })
-                                    append(" P=")
-                                    append(highlights.count { it.zone == HLZone.PRODUCT })
-                                    append(" R=")
-                                    append(highlights.count { it.zone == HLZone.REMAINDER })
-                                    append(" B=")
-                                    append(highlights.count { it.zone == HLZone.BRING })
-                                    append(" Q=")
-                                    append(highlights.count { it.zone == HLZone.QUOTIENT })
-                                    append(" S=")
-                                    append(highlights.count { it.zone == HLZone.DIVISOR })
+                            if (debugScenario && p != null) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            targetIndex = (targetIndex - 1).coerceAtLeast(0)
+                                        }
+                                    ) {
+                                        Text("Prev")
+                                    }
+                                    OutlinedButton(
+                                        onClick = {
+                                            targetIndex = (targetIndex + 1).coerceAtMost(p.targets.size)
+                                        }
+                                    ) {
+                                        Text("Next")
+                                    }
+                                    Text("Target ${targetIndex}/${p.targets.size}")
                                 }
-                                Text(debugText)
+                            }
+
+                            val highlights = currentTarget?.highlights.orEmpty()
+                            val debugText = buildString {
+                                append("type=")
+                                append(currentTarget?.type?.name ?: "-")
+                                append(" step=")
+                                append(currentTarget?.stepIndex ?: "-")
+                                append(" col=")
+                                append(currentTarget?.gridCol ?: "-")
+                                append(" HL: D=")
+                                append(highlights.count { it.zone == HLZone.DIVIDEND })
+                                append(" P=")
+                                append(highlights.count { it.zone == HLZone.PRODUCT })
+                                append(" R=")
+                                append(highlights.count { it.zone == HLZone.REMAINDER })
+                                append(" B=")
+                                append(highlights.count { it.zone == HLZone.BRING })
+                                append(" Q=")
+                                append(highlights.count { it.zone == HLZone.QUOTIENT })
+                                append(" S=")
+                                append(highlights.count { it.zone == HLZone.DIVISOR })
+                            }
+                            Text(debugText)
+                            if (debugHL) {
+                                val highlightsText = highlights.joinToString(", ") {
+                                    debugLabel(it.zone, it.stepIndex, it.col)
+                                }
+                                Column {
+                                    Text("highlights:")
+                                    Box(
+                                        modifier = Modifier
+                                            .heightIn(max = 120.dp)
+                                            .fillMaxWidth()
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .padding(6.dp)
+                                            .verticalScroll(rememberScrollState())
+                                    ) {
+                                        Text(highlightsText)
+                                    }
+                                }
                             }
 
                             Text(
