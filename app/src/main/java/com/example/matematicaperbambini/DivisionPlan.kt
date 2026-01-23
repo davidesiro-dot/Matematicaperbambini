@@ -181,8 +181,7 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
         }
 
         val remainderHint = "Sottrai: ${step.partial} − ${step.product} = ${step.remainder}. Scrivi il resto."
-        val remainderHighlights = dividendHighlights(partialRange) +
-            productHighlightCells(productRange) +
+        val remainderHighlights = productHighlightCells(productRange) +
             remainderHighlightCells(remainderRange)
         remainderStr.forEachIndexed { idx, ch ->
             add(
