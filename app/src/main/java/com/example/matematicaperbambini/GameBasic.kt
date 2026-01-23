@@ -214,6 +214,7 @@ private fun BasicColumnGame(
 @Composable
 fun MultiplicationTableGame(
     table: Int,
+    startMode: StartMode = StartMode.RANDOM,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
