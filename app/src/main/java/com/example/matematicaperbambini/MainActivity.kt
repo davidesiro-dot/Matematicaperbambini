@@ -181,6 +181,7 @@ enum class LeaderboardTab {
 private enum class Screen {
     HOME,
     DIGITS_PICKER,     // Add/Sub
+    OPERATION_START_MENU,
     GAME,              // Add/Sub/Money (e altro se vuoi)
     MULT_PICKER,       // scegli tabellina 1..10
     MULT_GAME,         // tabellina 10 caselle
@@ -440,17 +441,26 @@ private fun AppShell() {
 
     var mode by remember { mutableStateOf(GameMode.ADD) }
     var digits by remember { mutableStateOf(2) }
+    var startMode by remember { mutableStateOf(StartMode.RANDOM) }
 
     var pendingDigitsMode by remember { mutableStateOf<GameMode?>(null) }
+    var pendingStartMenuMode by remember { mutableStateOf<GameMode?>(null) }
 
     // tabelline
     var selectedTable by remember { mutableStateOf(2) }
 
-    fun openGame(m: GameMode, d: Int = digits) {
+    fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
         mode = m
         digits = d
+        startMode = startModeValue
         navAnim = NavAnim.EXPAND
         screen = Screen.GAME
+    }
+
+    fun openStartMenu(m: GameMode) {
+        pendingStartMenuMode = m
+        navAnim = NavAnim.SLIDE
+        screen = Screen.OPERATION_START_MENU
     }
 
     fun openLb(tab: LeaderboardTab = leaderboardTab) {
@@ -479,19 +489,42 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
                 onPickDigitsFor = { m ->
-                    pendingDigitsMode = m
-                    navAnim = NavAnim.SLIDE
-                    screen = Screen.DIGITS_PICKER
+                    openStartMenu(m)
                 },
                 onPlayDirect = { m ->
                     when (m) {
-                        GameMode.MULT -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER }
-                        GameMode.MULT_HARD -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_HARD_GAME }
-                        GameMode.DIV -> { navAnim = NavAnim.SLIDE; screen = Screen.DIV_STEP_GAME } // ✅
+                        GameMode.MULT -> openStartMenu(m)
+                        GameMode.MULT_HARD -> openStartMenu(m)
+                        GameMode.DIV -> openStartMenu(m) // ✅
+                        GameMode.MONEY -> openGame(m, digits, startMode)
                         else -> openGame(m, digits)
                     }
                 }
             )
+
+            Screen.OPERATION_START_MENU -> {
+                val startMenuMode = pendingStartMenuMode ?: GameMode.ADD
+                OperationStartMenuScreen(
+                    gameMode = startMenuMode,
+                    soundEnabled = soundEnabled,
+                    onToggleSound = { soundEnabled = !soundEnabled },
+                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onSelectStartMode = { chosenMode ->
+                        startMode = chosenMode
+                        when (startMenuMode) {
+                            GameMode.ADD, GameMode.SUB -> {
+                                pendingDigitsMode = startMenuMode
+                                navAnim = NavAnim.SLIDE
+                                screen = Screen.DIGITS_PICKER
+                            }
+                            GameMode.MULT -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER }
+                            GameMode.MULT_HARD -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_HARD_GAME }
+                            GameMode.DIV -> { navAnim = NavAnim.SLIDE; screen = Screen.DIV_STEP_GAME }
+                            GameMode.MONEY -> openGame(startMenuMode, digits, startMode)
+                        }
+                    }
+                )
+            }
 
             Screen.DIGITS_PICKER -> {
                 val m = pendingDigitsMode ?: GameMode.ADD
@@ -499,16 +532,16 @@ private fun AppShell() {
                     mode = m,
                     soundEnabled = soundEnabled,
                     onToggleSound = { soundEnabled = !soundEnabled },
-                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.OPERATION_START_MENU },
                     onOpenLeaderboard = { openLb() },
-                    onStart = { chosenDigits -> openGame(m, chosenDigits) }
+                    onStart = { chosenDigits -> openGame(m, chosenDigits, startMode) }
                 )
             }
 
             Screen.MULT_PICKER -> MultTablePickerScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.OPERATION_START_MENU },
                 onPickTable = { table ->
                     selectedTable = table
                     navAnim = NavAnim.SLIDE
@@ -518,6 +551,7 @@ private fun AppShell() {
 
             Screen.MULT_GAME -> MultiplicationTableGame(
                 table = selectedTable,
+                startMode = startMode,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
@@ -527,6 +561,7 @@ private fun AppShell() {
             )
 
             Screen.MULT_HARD_GAME -> HardMultiplication2x2Game(
+                startMode = startMode,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
@@ -537,6 +572,7 @@ private fun AppShell() {
 
             // ✅ NUOVA SCHERMATA: DIVISIONI PASSO-PASSO
             Screen.DIV_STEP_GAME -> DivisionStepGame(
+                startMode = startMode,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
@@ -547,6 +583,7 @@ private fun AppShell() {
             Screen.GAME -> GameRouter(
                 mode = mode,
                 digits = digits,
+                startMode = startMode,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
@@ -1123,6 +1160,7 @@ fun MultTablePickerScreen(
 fun GameRouter(
     mode: GameMode,
     digits: Int,
+    startMode: StartMode,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
@@ -1133,6 +1171,7 @@ fun GameRouter(
     when (mode) {
         GameMode.ADD -> LongAdditionGame(
             digits = digits,
+            startMode = startMode,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,
@@ -1144,6 +1183,7 @@ fun GameRouter(
 
         GameMode.SUB -> LongSubtractionGame(
             digits = digits,
+            startMode = startMode,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,
@@ -1154,6 +1194,7 @@ fun GameRouter(
 
         // ✅ anche se dal menu vai alla schermata dedicata, qui lo gestiamo uguale
         GameMode.DIV -> DivisionStepGame(
+            startMode = startMode,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,

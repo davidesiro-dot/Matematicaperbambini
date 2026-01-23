@@ -52,6 +52,7 @@ private fun generateDivision(rng: Random, mode: DivMode): Pair<Int, Int> {
 
 @Composable
 fun DivisionStepGame(
+    startMode: StartMode = StartMode.RANDOM,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
@@ -66,40 +67,46 @@ fun DivisionStepGame(
         return generateDivisionPlan(dividend, divisor)
     }
 
-    var plan by remember { mutableStateOf(newPlan()) }
+    var plan by remember(mode, startMode) {
+        mutableStateOf(if (startMode == StartMode.RANDOM) newPlan() else null)
+    }
+
+    var manualDividend by remember { mutableStateOf("") }
+    var manualDivisor by remember { mutableStateOf("") }
+    var manualNumbers by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     var targetIndex by remember(plan) { mutableStateOf(0) }
-    val currentTarget = plan.targets.getOrNull(targetIndex)
-    val done = currentTarget == null
+    val currentTarget = plan?.targets?.getOrNull(targetIndex)
+    val done = plan != null && currentTarget == null
 
     var correctCount by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
-    val quotientSlotCount = plan.dividendDigits.size
+    val quotientSlotCount = plan?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
     val quotientErrors = remember(plan) { List(quotientSlotCount) { mutableStateOf(false) } }
     val productInputs = remember(plan) {
-        plan.steps.map { step ->
+        plan?.steps?.map { step ->
             List(step.product.toString().length) { mutableStateOf("") }
-        }
+        } ?: emptyList()
     }
     val productErrors = remember(plan) {
-        plan.steps.map { step ->
+        plan?.steps?.map { step ->
             List(step.product.toString().length) { mutableStateOf(false) }
-        }
+        } ?: emptyList()
     }
     val remainderInputs = remember(plan) {
-        plan.steps.map { step ->
+        plan?.steps?.map { step ->
             List(step.remainder.toString().length) { mutableStateOf("") }
-        }
+        } ?: emptyList()
     }
     val remainderErrors = remember(plan) {
-        plan.steps.map { step ->
+        plan?.steps?.map { step ->
             List(step.remainder.toString().length) { mutableStateOf(false) }
-        }
+        } ?: emptyList()
     }
-    val bringDownDone = remember(plan) { List(plan.steps.size) { mutableStateOf(false) } }
+    val bringDownDone = remember(plan) { List(plan?.steps?.size ?: 0) { mutableStateOf(false) } }
 
     fun resetSame() {
         targetIndex = 0
@@ -125,10 +132,18 @@ fun DivisionStepGame(
     }
 
     fun resetNew() {
-        plan = newPlan()
-        targetIndex = 0
-        message = null
-        showSuccessDialog = false
+        if (startMode == StartMode.MANUAL) {
+            manualDividend = ""
+            manualDivisor = ""
+            manualNumbers = null
+            plan = null
+            resetSame()
+        } else {
+            plan = newPlan()
+            targetIndex = 0
+            message = null
+            showSuccessDialog = false
+        }
     }
 
     fun playCorrect() {
@@ -141,9 +156,9 @@ fun DivisionStepGame(
 
     fun advanceTarget() {
         targetIndex++
-        if (targetIndex >= plan.targets.size) {
+        if (plan != null && targetIndex >= plan!!.targets.size) {
             correctCount++
-            message = "✅ Finito! Quoziente ${plan.finalQuotient} resto ${plan.finalRemainder}"
+            message = "✅ Finito! Quoziente ${plan!!.finalQuotient} resto ${plan!!.finalRemainder}"
         }
     }
 
@@ -196,6 +211,7 @@ fun DivisionStepGame(
     }
 
     fun fillSolution() {
+        val activePlan = plan ?: return
         plan.steps.forEachIndexed { si, step ->
             val quotientCol = step.endPos
             quotientInputs[quotientCol].value = step.qDigit.toString()
@@ -212,24 +228,26 @@ fun DivisionStepGame(
                 bringDownDone[si].value = true
             }
         }
-        targetIndex = plan.targets.size
-        message = "✅ Soluzione completata! Quoziente ${plan.finalQuotient} resto ${plan.finalRemainder}"
+        targetIndex = activePlan.targets.size
+        message = "✅ Soluzione completata! Quoziente ${activePlan.finalQuotient} resto ${activePlan.finalRemainder}"
         showSuccessDialog = true
     }
 
     val hint = if (done) {
-        "Bravo! Quoziente ${plan.finalQuotient} con resto ${plan.finalRemainder}."
+        "Bravo! Quoziente ${plan!!.finalQuotient} con resto ${plan!!.finalRemainder}."
+    } else if (plan == null) {
+        "Inserisci dividendo e divisore e premi Avvia."
     } else {
         currentTarget!!.hint
     }
 
     LaunchedEffect(done) {
-        if (done) {
+        if (done && plan != null) {
             showSuccessDialog = true
         }
     }
 
-    val activeStepNumber = currentTarget?.stepIndex?.plus(1) ?: plan.steps.size
+    val activeStepNumber = currentTarget?.stepIndex?.plus(1) ?: (plan?.steps?.size ?: 0)
     val ui = rememberUiSizing()
 
     val digitW = if (ui.isCompact) 36.dp else 44.dp
@@ -239,18 +257,18 @@ fun DivisionStepGame(
     val fontLarge = if (ui.isCompact) 18.sp else 22.sp
     val fontSmall = if (ui.isCompact) 16.sp else 20.sp
     val gap = if (ui.isCompact) 4.dp else 6.dp
-    val columns = plan.dividendDigits.size
+    val columns = plan?.dividendDigits?.size ?: 0
     val quotientDigitW = if (columns == 4) {
         if (ui.isCompact) 32.dp else 38.dp
     } else {
         digitW
     }
-    val divisorDigits = plan.divisor.toString()
+    val divisorDigits = plan?.divisor?.toString().orEmpty()
     val divisorWidth = digitW * divisorDigits.length + gap * (divisorDigits.length - 1)
     val dividerHeight = digitH + digitH + gap
     val stepGap = if (ui.isCompact) 6.dp else 8.dp
 
-    val activeStep = currentTarget?.let { plan.steps[it.stepIndex] }
+    val activeStep = currentTarget?.let { plan?.steps?.get(it.stepIndex) }
     val activePartialRange = activeStep?.let {
         val len = it.partial.toString().length
         startColForEnd(it.endPos, len)..it.endPos
@@ -331,201 +349,257 @@ fun DivisionStepGame(
                         }
                     }
 
-                    SeaGlassPanel(title = "Calcolo") {
-                        Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
-                            Row(
-                                verticalAlignment = Alignment.Top,
-                                horizontalArrangement = Arrangement.spacedBy(gap)
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
-                                    DivisionDigitRow(
-                                        columns = columns,
-                                        cellW = digitW,
-                                        cellH = digitH,
-                                        gap = gap
-                                    ) { col ->
-                                        val digit = plan.dividendDigits[col]
-                                        DivisionFixedDigit(
-                                            text = digit.toString(),
-                                            w = digitW,
-                                            h = digitH,
-                                            fontSize = fontLarge,
-                                            highlight = highlightDividend(col)
-                                        )
-                                    }
-                                }
+                    if (startMode == StartMode.MANUAL) {
+                        val config = configFor(mode)
+                        val minDividend = pow10(config.dividendDigitsRange.first - 1)
+                        val maxDividend = pow10(config.dividendDigitsRange.last) - 1
+                        val divisorRange = config.divisorRange
+                        val dividendValue = manualDividend.toIntOrNull()
+                        val divisorValue = manualDivisor.toIntOrNull()
+                        val manualValid = dividendValue in minDividend..maxDividend &&
+                            divisorValue in divisorRange &&
+                            (divisorValue ?: 0) != 0
+                        val manualError = if (manualValid || (manualDividend.isBlank() && manualDivisor.isBlank())) {
+                            null
+                        } else {
+                            "Inserisci un dividendo da $minDividend a $maxDividend e un divisore da ${divisorRange.first} a ${divisorRange.last}."
+                        }
 
-                                Box(
-                                    modifier = Modifier
-                                        .width(if (ui.isCompact) 2.dp else 3.dp)
-                                        .height(dividerHeight)
-                                        .background(MaterialTheme.colorScheme.primary)
+                        SeaGlassPanel(title = "Inserimento") {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = manualDividend,
+                                    onValueChange = { manualDividend = it.filter { c -> c.isDigit() }.take(4) },
+                                    label = { Text("Dividendo") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = manualDivisor,
+                                    onValueChange = { manualDivisor = it.filter { c -> c.isDigit() }.take(2) },
+                                    label = { Text("Divisore") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                androidx.compose.material3.Button(
+                                    onClick = {
+                                        val dividend = dividendValue ?: return@Button
+                                        val divisor = divisorValue ?: return@Button
+                                        manualNumbers = dividend to divisor
+                                        plan = generateDivisionPlan(dividend, divisor)
+                                        resetSame()
+                                    },
+                                    enabled = manualValid,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                                        divisorDigits.forEach { ch ->
+                                    Text("Avvia")
+                                }
+                                if (manualError != null) {
+                                    Text(manualError, color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                    }
+
+                    SeaGlassPanel(title = "Calcolo") {
+                        if (plan == null) {
+                            Text("Inserisci dividendo e divisore e premi Avvia.")
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
+                                Row(
+                                    verticalAlignment = Alignment.Top,
+                                    horizontalArrangement = Arrangement.spacedBy(gap)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
+                                        DivisionDigitRow(
+                                            columns = columns,
+                                            cellW = digitW,
+                                            cellH = digitH,
+                                            gap = gap
+                                        ) { col ->
+                                            val digit = plan!!.dividendDigits[col]
                                             DivisionFixedDigit(
-                                                text = ch.toString(),
+                                                text = digit.toString(),
                                                 w = digitW,
                                                 h = digitH,
                                                 fontSize = fontLarge,
-                                                highlight = highlightDivisor
+                                                highlight = highlightDividend(col)
                                             )
                                         }
                                     }
+
                                     Box(
                                         modifier = Modifier
-                                            .width(divisorWidth)
-                                            .height(if (ui.isCompact) 2.dp else 3.dp)
+                                            .width(if (ui.isCompact) 2.dp else 3.dp)
+                                            .height(dividerHeight)
                                             .background(MaterialTheme.colorScheme.primary)
                                     )
-                                    DivisionDigitRow(
-                                        columns = columns,
-                                        cellW = quotientDigitW,
-                                        cellH = digitH,
-                                        gap = gap
-                                    ) { col ->
-                                        val target = plan.targets.firstOrNull {
-                                            it.type == DivisionTargetType.QUOTIENT && it.gridCol == col
+
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)
+                                    ) {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                                            divisorDigits.forEach { ch ->
+                                                DivisionFixedDigit(
+                                                    text = ch.toString(),
+                                                    w = digitW,
+                                                    h = digitH,
+                                                    fontSize = fontLarge,
+                                                    highlight = highlightDivisor
+                                                )
+                                            }
                                         }
-                                        if (target != null) {
-                                            val active = target == currentTarget
-                                            DivisionDigitBox(
-                                                value = quotientInputs[col].value,
-                                                enabled = active,
-                                                active = active,
-                                                isError = quotientErrors[col].value,
-                                                highlight = highlightQuotientCol == col,
-                                                microLabel = target.microLabel,
-                                                onValueChange = { onDigitInput(target, it) },
-                                                w = quotientDigitW,
-                                                h = digitH,
-                                                fontSize = fontLarge
-                                            )
-                                        } else {
-                                            DivisionDigitBox(
-                                                value = "",
-                                                enabled = false,
-                                                active = false,
-                                                isError = false,
-                                                highlight = highlightQuotientCol == col,
-                                                onValueChange = {},
-                                                w = quotientDigitW,
-                                                h = digitH,
-                                                fontSize = fontLarge
-                                            )
+                                        Box(
+                                            modifier = Modifier
+                                                .width(divisorWidth)
+                                                .height(if (ui.isCompact) 2.dp else 3.dp)
+                                                .background(MaterialTheme.colorScheme.primary)
+                                        )
+                                        DivisionDigitRow(
+                                            columns = columns,
+                                            cellW = quotientDigitW,
+                                            cellH = digitH,
+                                            gap = gap
+                                        ) { col ->
+                                            val target = plan!!.targets.firstOrNull {
+                                                it.type == DivisionTargetType.QUOTIENT && it.gridCol == col
+                                            }
+                                            if (target != null) {
+                                                val active = target == currentTarget
+                                                DivisionDigitBox(
+                                                    value = quotientInputs[col].value,
+                                                    enabled = active,
+                                                    active = active,
+                                                    isError = quotientErrors[col].value,
+                                                    highlight = highlightQuotientCol == col,
+                                                    microLabel = target.microLabel,
+                                                    onValueChange = { onDigitInput(target, it) },
+                                                    w = quotientDigitW,
+                                                    h = digitH,
+                                                    fontSize = fontLarge
+                                                )
+                                            } else {
+                                                DivisionDigitBox(
+                                                    value = "",
+                                                    enabled = false,
+                                                    active = false,
+                                                    isError = false,
+                                                    highlight = highlightQuotientCol == col,
+                                                    onValueChange = {},
+                                                    w = quotientDigitW,
+                                                    h = digitH,
+                                                    fontSize = fontLarge
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
-                                plan.steps.forEachIndexed { si, step ->
-                                    val productTargets = plan.targets.filter {
-                                        it.type == DivisionTargetType.PRODUCT && it.stepIndex == si
-                                    }
-                                    val remainderTargets = plan.targets.filter {
-                                        it.type == DivisionTargetType.REMAINDER && it.stepIndex == si
-                                    }
-                                    val bringDownTarget = plan.targets.firstOrNull {
-                                        it.type == DivisionTargetType.BRING_DOWN && it.stepIndex == si
-                                    }
-                                    val highlightProduct = currentTarget?.type == DivisionTargetType.REMAINDER &&
-                                        currentTarget?.stepIndex == si
-                                    val highlightRemainder = currentTarget?.type == DivisionTargetType.BRING_DOWN &&
-                                        currentTarget?.stepIndex == si
-
-                                    DivisionDigitRow(
-                                        columns = columns,
-                                        cellW = digitSmallW,
-                                        cellH = digitSmallH,
-                                        gap = gap
-                                    ) { col ->
-                                        val target = productTargets.firstOrNull { it.gridCol == col }
-                                        if (target != null) {
-                                            val active = target == currentTarget
-                                            DivisionDigitBox(
-                                                value = productInputs[si][target.idx].value,
-                                                enabled = active,
-                                                active = active,
-                                                isError = productErrors[si][target.idx].value,
-                                                highlight = highlightProduct,
-                                                microLabel = target.microLabel,
-                                                onValueChange = { onDigitInput(target, it) },
-                                                w = digitSmallW,
-                                                h = digitSmallH,
-                                                fontSize = fontSmall
-                                            )
+                                Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
+                                    plan!!.steps.forEachIndexed { si, step ->
+                                        val productTargets = plan!!.targets.filter {
+                                            it.type == DivisionTargetType.PRODUCT && it.stepIndex == si
                                         }
-                                    }
-
-                                    DivisionDigitRow(
-                                        columns = columns,
-                                        cellW = digitSmallW,
-                                        cellH = digitSmallH,
-                                        gap = gap
-                                    ) { col ->
-                                        val target = remainderTargets.firstOrNull { it.gridCol == col }
-                                        if (target != null) {
-                                            val active = target == currentTarget
-                                            DivisionDigitBox(
-                                                value = remainderInputs[si][target.idx].value,
-                                                enabled = active,
-                                                active = active,
-                                                isError = remainderErrors[si][target.idx].value,
-                                                highlight = highlightRemainder,
-                                                microLabel = target.microLabel,
-                                                onValueChange = { onDigitInput(target, it) },
-                                                w = digitSmallW,
-                                                h = digitSmallH,
-                                                fontSize = fontSmall
-                                            )
+                                        val remainderTargets = plan!!.targets.filter {
+                                            it.type == DivisionTargetType.REMAINDER && it.stepIndex == si
                                         }
-                                    }
+                                        val bringDownTarget = plan!!.targets.firstOrNull {
+                                            it.type == DivisionTargetType.BRING_DOWN && it.stepIndex == si
+                                        }
+                                        val highlightProduct = currentTarget?.type == DivisionTargetType.REMAINDER &&
+                                            currentTarget?.stepIndex == si
+                                        val highlightRemainder = currentTarget?.type == DivisionTargetType.BRING_DOWN &&
+                                            currentTarget?.stepIndex == si
 
-                                    if (step.bringDownDigit != null && bringDownTarget != null) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(gap)
-                                        ) {
-                                            DivisionDigitRow(
-                                                columns = columns,
-                                                cellW = digitSmallW,
-                                                cellH = digitSmallH,
-                                                gap = gap
-                                            ) { col ->
-                                                val remainderTarget = remainderTargets.firstOrNull { it.gridCol == col }
-                                                when {
-                                                    remainderTarget != null -> DivisionFixedDigit(
-                                                        text = remainderInputs[si][remainderTarget.idx].value,
-                                                        w = digitSmallW,
-                                                        h = digitSmallH,
-                                                        fontSize = fontSmall,
-                                                        highlight = highlightRemainder
-                                                    )
-                                                    col == bringDownTarget.gridCol -> {
-                                                        val active = bringDownTarget == currentTarget
-                                                        DivisionActionDigit(
-                                                            text = step.bringDownDigit.toString(),
-                                                            active = active,
-                                                            microLabel = bringDownTarget.microLabel,
+                                        DivisionDigitRow(
+                                            columns = columns,
+                                            cellW = digitSmallW,
+                                            cellH = digitSmallH,
+                                            gap = gap
+                                        ) { col ->
+                                            val target = productTargets.firstOrNull { it.gridCol == col }
+                                            if (target != null) {
+                                                val active = target == currentTarget
+                                                DivisionDigitBox(
+                                                    value = productInputs[si][target.idx].value,
+                                                    enabled = active,
+                                                    active = active,
+                                                    isError = productErrors[si][target.idx].value,
+                                                    highlight = highlightProduct,
+                                                    microLabel = target.microLabel,
+                                                    onValueChange = { onDigitInput(target, it) },
+                                                    w = digitSmallW,
+                                                    h = digitSmallH,
+                                                    fontSize = fontSmall
+                                                )
+                                            }
+                                        }
+
+                                        DivisionDigitRow(
+                                            columns = columns,
+                                            cellW = digitSmallW,
+                                            cellH = digitSmallH,
+                                            gap = gap
+                                        ) { col ->
+                                            val target = remainderTargets.firstOrNull { it.gridCol == col }
+                                            if (target != null) {
+                                                val active = target == currentTarget
+                                                DivisionDigitBox(
+                                                    value = remainderInputs[si][target.idx].value,
+                                                    enabled = active,
+                                                    active = active,
+                                                    isError = remainderErrors[si][target.idx].value,
+                                                    highlight = highlightRemainder,
+                                                    microLabel = target.microLabel,
+                                                    onValueChange = { onDigitInput(target, it) },
+                                                    w = digitSmallW,
+                                                    h = digitSmallH,
+                                                    fontSize = fontSmall
+                                                )
+                                            }
+                                        }
+
+                                        if (step.bringDownDigit != null && bringDownTarget != null) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(gap)
+                                            ) {
+                                                DivisionDigitRow(
+                                                    columns = columns,
+                                                    cellW = digitSmallW,
+                                                    cellH = digitSmallH,
+                                                    gap = gap
+                                                ) { col ->
+                                                    val remainderTarget = remainderTargets.firstOrNull { it.gridCol == col }
+                                                    when {
+                                                        remainderTarget != null -> DivisionFixedDigit(
+                                                            text = remainderInputs[si][remainderTarget.idx].value,
                                                             w = digitSmallW,
                                                             h = digitSmallH,
                                                             fontSize = fontSmall,
                                                             highlight = highlightRemainder
                                                         )
+                                                        col == bringDownTarget.gridCol -> {
+                                                            val active = bringDownTarget == currentTarget
+                                                            DivisionActionDigit(
+                                                                text = step.bringDownDigit.toString(),
+                                                                active = active,
+                                                                microLabel = bringDownTarget.microLabel,
+                                                                w = digitSmallW,
+                                                                h = digitSmallH,
+                                                                fontSize = fontSmall,
+                                                                highlight = highlightRemainder
+                                                            )
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            OutlinedButton(
-                                                onClick = { onBringDown(bringDownTarget) },
-                                                enabled = bringDownTarget == currentTarget
-                                            ) {
-                                                Text(if (bringDownDone[si].value) "Abbassato" else "Abbassa")
+                                                OutlinedButton(
+                                                    onClick = { onBringDown(bringDownTarget) },
+                                                    enabled = bringDownTarget == currentTarget
+                                                ) {
+                                                    Text(if (bringDownDone[si].value) "Abbassato" else "Abbassa")
+                                                }
                                             }
                                         }
                                     }
@@ -547,8 +621,9 @@ fun DivisionStepGame(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = if (done) "Passo ${plan.steps.size}/${plan.steps.size}"
-                                else "Passo $activeStepNumber/${plan.steps.size}",
+                                text = if (plan == null) "Passo 0/0"
+                                else if (done) "Passo ${plan!!.steps.size}/${plan!!.steps.size}"
+                                else "Passo $activeStepNumber/${plan!!.steps.size}",
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -559,12 +634,28 @@ fun DivisionStepGame(
             bottomBar = {
                 GameBottomActions(
                     leftText = "Ricomincia",
-                    onLeft = { resetSame() },
+                    onLeft = {
+                        if (startMode == StartMode.MANUAL) {
+                            val manual = manualNumbers
+                            if (manual != null && plan != null) {
+                                plan = generateDivisionPlan(manual.first, manual.second)
+                                resetSame()
+                            } else {
+                                manualDividend = ""
+                                manualDivisor = ""
+                                manualNumbers = null
+                                plan = null
+                                resetSame()
+                            }
+                        } else {
+                            resetSame()
+                        }
+                    },
                     rightText = "Nuovo",
                     onRight = { resetNew() },
                     modifier = Modifier.fillMaxWidth(),
                     center = {
-                        OutlinedButton(onClick = { fillSolution() }) {
+                        OutlinedButton(onClick = { fillSolution() }, enabled = plan != null) {
                             Text("Soluzione")
                         }
                     }
@@ -579,7 +670,7 @@ fun DivisionStepGame(
                 resetNew()
             },
             onDismiss = { showSuccessDialog = false },
-            resultText = "${plan.finalQuotient} r. ${plan.finalRemainder}"
+            resultText = if (plan == null) "" else "${plan!!.finalQuotient} r. ${plan!!.finalRemainder}"
         )
     }
 }

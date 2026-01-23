@@ -36,11 +36,7 @@ private data class AddPlan(
 private fun pad(n: Int, len: Int) = n.toString().padStart(len, '0')
 private fun padSpace(n: Int, len: Int) = n.toString().padStart(len, ' ')
 
-private fun computeAdditionPlan(digits: Int, rng: Random): AddPlan {
-    val min = 10.0.pow((digits - 1).toDouble()).toInt()
-    val max = 10.0.pow(digits.toDouble()).toInt() - 1
-    val a = rng.nextInt(min, max + 1)
-    val b = rng.nextInt(min, max + 1)
+private fun computeAdditionPlan(digits: Int, a: Int, b: Int): AddPlan {
     val result = a + b
 
     val aS = pad(a, digits)
@@ -132,9 +128,18 @@ private fun computeAdditionPlan(digits: Int, rng: Random): AddPlan {
     )
 }
 
+private fun computeAdditionPlan(digits: Int, rng: Random): AddPlan {
+    val min = 10.0.pow((digits - 1).toDouble()).toInt()
+    val max = 10.0.pow(digits.toDouble()).toInt() - 1
+    val a = rng.nextInt(min, max + 1)
+    val b = rng.nextInt(min, max + 1)
+    return computeAdditionPlan(digits, a, b)
+}
+
 @Composable
 fun LongAdditionGame(
     digits: Int,                   // 2 o 3
+    startMode: StartMode = StartMode.RANDOM,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
@@ -143,23 +148,37 @@ fun LongAdditionGame(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
-    var plan by remember(digits) { mutableStateOf(computeAdditionPlan(digits, rng)) }
+    val minValue = 10.0.pow((digits - 1).toDouble()).toInt()
+    val maxValue = 10.0.pow(digits.toDouble()).toInt() - 1
+
+    var manualA by remember { mutableStateOf("") }
+    var manualB by remember { mutableStateOf("") }
+    var manualNumbers by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+
+    var plan by remember(digits, startMode) {
+        mutableStateOf(
+            if (startMode == StartMode.RANDOM) computeAdditionPlan(digits, rng) else null
+        )
+    }
+
     var step by remember(plan) { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
     // input
-    val carryIn = remember(plan) { mutableStateOf(CharArray(plan.digits) { '\u0000' }) }
-    val sumIn = remember(plan) { mutableStateOf(CharArray(plan.digits + 1) { '\u0000' }) }
-    val errCarry = remember(plan) { mutableStateOf(BooleanArray(plan.digits) { false }) }
-    val errSum = remember(plan) { mutableStateOf(BooleanArray(plan.digits + 1) { false }) }
+    val planDigits = plan?.digits ?: digits
+    val carryIn = remember(plan) { mutableStateOf(CharArray(planDigits) { '\u0000' }) }
+    val sumIn = remember(plan) { mutableStateOf(CharArray(planDigits + 1) { '\u0000' }) }
+    val errCarry = remember(plan) { mutableStateOf(BooleanArray(planDigits) { false }) }
+    val errSum = remember(plan) { mutableStateOf(BooleanArray(planDigits + 1) { false }) }
 
     fun clearInputs() {
-        carryIn.value = CharArray(plan.digits) { '\u0000' }
-        sumIn.value = CharArray(plan.digits + 1) { '\u0000' }
-        errCarry.value = BooleanArray(plan.digits) { false }
-        errSum.value = BooleanArray(plan.digits + 1) { false }
+        val digitsCount = plan?.digits ?: digits
+        carryIn.value = CharArray(digitsCount) { '\u0000' }
+        sumIn.value = CharArray(digitsCount + 1) { '\u0000' }
+        errCarry.value = BooleanArray(digitsCount) { false }
+        errSum.value = BooleanArray(digitsCount + 1) { false }
     }
 
     fun resetSame() {
@@ -168,17 +187,34 @@ fun LongAdditionGame(
         clearInputs()
     }
 
-    fun resetNew() {
-        plan = computeAdditionPlan(digits, rng)
-        step = 0
-        showSuccessDialog = false
+    fun resetManualInputs() {
+        manualA = ""
+        manualB = ""
+        manualNumbers = null
     }
 
-    val current = plan.targets.getOrNull(step)
-    val done = step >= plan.targets.size
+    fun startManual(a: Int, b: Int) {
+        manualNumbers = a to b
+        plan = computeAdditionPlan(digits, a, b)
+        resetSame()
+    }
+
+    fun resetNew() {
+        if (startMode == StartMode.MANUAL) {
+            resetManualInputs()
+            plan = null
+            resetSame()
+        } else {
+            plan = computeAdditionPlan(digits, rng)
+            resetSame()
+        }
+    }
+
+    val current = plan?.targets?.getOrNull(step)
+    val done = plan != null && step >= plan!!.targets.size
 
     LaunchedEffect(done) {
-        if (done) {
+        if (done && plan != null) {
             showSuccessDialog = true
         }
     }
@@ -223,8 +259,10 @@ fun LongAdditionGame(
         }
     }
 
-    val hint = if (done) {
-        "Bravo! ✅ Risultato: ${plan.result}"
+    val hint = if (plan == null) {
+        "Inserisci i numeri e premi Avvia."
+    } else if (done) {
+        "Bravo! ✅ Risultato: ${plan!!.result}"
     } else {
         current!!.hint
     }
@@ -250,105 +288,167 @@ fun LongAdditionGame(
             hintText = hint,
             ui = ui,
             content = {
-            SeaGlassPanel(title = "Esercizio") {
-                Text(
-                    "Esercizio: ${plan.a} + ${plan.b}",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
+                if (startMode == StartMode.MANUAL) {
+                    val manualAValue = manualA.toIntOrNull()
+                    val manualBValue = manualB.toIntOrNull()
+                    val manualValid = manualAValue in minValue..maxValue && manualBValue in minValue..maxValue
+                    val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
+                        null
+                    } else {
+                        "Inserisci due numeri da $minValue a $maxValue."
+                    }
 
-                val totalCols = plan.digits + 1
+                    SeaGlassPanel(title = "Inserimento") {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = manualA,
+                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(3) },
+                                label = { Text("Numero A") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = manualB,
+                                onValueChange = { manualB = it.filter { c -> c.isDigit() }.take(3) },
+                                label = { Text("Numero B") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Button(
+                                onClick = {
+                                    val aVal = manualAValue ?: return@Button
+                                    val bVal = manualBValue ?: return@Button
+                                    startManual(aVal, bVal)
+                                },
+                                enabled = manualValid,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Avvia")
+                            }
+                            if (manualError != null) {
+                                Text(manualError, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Riga carry (caselline piccole) allineate alle cifre A/B
-                    GridRowRight(signW, gap) {
-                        for (displayCol in 0 until totalCols) {
-                            if (displayCol == 0) {
-                                Box(Modifier.width(digitW).height(carryH))
-                            } else {
-                                val col = displayCol - 1
-                                val expected = plan.carry[col]
-                                Box(modifier = Modifier.width(digitW), contentAlignment = Alignment.Center) {
-                                    if (expected == ' ') {
-                                        Box(Modifier.width(carryW).height(carryH))
+                SeaGlassPanel(title = "Esercizio") {
+                    if (plan == null) {
+                        Text("Inserisci i numeri e premi Avvia.")
+                    } else {
+                        Text(
+                            "Esercizio: ${plan!!.a} + ${plan!!.b}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
+
+                        val totalCols = plan!!.digits + 1
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // Riga carry (caselline piccole) allineate alle cifre A/B
+                            GridRowRight(signW, gap) {
+                                for (displayCol in 0 until totalCols) {
+                                    if (displayCol == 0) {
+                                        Box(Modifier.width(digitW).height(carryH))
                                     } else {
-                                        val txt = carryIn.value[col].let { if (it == '\u0000') "" else it.toString() }
+                                        val col = displayCol - 1
+                                        val expected = plan!!.carry[col]
+                                        Box(modifier = Modifier.width(digitW), contentAlignment = Alignment.Center) {
+                                            if (expected == ' ') {
+                                                Box(Modifier.width(carryW).height(carryH))
+                                            } else {
+                                                val txt = carryIn.value[col].let { if (it == '\u0000') "" else it.toString() }
+                                                InputBox(
+                                                    value = txt,
+                                                    enabled = enabled(AddRowKey.CARRY, col, AddCellKind.CARRY),
+                                                    isActive = isActive(AddRowKey.CARRY, col, AddCellKind.CARRY),
+                                                    isError = errCarry.value[col],
+                                                    w = carryW,
+                                                    h = carryH,
+                                                    fontSize = carryFont,
+                                                    onValueChange = { onTyped(AddRowKey.CARRY, col, AddCellKind.CARRY, it) }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                SignCell("", signW)
+                            }
+
+                            // Riga A
+                            GridRowRight(signW, gap) {
+                                for (displayCol in 0 until totalCols) {
+                                    val ch = if (displayCol == 0) ' ' else plan!!.aStr[displayCol - 1]
+                                    FixedDigit(ch, digitW, digitH)
+                                }
+                                SignCell("", signW)
+                            }
+
+                            // Riga B con segno +
+                            GridRowRight(signW, gap) {
+                                for (displayCol in 0 until totalCols) {
+                                    val ch = if (displayCol == 0) ' ' else plan!!.bStr[displayCol - 1]
+                                    FixedDigit(ch, digitW, digitH)
+                                }
+                                SignCell("+", signW)
+                            }
+
+                            Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
+
+                            // Risultato (digits+1)
+                            GridRowRight(signW, gap) {
+                                for (col in 0 until totalCols) {
+                                    val exp = plan!!.res[col]
+                                    if (exp == ' ') {
+                                        FixedDigit(' ', digitW, digitH)
+                                    } else {
+                                        val txt = sumIn.value[col].let { if (it == '\u0000') "" else it.toString() }
                                         InputBox(
                                             value = txt,
-                                            enabled = enabled(AddRowKey.CARRY, col, AddCellKind.CARRY),
-                                            isActive = isActive(AddRowKey.CARRY, col, AddCellKind.CARRY),
-                                            isError = errCarry.value[col],
-                                            w = carryW,
-                                            h = carryH,
-                                            fontSize = carryFont,
-                                            onValueChange = { onTyped(AddRowKey.CARRY, col, AddCellKind.CARRY, it) }
+                                            enabled = enabled(AddRowKey.SUM, col, AddCellKind.DIGIT),
+                                            isActive = isActive(AddRowKey.SUM, col, AddCellKind.DIGIT),
+                                            isError = errSum.value[col],
+                                            w = digitW,
+                                            h = digitH,
+                                            fontSize = sumFont,
+                                            onValueChange = { onTyped(AddRowKey.SUM, col, AddCellKind.DIGIT, it) }
                                         )
                                     }
                                 }
+                                SignCell("", signW)
                             }
                         }
-                        SignCell("", signW)
-                    }
-
-                    // Riga A
-                    GridRowRight(signW, gap) {
-                        for (displayCol in 0 until totalCols) {
-                            val ch = if (displayCol == 0) ' ' else plan.aStr[displayCol - 1]
-                            FixedDigit(ch, digitW, digitH)
-                        }
-                        SignCell("", signW)
-                    }
-
-                    // Riga B con segno +
-                    GridRowRight(signW, gap) {
-                        for (displayCol in 0 until totalCols) {
-                            val ch = if (displayCol == 0) ' ' else plan.bStr[displayCol - 1]
-                            FixedDigit(ch, digitW, digitH)
-                        }
-                        SignCell("+", signW)
-                    }
-
-                    Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
-
-                    // Risultato (digits+1)
-                    GridRowRight(signW, gap) {
-                        for (col in 0 until totalCols) {
-                            val exp = plan.res[col]
-                            if (exp == ' ') {
-                                FixedDigit(' ', digitW, digitH)
-                            } else {
-                                val txt = sumIn.value[col].let { if (it == '\u0000') "" else it.toString() }
-                                InputBox(
-                                    value = txt,
-                                    enabled = enabled(AddRowKey.SUM, col, AddCellKind.DIGIT),
-                                    isActive = isActive(AddRowKey.SUM, col, AddCellKind.DIGIT),
-                                    isError = errSum.value[col],
-                                    w = digitW,
-                                    h = digitH,
-                                    fontSize = sumFont,
-                                    onValueChange = { onTyped(AddRowKey.SUM, col, AddCellKind.DIGIT, it) }
-                                )
-                            }
-                        }
-                        SignCell("", signW)
                     }
                 }
-            }
 
-            SeaGlassPanel(title = "Stato") {
-                Text(
-                    if (done) "Operazione completata." else "Passo ${step + 1}/${plan.targets.size}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+                SeaGlassPanel(title = "Stato") {
+                    val totalSteps = plan?.targets?.size ?: 0
+                    Text(
+                        if (done) "Operazione completata." else "Passo ${step + 1}/$totalSteps",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
         },
             bottomBar = {
                 GameBottomActions(
                     leftText = "Ricomincia",
-                    onLeft = { resetSame() },
+                    onLeft = {
+                        if (startMode == StartMode.MANUAL) {
+                            val manual = manualNumbers
+                            if (manual != null && plan != null) {
+                                startManual(manual.first, manual.second)
+                            } else {
+                                resetManualInputs()
+                                plan = null
+                                resetSame()
+                            }
+                        } else {
+                            resetSame()
+                        }
+                    },
                     rightText = "Nuovo",
                     onRight = { resetNew() }
                 )
@@ -362,7 +462,7 @@ fun LongAdditionGame(
                 resetNew()
             },
             onDismiss = { showSuccessDialog = false },
-            resultText = plan.result.toString()
+            resultText = plan?.result?.toString().orEmpty()
         )
 
         BonusRewardHost(
