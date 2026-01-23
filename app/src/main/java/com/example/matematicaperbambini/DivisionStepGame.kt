@@ -300,76 +300,74 @@ fun DivisionStepGame(
             message = message,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
-                    SeaGlassPanel(title = "Modalità") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            val oneDigitSelected = mode == DivMode.ONE_DIGIT
-                            val twoDigitSelected = mode == DivMode.TWO_DIGIT
-                            if (oneDigitSelected) {
-                                androidx.compose.material3.Button(
-                                    onClick = {
-                                        mode = DivMode.ONE_DIGIT
-                                        resetNew()
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Divisore 1 cifra")
+                    if (startMode == StartMode.RANDOM) {
+                        SeaGlassPanel(title = "Modalità") {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                val oneDigitSelected = mode == DivMode.ONE_DIGIT
+                                val twoDigitSelected = mode == DivMode.TWO_DIGIT
+                                if (oneDigitSelected) {
+                                    androidx.compose.material3.Button(
+                                        onClick = {
+                                            mode = DivMode.ONE_DIGIT
+                                            resetNew()
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Divisore 1 cifra")
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = {
+                                            mode = DivMode.ONE_DIGIT
+                                            resetNew()
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Divisore 1 cifra")
+                                    }
                                 }
-                            } else {
-                                OutlinedButton(
-                                    onClick = {
-                                        mode = DivMode.ONE_DIGIT
-                                        resetNew()
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Divisore 1 cifra")
-                                }
-                            }
-                            if (twoDigitSelected) {
-                                androidx.compose.material3.Button(
-                                    onClick = {
-                                        mode = DivMode.TWO_DIGIT
-                                        resetNew()
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Divisore 2 cifre")
-                                }
-                            } else {
-                                OutlinedButton(
-                                    onClick = {
-                                        mode = DivMode.TWO_DIGIT
-                                        resetNew()
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Divisore 2 cifre")
+                                if (twoDigitSelected) {
+                                    androidx.compose.material3.Button(
+                                        onClick = {
+                                            mode = DivMode.TWO_DIGIT
+                                            resetNew()
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Divisore 2 cifre")
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = {
+                                            mode = DivMode.TWO_DIGIT
+                                            resetNew()
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Divisore 2 cifre")
+                                    }
                                 }
                             }
                         }
                     }
 
                     if (startMode == StartMode.MANUAL) {
-                        val config = configFor(mode)
-                        val minDividend = pow10(config.dividendDigitsRange.first - 1)
-                        val maxDividend = pow10(config.dividendDigitsRange.last) - 1
-                        val divisorRange = config.divisorRange
                         val dividendValue = manualDividend.toIntOrNull()
                         val divisorValue = manualDivisor.toIntOrNull()
-                        val manualValid = dividendValue in minDividend..maxDividend &&
-                            divisorValue in divisorRange &&
-                            (divisorValue ?: 0) != 0
+                        val manualValid = dividendValue in 2..999 &&
+                            divisorValue in 2..99 &&
+                            (dividendValue ?: 0) > (divisorValue ?: 0)
                         val manualError = if (manualValid || (manualDividend.isBlank() && manualDivisor.isBlank())) {
                             null
                         } else {
-                            "Inserisci un dividendo da $minDividend a $maxDividend e un divisore da ${divisorRange.first} a ${divisorRange.last}."
+                            "Inserisci un dividendo (max 3 cifre) maggiore del divisore (max 2 cifre)."
                         }
 
                         SeaGlassPanel(title = "Inserimento") {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 androidx.compose.material3.OutlinedTextField(
                                     value = manualDividend,
-                                    onValueChange = { manualDividend = it.filter { c -> c.isDigit() }.take(4) },
+                                    onValueChange = { manualDividend = it.filter { c -> c.isDigit() }.take(3) },
                                     label = { Text("Dividendo") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
