@@ -2,6 +2,10 @@ package com.example.matematicaperbambini
 
 enum class DivisionTargetType { QUOTIENT, PRODUCT, REMAINDER, BRING_DOWN }
 
+enum class HLZone { DIVIDEND, DIVISOR, QUOTIENT, PRODUCT, REMAINDER, BRING }
+
+data class HLCell(val zone: HLZone, val stepIndex: Int, val col: Int)
+
 data class DivisionTarget(
     val type: DivisionTargetType,
     val stepIndex: Int,
@@ -9,7 +13,8 @@ data class DivisionTarget(
     val idx: Int,
     val expected: Char?,
     val hint: String,
-    val microLabel: String?
+    val microLabel: String?,
+    val highlights: List<HLCell>
 )
 
 data class DivisionStep(
@@ -94,6 +99,7 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
     val finalRemainder = steps.lastOrNull()?.remainder ?: 0
 
     val targets = mutableListOf<DivisionTarget>()
+    val divisorDigits = divisor.toString()
     fun add(
         type: DivisionTargetType,
         stepIndex: Int,
@@ -101,7 +107,8 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
         idx: Int,
         expected: Char?,
         hint: String,
-        microLabel: String?
+        microLabel: String?,
+        highlights: List<HLCell>
     ) {
         targets += DivisionTarget(
             type = type,
@@ -110,13 +117,38 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
             idx = idx,
             expected = expected,
             hint = hint,
-            microLabel = microLabel
+            microLabel = microLabel,
+            highlights = highlights
         )
     }
 
     steps.forEachIndexed { si, step ->
         val qChar = step.qDigit.toString()[0]
         val quotientCol = step.endPos
+        val partialStr = step.partial.toString()
+        val partialStart = startColForEnd(step.endPos, partialStr.length)
+        val partialRange = partialStart..step.endPos
+
+        val productStr = step.product.toString()
+        val productStart = startColForEnd(step.endPos, productStr.length)
+        val productRange = productStart..step.endPos
+
+        val remainderStr = step.remainder.toString()
+        val remainderStart = startColForEnd(step.endPos, remainderStr.length)
+        val remainderRange = remainderStart..step.endPos
+
+        val bringCol = step.bringDownDigit?.let { step.endPos + 1 }
+        val divisorHighlights = divisorDigits.indices.map { HLCell(HLZone.DIVISOR, si, it) }
+
+        fun dividendHighlights(range: IntRange) =
+            range.map { HLCell(HLZone.DIVIDEND, si, it) }
+
+        fun productHighlightCells(range: IntRange) =
+            range.map { HLCell(HLZone.PRODUCT, si, it) }
+
+        fun remainderHighlightCells(range: IntRange) =
+            range.map { HLCell(HLZone.REMAINDER, si, it) }
+
         add(
             type = DivisionTargetType.QUOTIENT,
             stepIndex = si,
@@ -124,12 +156,17 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
             idx = quotientCol,
             expected = qChar,
             hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${step.partial}.",
-            microLabel = "${step.partial}÷$divisor"
+            microLabel = "${step.partial}÷$divisor",
+            highlights = dividendHighlights(partialRange) +
+                divisorHighlights +
+                HLCell(HLZone.QUOTIENT, si, quotientCol)
         )
 
-        val productStr = step.product.toString()
-        val productStart = startColForEnd(step.endPos, productStr.length)
         val productHint = "Moltiplica: $divisor × ${step.qDigit} = ${step.product}. Scrivi il prodotto sotto le cifre selezionate."
+        val productHighlights = dividendHighlights(partialRange) +
+            divisorHighlights +
+            HLCell(HLZone.QUOTIENT, si, quotientCol) +
+            productHighlightCells(productRange)
         productStr.forEachIndexed { idx, ch ->
             add(
                 type = DivisionTargetType.PRODUCT,
@@ -138,13 +175,15 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
                 idx = idx,
                 expected = ch,
                 hint = productHint,
-                microLabel = "$divisor×${step.qDigit}"
+                microLabel = "$divisor×${step.qDigit}",
+                highlights = productHighlights
             )
         }
 
-        val remainderStr = step.remainder.toString()
-        val remainderStart = startColForEnd(step.endPos, remainderStr.length)
         val remainderHint = "Sottrai: ${step.partial} − ${step.product} = ${step.remainder}. Scrivi il resto."
+        val remainderHighlights = dividendHighlights(partialRange) +
+            productHighlightCells(productRange) +
+            remainderHighlightCells(remainderRange)
         remainderStr.forEachIndexed { idx, ch ->
             add(
                 type = DivisionTargetType.REMAINDER,
@@ -153,20 +192,25 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
                 idx = idx,
                 expected = ch,
                 hint = remainderHint,
-                microLabel = "${step.partial}−${step.product}"
+                microLabel = "${step.partial}−${step.product}",
+                highlights = remainderHighlights
             )
         }
 
-        if (step.bringDownDigit != null) {
+        if (step.bringDownDigit != null && bringCol != null) {
             val bringDownHint = "Abbassa la cifra successiva (${step.bringDownDigit}) accanto al resto per formare il nuovo parziale."
             add(
                 type = DivisionTargetType.BRING_DOWN,
                 stepIndex = si,
-                gridCol = step.endPos + 1,
+                gridCol = bringCol,
                 idx = 0,
                 expected = null,
                 hint = bringDownHint,
-                microLabel = "↓ ${step.bringDownDigit}"
+                microLabel = "↓ ${step.bringDownDigit}",
+                highlights = listOf(
+                    HLCell(HLZone.DIVIDEND, si, bringCol),
+                    HLCell(HLZone.BRING, si, bringCol)
+                ) + remainderHighlightCells(remainderRange)
             )
         }
     }
