@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.pow
 import kotlin.random.Random
 
+
 private enum class DivMode { ONE_DIGIT, TWO_DIGIT }
 
 private data class DivConfig(
@@ -468,17 +469,12 @@ fun DivisionStepGame(
 
                     SeaGlassPanel(title = "Aiuto") {
                         Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
-                            if (BuildConfig.DEBUG) {
-                                Text(
-                                    text = "current target: ${currentTarget?.type ?: "NONE"} " +
-                                        "step=${currentTarget?.stepIndex ?: "-"} " +
-                                        "gridCol=${currentTarget?.gridCol ?: "-"} " +
-                                        "idx=${currentTarget?.idx ?: "-"} " +
-                                        "expected=${currentTarget?.expected ?: "-"}",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            val showDebug = true // <-- temporaneo, poi lo metti a false
+
+                            if (showDebug) {
+                                Text("DEBUG current = ...")
                             }
+
                             Text(
                                 text = hint,
                                 color = MaterialTheme.colorScheme.onSurface
