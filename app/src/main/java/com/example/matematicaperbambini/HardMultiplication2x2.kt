@@ -292,11 +292,12 @@ fun HardMultiplication2x2Game(
         inP2 = p2
     }
 
-    val current = plan?.targets?.getOrNull(step)
-    val done = plan != null && step >= plan!!.targets.size
+    val p = plan
+    val current = p?.targets?.getOrNull(step)
+    val done = p != null && step >= p.targets.size
 
     LaunchedEffect(done) {
-        if (done && plan != null) {
+        if (done && p != null) {
             showSuccessDialog = true
         }
     }
@@ -367,7 +368,8 @@ fun HardMultiplication2x2Game(
 
         if (ok) {
             if (soundEnabled) fx.correct()
-            step = (step + 1).coerceAtMost(plan.targets.size)
+            val activePlan = plan ?: return
+            step = (step + 1).coerceAtMost(activePlan.targets.size)
             correctCount += 1
         } else {
             if (soundEnabled) fx.wrong()
@@ -376,8 +378,8 @@ fun HardMultiplication2x2Game(
 
     val hint = when {
         plan == null -> "Inserisci i numeri e premi Avvia."
-        done -> "Bravo! ✅ Risultato: ${plan!!.result}"
-        else -> current!!.hint
+        done && p != null -> "Bravo! ✅ Risultato: ${p.result}"
+        else -> current?.hint.orEmpty()
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -446,11 +448,12 @@ fun HardMultiplication2x2Game(
                 }
 
                 SeaGlassPanel(title = "Esercizio") {
-                    if (plan == null) {
+                    if (p == null) {
                         Text("Inserisci i numeri e premi Avvia.")
                     } else {
+                        val activePlan = p
                         Text(
-                            "Esercizio: ${plan!!.a} × ${plan!!.b}",
+                            "Esercizio: ${activePlan.a} × ${activePlan.b}",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
@@ -460,18 +463,18 @@ fun HardMultiplication2x2Game(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             HMGridRowRight(signW, gap) {
-                                HMFixedDigit(plan!!.a4[0], digitW, digitH, digitFont)
-                                HMFixedDigit(plan!!.a4[1], digitW, digitH, digitFont)
-                                HMFixedDigit(plan!!.a4[2], digitW, digitH, digitFont)
-                                HMFixedDigit(plan!!.a4[3], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.a4[0], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.a4[1], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.a4[2], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.a4[3], digitW, digitH, digitFont)
                                 HMSignCell("", signW)
                             }
 
                             HMGridRowRight(signW, gap) {
-                                HMFixedDigit(plan!!.b4[0], digitW, digitH, digitFont)
-                                HMFixedDigit(plan!!.b4[1], digitW, digitH, digitFont)
-                                HMFixedDigit(plan!!.b4[2], digitW, digitH, digitFont)
-                                HMFixedDigit(plan!!.b4[3], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.b4[0], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.b4[1], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.b4[2], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.b4[3], digitW, digitH, digitFont)
                                 HMSignCell("×", signW)
                             }
 
@@ -479,7 +482,7 @@ fun HardMultiplication2x2Game(
 
                             HMCarryRowRight(
                                 signW, gap, digitW, carryW, carryH,
-                                expected = plan!!.carryP1,
+                                expected = activePlan.carryP1,
                                 input = inCarryP1,
                                 err = errCarryP1,
                                 enabled = { c -> enabled(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
@@ -491,7 +494,7 @@ fun HardMultiplication2x2Game(
 
                             HMDigitRowRight(
                                 signW, gap, digitW, digitH,
-                                expected = plan!!.p1_4,
+                                expected = activePlan.p1_4,
                                 input = inP1,
                                 err = errP1,
                                 enabled = { c -> enabled(HMRowKey.P1, c, HMCellKind.DIGIT) },
@@ -502,7 +505,7 @@ fun HardMultiplication2x2Game(
 
                             HMCarryRowRight(
                                 signW, gap, digitW, carryW, carryH,
-                                expected = plan!!.carryP2,
+                                expected = activePlan.carryP2,
                                 input = inCarryP2,
                                 err = errCarryP2,
                                 enabled = { c -> enabled(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
@@ -514,7 +517,7 @@ fun HardMultiplication2x2Game(
 
                             HMDigitRowRight(
                                 signW, gap, digitW, digitH,
-                                expected = plan!!.p2_4,
+                                expected = activePlan.p2_4,
                                 input = inP2,
                                 err = errP2,
                                 enabled = { c -> enabled(HMRowKey.P2, c, HMCellKind.DIGIT) },
@@ -528,7 +531,7 @@ fun HardMultiplication2x2Game(
 
                             HMCarryRowRight(
                                 signW, gap, digitW, carryW, carryH,
-                                expected = plan!!.carrySUM,
+                                expected = activePlan.carrySUM,
                                 input = inCarrySUM,
                                 err = errCarrySUM,
                                 enabled = { c -> enabled(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
@@ -540,7 +543,7 @@ fun HardMultiplication2x2Game(
 
                             HMDigitRowRight(
                                 signW, gap, digitW, digitH,
-                                expected = plan!!.res_4,
+                                expected = activePlan.res_4,
                                 input = inSUM,
                                 err = errSUM,
                                 enabled = { c -> enabled(HMRowKey.SUM, c, HMCellKind.DIGIT) },
@@ -555,8 +558,8 @@ fun HardMultiplication2x2Game(
                 SeaGlassPanel(title = "Stato") {
                     if (done) {
                         Text("Operazione completata.", style = MaterialTheme.typography.bodyLarge)
-                    } else if (plan != null && current != null) {
-                        Text("Passo ${step + 1}/${plan!!.targets.size}", style = MaterialTheme.typography.bodyLarge)
+                    } else if (p != null && current != null) {
+                        Text("Passo ${step + 1}/${p.targets.size}", style = MaterialTheme.typography.bodyLarge)
                         Text("Casella attiva: ${hmRowLabel(current.row)} – ${hmColLabel(current.col)}")
                     } else {
                         Text("Inserisci i numeri per iniziare.", style = MaterialTheme.typography.bodyLarge)
@@ -569,15 +572,15 @@ fun HardMultiplication2x2Game(
                     onLeft = {
                         if (startMode == StartMode.MANUAL) {
                             val manual = manualNumbers
-                            if (manual != null && plan != null) {
+                            if (manual != null && p != null) {
                                 reset(manual.first, manual.second)
                             } else {
                                 resetManualInputs()
                                 plan = null
                                 clearInputsOnly()
                             }
-                        } else if (plan != null) {
-                            reset(plan!!.a, plan!!.b)
+                        } else if (p != null) {
+                            reset(p.a, p.b)
                         }
                     },
                     rightText = "Nuovo",
@@ -593,18 +596,18 @@ fun HardMultiplication2x2Game(
                     center = {
                         OutlinedButton(
                             onClick = {
-                                if (plan == null) return@OutlinedButton
+                                val activePlan = plan ?: return@OutlinedButton
                                 for (c in 0..3) {
-                                    val cp1 = plan!!.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
-                                    val cp2 = plan!!.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)
-                                    val cs = plan!!.carrySUM[c]; if (cs != ' ') setCell(HMRowKey.CARRY_SUM, c, cs, false)
+                                    val cp1 = activePlan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
+                                    val cp2 = activePlan.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)
+                                    val cs = activePlan.carrySUM[c]; if (cs != ' ') setCell(HMRowKey.CARRY_SUM, c, cs, false)
 
-                                    val d1 = plan!!.p1_4[c]; if (d1 != ' ') setCell(HMRowKey.P1, c, d1, false)
-                                    val d2 = plan!!.p2_4[c]; if (d2 != ' ') setCell(HMRowKey.P2, c, d2, false)
-                                    val dr = plan!!.res_4[c]; if (dr != ' ') setCell(HMRowKey.SUM, c, dr, false)
+                                    val d1 = activePlan.p1_4[c]; if (d1 != ' ') setCell(HMRowKey.P1, c, d1, false)
+                                    val d2 = activePlan.p2_4[c]; if (d2 != ' ') setCell(HMRowKey.P2, c, d2, false)
+                                    val dr = activePlan.res_4[c]; if (dr != ' ') setCell(HMRowKey.SUM, c, dr, false)
                                 }
                                 setCell(HMRowKey.P2, 3, '-', false)
-                                step = plan!!.targets.size
+                                step = activePlan.targets.size
                             }
                         ) { Text("Soluzione") }
                     }

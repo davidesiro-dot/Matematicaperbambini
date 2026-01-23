@@ -210,11 +210,12 @@ fun LongAdditionGame(
         }
     }
 
-    val current = plan?.targets?.getOrNull(step)
-    val done = plan != null && step >= plan!!.targets.size
+    val p = plan
+    val current = p?.targets?.getOrNull(step)
+    val done = p != null && step >= p.targets.size
 
     LaunchedEffect(done) {
-        if (done && plan != null) {
+        if (done && p != null) {
             showSuccessDialog = true
         }
     }
@@ -254,17 +255,16 @@ fun LongAdditionGame(
         val ok = digit == t.expected
         setCell(row, col, digit, !ok)
         if (ok) {
-            step = (step + 1).coerceAtMost(plan.targets.size)
+            val activePlan = plan ?: return
+            step = (step + 1).coerceAtMost(activePlan.targets.size)
             correctCount += 1
         }
     }
 
-    val hint = if (plan == null) {
-        "Inserisci i numeri e premi Avvia."
-    } else if (done) {
-        "Bravo! ✅ Risultato: ${plan!!.result}"
-    } else {
-        current!!.hint
+    val hint = when {
+        p == null -> "Inserisci i numeri e premi Avvia."
+        done -> "Bravo! ✅ Risultato: ${p.result}"
+        else -> current?.hint.orEmpty()
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -333,16 +333,17 @@ fun LongAdditionGame(
                 }
 
                 SeaGlassPanel(title = "Esercizio") {
-                    if (plan == null) {
+                    if (p == null) {
                         Text("Inserisci i numeri e premi Avvia.")
                     } else {
+                        val activePlan = p
                         Text(
-                            "Esercizio: ${plan!!.a} + ${plan!!.b}",
+                            "Esercizio: ${activePlan.a} + ${activePlan.b}",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
 
-                        val totalCols = plan!!.digits + 1
+                        val totalCols = activePlan.digits + 1
 
                         Column(
                             verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
@@ -355,7 +356,7 @@ fun LongAdditionGame(
                                         Box(Modifier.width(digitW).height(carryH))
                                     } else {
                                         val col = displayCol - 1
-                                        val expected = plan!!.carry[col]
+                                        val expected = activePlan.carry[col]
                                         Box(modifier = Modifier.width(digitW), contentAlignment = Alignment.Center) {
                                             if (expected == ' ') {
                                                 Box(Modifier.width(carryW).height(carryH))
@@ -381,7 +382,7 @@ fun LongAdditionGame(
                             // Riga A
                             GridRowRight(signW, gap) {
                                 for (displayCol in 0 until totalCols) {
-                                    val ch = if (displayCol == 0) ' ' else plan!!.aStr[displayCol - 1]
+                                    val ch = if (displayCol == 0) ' ' else activePlan.aStr[displayCol - 1]
                                     FixedDigit(ch, digitW, digitH)
                                 }
                                 SignCell("", signW)
@@ -390,7 +391,7 @@ fun LongAdditionGame(
                             // Riga B con segno +
                             GridRowRight(signW, gap) {
                                 for (displayCol in 0 until totalCols) {
-                                    val ch = if (displayCol == 0) ' ' else plan!!.bStr[displayCol - 1]
+                                    val ch = if (displayCol == 0) ' ' else activePlan.bStr[displayCol - 1]
                                     FixedDigit(ch, digitW, digitH)
                                 }
                                 SignCell("+", signW)
@@ -401,7 +402,7 @@ fun LongAdditionGame(
                             // Risultato (digits+1)
                             GridRowRight(signW, gap) {
                                 for (col in 0 until totalCols) {
-                                    val exp = plan!!.res[col]
+                                    val exp = activePlan.res[col]
                                     if (exp == ' ') {
                                         FixedDigit(' ', digitW, digitH)
                                     } else {
@@ -438,7 +439,7 @@ fun LongAdditionGame(
                     onLeft = {
                         if (startMode == StartMode.MANUAL) {
                             val manual = manualNumbers
-                            if (manual != null && plan != null) {
+                            if (manual != null && p != null) {
                                 startManual(manual.first, manual.second)
                             } else {
                                 resetManualInputs()
