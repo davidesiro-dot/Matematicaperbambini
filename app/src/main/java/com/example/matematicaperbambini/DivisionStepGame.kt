@@ -76,37 +76,38 @@ fun DivisionStepGame(
     var manualNumbers by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     var targetIndex by remember(plan) { mutableStateOf(0) }
-    val currentTarget = plan?.targets?.getOrNull(targetIndex)
-    val done = plan != null && currentTarget == null
+    val p = plan
+    val currentTarget = p?.targets?.getOrNull(targetIndex)
+    val done = p != null && currentTarget == null
 
     var correctCount by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
-    val quotientSlotCount = plan?.dividendDigits?.size ?: 0
+    val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
     val quotientErrors = remember(plan) { List(quotientSlotCount) { mutableStateOf(false) } }
     val productInputs = remember(plan) {
-        plan?.steps?.map { step ->
+        p?.steps?.map { step ->
             List(step.product.toString().length) { mutableStateOf("") }
         } ?: emptyList()
     }
     val productErrors = remember(plan) {
-        plan?.steps?.map { step ->
+        p?.steps?.map { step ->
             List(step.product.toString().length) { mutableStateOf(false) }
         } ?: emptyList()
     }
     val remainderInputs = remember(plan) {
-        plan?.steps?.map { step ->
+        p?.steps?.map { step ->
             List(step.remainder.toString().length) { mutableStateOf("") }
         } ?: emptyList()
     }
     val remainderErrors = remember(plan) {
-        plan?.steps?.map { step ->
+        p?.steps?.map { step ->
             List(step.remainder.toString().length) { mutableStateOf(false) }
         } ?: emptyList()
     }
-    val bringDownDone = remember(plan) { List(plan?.steps?.size ?: 0) { mutableStateOf(false) } }
+    val bringDownDone = remember(plan) { List(p?.steps?.size ?: 0) { mutableStateOf(false) } }
 
     fun resetSame() {
         targetIndex = 0
@@ -155,10 +156,11 @@ fun DivisionStepGame(
     }
 
     fun advanceTarget() {
+        val p = plan ?: return
         targetIndex++
-        if (plan != null && targetIndex >= plan!!.targets.size) {
+        if (targetIndex >= p.targets.size) {
             correctCount++
-            message = "✅ Finito! Quoziente ${plan!!.finalQuotient} resto ${plan!!.finalRemainder}"
+            message = "✅ Finito! Quoziente ${p.finalQuotient} resto ${p.finalRemainder}"
         }
     }
 
@@ -212,7 +214,7 @@ fun DivisionStepGame(
 
     fun fillSolution() {
         val activePlan = plan ?: return
-        plan.steps.forEachIndexed { si, step ->
+        activePlan.steps.forEachIndexed { si, step ->
             val quotientCol = step.endPos
             quotientInputs[quotientCol].value = step.qDigit.toString()
             quotientErrors[quotientCol].value = false
@@ -233,21 +235,19 @@ fun DivisionStepGame(
         showSuccessDialog = true
     }
 
-    val hint = if (done) {
-        "Bravo! Quoziente ${plan!!.finalQuotient} con resto ${plan!!.finalRemainder}."
-    } else if (plan == null) {
-        "Inserisci dividendo e divisore e premi Avvia."
-    } else {
-        currentTarget!!.hint
+    val hint = when {
+        done && p != null -> "Bravo! Quoziente ${p.finalQuotient} con resto ${p.finalRemainder}."
+        p == null -> "Inserisci dividendo e divisore e premi Avvia."
+        else -> currentTarget?.hint.orEmpty()
     }
 
     LaunchedEffect(done) {
-        if (done && plan != null) {
+        if (done && p != null) {
             showSuccessDialog = true
         }
     }
 
-    val activeStepNumber = currentTarget?.stepIndex?.plus(1) ?: (plan?.steps?.size ?: 0)
+    val activeStepNumber = currentTarget?.stepIndex?.plus(1) ?: (p?.steps?.size ?: 0)
     val ui = rememberUiSizing()
 
     val digitW = if (ui.isCompact) 36.dp else 44.dp
@@ -257,18 +257,18 @@ fun DivisionStepGame(
     val fontLarge = if (ui.isCompact) 18.sp else 22.sp
     val fontSmall = if (ui.isCompact) 16.sp else 20.sp
     val gap = if (ui.isCompact) 4.dp else 6.dp
-    val columns = plan?.dividendDigits?.size ?: 0
+    val columns = p?.dividendDigits?.size ?: 0
     val quotientDigitW = if (columns == 4) {
         if (ui.isCompact) 32.dp else 38.dp
     } else {
         digitW
     }
-    val divisorDigits = plan?.divisor?.toString().orEmpty()
+    val divisorDigits = p?.divisor?.toString().orEmpty()
     val divisorWidth = digitW * divisorDigits.length + gap * (divisorDigits.length - 1)
     val dividerHeight = digitH + digitH + gap
     val stepGap = if (ui.isCompact) 6.dp else 8.dp
 
-    val activeStep = currentTarget?.let { plan?.steps?.get(it.stepIndex) }
+    val activeStep = currentTarget?.let { p?.steps?.get(it.stepIndex) }
     val activePartialRange = activeStep?.let {
         val len = it.partial.toString().length
         startColForEnd(it.endPos, len)..it.endPos
@@ -402,9 +402,10 @@ fun DivisionStepGame(
                     }
 
                     SeaGlassPanel(title = "Calcolo") {
-                        if (plan == null) {
+                        if (p == null) {
                             Text("Inserisci dividendo e divisore e premi Avvia.")
                         } else {
+                            val activePlan = p
                             Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
                                 Row(
                                     verticalAlignment = Alignment.Top,
@@ -417,7 +418,7 @@ fun DivisionStepGame(
                                             cellH = digitH,
                                             gap = gap
                                         ) { col ->
-                                            val digit = plan!!.dividendDigits[col]
+                                            val digit = activePlan.dividendDigits[col]
                                             DivisionFixedDigit(
                                                 text = digit.toString(),
                                                 w = digitW,
@@ -462,7 +463,7 @@ fun DivisionStepGame(
                                             cellH = digitH,
                                             gap = gap
                                         ) { col ->
-                                            val target = plan!!.targets.firstOrNull {
+                                            val target = activePlan.targets.firstOrNull {
                                                 it.type == DivisionTargetType.QUOTIENT && it.gridCol == col
                                             }
                                             if (target != null) {
@@ -497,14 +498,14 @@ fun DivisionStepGame(
                                 }
 
                                 Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
-                                    plan!!.steps.forEachIndexed { si, step ->
-                                        val productTargets = plan!!.targets.filter {
+                                    activePlan.steps.forEachIndexed { si, step ->
+                                        val productTargets = activePlan.targets.filter {
                                             it.type == DivisionTargetType.PRODUCT && it.stepIndex == si
                                         }
-                                        val remainderTargets = plan!!.targets.filter {
+                                        val remainderTargets = activePlan.targets.filter {
                                             it.type == DivisionTargetType.REMAINDER && it.stepIndex == si
                                         }
-                                        val bringDownTarget = plan!!.targets.firstOrNull {
+                                        val bringDownTarget = activePlan.targets.firstOrNull {
                                             it.type == DivisionTargetType.BRING_DOWN && it.stepIndex == si
                                         }
                                         val highlightProduct = currentTarget?.type == DivisionTargetType.REMAINDER &&
@@ -621,9 +622,9 @@ fun DivisionStepGame(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = if (plan == null) "Passo 0/0"
-                                else if (done) "Passo ${plan!!.steps.size}/${plan!!.steps.size}"
-                                else "Passo $activeStepNumber/${plan!!.steps.size}",
+                                text = if (p == null) "Passo 0/0"
+                                else if (done) "Passo ${p.steps.size}/${p.steps.size}"
+                                else "Passo $activeStepNumber/${p.steps.size}",
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -637,7 +638,7 @@ fun DivisionStepGame(
                     onLeft = {
                         if (startMode == StartMode.MANUAL) {
                             val manual = manualNumbers
-                            if (manual != null && plan != null) {
+                            if (manual != null && p != null) {
                                 plan = generateDivisionPlan(manual.first, manual.second)
                                 resetSame()
                             } else {
@@ -655,7 +656,7 @@ fun DivisionStepGame(
                     onRight = { resetNew() },
                     modifier = Modifier.fillMaxWidth(),
                     center = {
-                        OutlinedButton(onClick = { fillSolution() }, enabled = plan != null) {
+                        OutlinedButton(onClick = { fillSolution() }, enabled = p != null) {
                             Text("Soluzione")
                         }
                     }
@@ -670,7 +671,7 @@ fun DivisionStepGame(
                 resetNew()
             },
             onDismiss = { showSuccessDialog = false },
-            resultText = if (plan == null) "" else "${plan!!.finalQuotient} r. ${plan!!.finalRemainder}"
+            resultText = p?.let { "${it.finalQuotient} r. ${it.finalRemainder}" }.orEmpty()
         )
     }
 }
