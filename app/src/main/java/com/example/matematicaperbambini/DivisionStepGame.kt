@@ -22,8 +22,8 @@ private data class DivConfig(
 )
 
 private fun configFor(mode: DivMode): DivConfig = when (mode) {
-    DivMode.ONE_DIGIT -> DivConfig(dividendDigitsRange = 2..4, divisorRange = 2..9)
-    DivMode.TWO_DIGIT -> DivConfig(dividendDigitsRange = 3..4, divisorRange = 10..79)
+    DivMode.ONE_DIGIT -> DivConfig(dividendDigitsRange = 2..3, divisorRange = 2..9)
+    DivMode.TWO_DIGIT -> DivConfig(dividendDigitsRange = 3..3, divisorRange = 10..79)
 }
 
 private fun pow10(exp: Int): Int = 10.0.pow(exp.toDouble()).toInt()
