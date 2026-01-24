@@ -2,8 +2,6 @@ package com.example.matematicaperbambini
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -561,6 +559,7 @@ fun DivisionStepGame(
                                         val productRowWidth = digitSmallW * columns + gap * (columns - 1)
                                         val productCellStride = digitSmallW + gap
                                         val productLineHeight = if (ui.isCompact) 2.dp else 3.dp
+                                        val productLineGap = if (ui.isCompact) 4.dp else 6.dp
 
                                         Box(
                                             modifier = Modifier
@@ -604,7 +603,8 @@ fun DivisionStepGame(
                                                 Box(
                                                     modifier = Modifier
                                                         .offset(x = productCellStride * productStartCol)
-                                                        .align(Alignment.BottomStart)
+                                                        .offset(y = digitSmallH + productLineGap)
+                                                        .align(Alignment.TopStart)
                                                         .width(digitSmallW * productSpanCols + gap * (productSpanCols - 1))
                                                         .height(productLineHeight)
                                                         .background(MaterialTheme.colorScheme.primary)
@@ -616,8 +616,11 @@ fun DivisionStepGame(
                                                     fontSize = fontSmall,
                                                     color = MaterialTheme.colorScheme.onSurface,
                                                     modifier = Modifier
-                                                        .offset(x = productCellStride * productStartCol - productCellStride)
-                                                        .align(Alignment.CenterStart)
+                                                        .offset(
+                                                            x = productCellStride * productStartCol - (digitSmallW * 0.4f),
+                                                            y = digitSmallH * 0.1f
+                                                        )
+                                                        .align(Alignment.TopStart)
                                                 )
                                             }
                                         }
@@ -650,6 +653,7 @@ fun DivisionStepGame(
                                                     }
                                                     bringDownTarget != null &&
                                                         step.bringDownDigit != null &&
+                                                        bringDownDone[si].value &&
                                                         col == bringDownTarget.gridCol -> {
                                                         val active = bringDownTarget == currentTarget
                                                         DivisionActionDigit(
@@ -717,47 +721,6 @@ fun DivisionStepGame(
                                         Text("Next")
                                     }
                                     Text("Target ${targetIndex}/${p.targets.size}")
-                                }
-                            }
-
-                            val highlights = currentTarget?.highlights.orEmpty()
-                            val debugText = buildString {
-                                append("type=")
-                                append(currentTarget?.type?.name ?: "-")
-                                append(" step=")
-                                append(currentTarget?.stepIndex ?: "-")
-                                append(" col=")
-                                append(currentTarget?.gridCol ?: "-")
-                                append(" HL: D=")
-                                append(highlights.count { it.zone == HLZone.DIVIDEND })
-                                append(" P=")
-                                append(highlights.count { it.zone == HLZone.PRODUCT })
-                                append(" R=")
-                                append(highlights.count { it.zone == HLZone.REMAINDER })
-                                append(" B=")
-                                append(highlights.count { it.zone == HLZone.BRING })
-                                append(" Q=")
-                                append(highlights.count { it.zone == HLZone.QUOTIENT })
-                                append(" S=")
-                                append(highlights.count { it.zone == HLZone.DIVISOR })
-                            }
-                            Text(debugText)
-                            if (debugHL) {
-                                val highlightsText = highlights.joinToString(", ") {
-                                    debugLabel(it.zone, it.stepIndex, it.col)
-                                }
-                                Column {
-                                    Text("highlights:")
-                                    Box(
-                                        modifier = Modifier
-                                            .heightIn(max = 120.dp)
-                                            .fillMaxWidth()
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                                            .padding(6.dp)
-                                            .verticalScroll(rememberScrollState())
-                                    ) {
-                                        Text(highlightsText)
-                                    }
                                 }
                             }
 
