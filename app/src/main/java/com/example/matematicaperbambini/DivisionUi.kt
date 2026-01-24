@@ -90,7 +90,12 @@ fun DivisionFixedDigit(
             color = MaterialTheme.colorScheme.onSurface
         )
         if (debugLabel != null) {
-            DivisionDebugBadge(text = debugLabel)
+            DivisionDebugBadge(
+                text = debugLabel,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 2.dp, end = 4.dp)
+            )
         }
     }
 }
@@ -145,7 +150,12 @@ fun DivisionActionDigit(
             )
         }
         if (debugLabel != null) {
-            DivisionDebugBadge(text = debugLabel)
+            DivisionDebugBadge(
+                text = debugLabel,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 2.dp, end = 4.dp)
+            )
         }
     }
 }
@@ -242,20 +252,23 @@ fun DivisionDigitBox(
             )
         }
         if (debugLabel != null) {
-            DivisionDebugBadge(text = debugLabel)
+            DivisionDebugBadge(
+                text = debugLabel,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 2.dp, end = 4.dp)
+            )
         }
     }
 }
 
 @Composable
-fun DivisionDebugBadge(text: String) {
+fun DivisionDebugBadge(text: String, modifier: Modifier = Modifier) {
     androidx.compose.material3.Text(
         text = text,
         fontSize = 9.sp,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(bottom = 2.dp, end = 4.dp)
+        modifier = modifier
     )
 }
 
@@ -277,6 +290,11 @@ fun DivisionDebugCell(
             .border(borderW, borderColor, shape),
         contentAlignment = Alignment.Center
     ) {
-        DivisionDebugBadge(text = debugLabel)
+        DivisionDebugBadge(
+            text = debugLabel,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 2.dp, end = 4.dp)
+        )
     }
 }

@@ -140,14 +140,26 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
         val bringCol = step.bringDownDigit?.let { step.endPos + 1 }
         val divisorHighlights = divisorDigits.indices.map { HLCell(HLZone.DIVISOR, si, it) }
 
-        fun dividendHighlights(range: IntRange) =
-            range.map { HLCell(HLZone.DIVIDEND, si, it) }
+        fun dividendHighlights(stepIndex: Int, range: IntRange) =
+            range.map { HLCell(HLZone.DIVIDEND, stepIndex, it) }
 
-        fun productHighlightCells(range: IntRange) =
-            range.map { HLCell(HLZone.PRODUCT, si, it) }
+        fun productHighlightCells(stepIndex: Int, range: IntRange) =
+            range.map { HLCell(HLZone.PRODUCT, stepIndex, it) }
 
-        fun remainderHighlightCells(range: IntRange) =
-            range.map { HLCell(HLZone.REMAINDER, si, it) }
+        fun remainderHighlightCells(stepIndex: Int, range: IntRange) =
+            range.map { HLCell(HLZone.REMAINDER, stepIndex, it) }
+
+        val partialHighlights = if (si == 0) {
+            dividendHighlights(si, partialRange)
+        } else {
+            val prevStep = steps[si - 1]
+            val prevRemainderStr = prevStep.remainder.toString()
+            val prevRemainderStart = startColForEnd(prevStep.endPos, prevRemainderStr.length)
+            val prevRemainderRange = prevRemainderStart..prevStep.endPos
+            val prevBringCol = prevStep.bringDownDigit?.let { prevStep.endPos + 1 }
+            val bringHighlight = prevBringCol?.let { listOf(HLCell(HLZone.BRING, si - 1, it)) }.orEmpty()
+            remainderHighlightCells(si - 1, prevRemainderRange) + bringHighlight
+        }
 
         add(
             type = DivisionTargetType.QUOTIENT,
@@ -157,16 +169,13 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
             expected = qChar,
             hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${step.partial}.",
             microLabel = "${step.partial}÷$divisor",
-            highlights = dividendHighlights(partialRange) +
-                divisorHighlights +
-                HLCell(HLZone.QUOTIENT, si, quotientCol)
+            highlights = partialHighlights + divisorHighlights
         )
 
         val productHint = "Moltiplica: $divisor × ${step.qDigit} = ${step.product}. Scrivi il prodotto sotto le cifre selezionate."
-        val productHighlights = dividendHighlights(partialRange) +
+        val productHighlights = partialHighlights +
             divisorHighlights +
-            HLCell(HLZone.QUOTIENT, si, quotientCol) +
-            productHighlightCells(productRange)
+            HLCell(HLZone.QUOTIENT, si, quotientCol)
         productStr.forEachIndexed { idx, ch ->
             add(
                 type = DivisionTargetType.PRODUCT,
@@ -181,8 +190,8 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
         }
 
         val remainderHint = "Sottrai: ${step.partial} − ${step.product} = ${step.remainder}. Scrivi il resto."
-        val remainderHighlights = productHighlightCells(productRange) +
-            remainderHighlightCells(remainderRange)
+        val remainderHighlights = partialHighlights +
+            productHighlightCells(si, productRange)
         remainderStr.forEachIndexed { idx, ch ->
             add(
                 type = DivisionTargetType.REMAINDER,
@@ -209,7 +218,7 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
                 highlights = listOf(
                     HLCell(HLZone.DIVIDEND, si, bringCol),
                     HLCell(HLZone.BRING, si, bringCol)
-                ) + remainderHighlightCells(remainderRange)
+                ) + remainderHighlightCells(si, remainderRange)
             )
         }
     }
