@@ -281,6 +281,7 @@ fun DivisionStepGame(
     val divisorWidth = digitW * divisorDigits.length + gap * (divisorDigits.length - 1)
     val dividerHeight = digitH + digitH + gap
     val stepGap = if (ui.isCompact) 6.dp else 8.dp
+    val divisorOffset = if (columns > divisorDigits.length) gap else 0.dp
 
     fun isHL(zone: HLZone, step: Int, col: Int): Boolean =
         currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
@@ -451,7 +452,10 @@ fun DivisionStepGame(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)
                                     ) {
-                                            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                                            Row(
+                                                modifier = Modifier.padding(start = divisorOffset),
+                                                horizontalArrangement = Arrangement.spacedBy(gap)
+                                            ) {
                                                 divisorDigits.forEachIndexed { idx, ch ->
                                                     val step = currentTarget?.stepIndex ?: 0
                                                     DivisionFixedDigit(
@@ -467,6 +471,7 @@ fun DivisionStepGame(
                                             }
                                         Box(
                                             modifier = Modifier
+                                                .padding(start = divisorOffset)
                                                 .width(divisorWidth)
                                                 .height(if (ui.isCompact) 2.dp else 3.dp)
                                                 .background(MaterialTheme.colorScheme.primary)
