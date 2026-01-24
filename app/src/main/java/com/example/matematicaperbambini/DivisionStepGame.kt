@@ -12,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.util.Log
 import kotlin.math.pow
 import kotlin.random.Random
 
@@ -62,8 +61,8 @@ fun DivisionStepGame(
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit
 ) {
-    val debugHL = true
-    val debugScenario = true
+    val debugHL = false
+    val debugScenario = false
     val rng = remember { Random(System.currentTimeMillis()) }
     var mode by remember { mutableStateOf(DivMode.ONE_DIGIT) }
 
@@ -75,7 +74,7 @@ fun DivisionStepGame(
     val debugPlan = remember { generateDivisionPlan(854, 2) }
     var plan by remember(mode, startMode, debugScenario) {
         mutableStateOf(
-            if (debugScenario) debugPlan
+            if (debugScenario && startMode == StartMode.RANDOM) debugPlan
             else if (startMode == StartMode.RANDOM) newPlan()
             else null
         )
@@ -143,7 +142,7 @@ fun DivisionStepGame(
     }
 
     fun resetNew() {
-        if (debugScenario) {
+        if (debugScenario && startMode == StartMode.RANDOM) {
             plan = debugPlan
             targetIndex = 0
             message = null
@@ -283,20 +282,8 @@ fun DivisionStepGame(
     val dividerHeight = digitH + digitH + gap
     val stepGap = if (ui.isCompact) 6.dp else 8.dp
 
-    val hlSet = remember(currentTarget) { currentTarget?.highlights?.toSet() ?: emptySet() }
-    fun shouldHighlight(zone: HLZone, step: Int, col: Int, t: DivisionTarget?): Boolean {
-        return t?.highlights?.contains(HLCell(zone, step, col)) == true
-    }
-
-    fun debugMismatch(zone: HLZone, step: Int, col: Int): Boolean {
-        if (!debugHL) return false
-        val inPlan = HLCell(zone, step, col) in hlSet
-        val inUi = shouldHighlight(zone, step, col, currentTarget)
-        if (inPlan != inUi) {
-            Log.d("DivisionHL", "MISMATCH zone=$zone step=$step col=$col")
-        }
-        return inPlan != inUi
-    }
+    fun isHL(zone: HLZone, step: Int, col: Int): Boolean =
+        currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
 
     fun debugLabel(zone: HLZone, step: Int, col: Int): String {
         val zoneLabel = when (zone) {
@@ -374,7 +361,7 @@ fun DivisionStepGame(
                         }
                     }
 
-                                    if (startMode == StartMode.MANUAL && !debugScenario) {
+                                    if (startMode == StartMode.MANUAL) {
                                         val dividendValue = manualDividend.toIntOrNull()
                                         val divisorValue = manualDivisor.toIntOrNull()
                         val manualValid = dividendValue in 2..999 &&
@@ -441,20 +428,14 @@ fun DivisionStepGame(
                                                 ) { col ->
                                                     val digit = activePlan.dividendDigits[col]
                                                     val step = currentTarget?.stepIndex ?: 0
-                                                    val highlightDividendCell = shouldHighlight(
-                                                        HLZone.DIVIDEND,
-                                                        step,
-                                                        col,
-                                                        currentTarget
-                                                    )
                                                     DivisionFixedDigit(
                                                         text = digit.toString(),
                                                         w = digitW,
                                                         h = digitH,
                                                         fontSize = fontLarge,
-                                                        highlight = highlightDividendCell,
+                                                        highlight = isHL(HLZone.DIVIDEND, step, col),
                                                         debugLabel = if (debugHL) debugLabel(HLZone.DIVIDEND, step, col) else null,
-                                                        debugMismatch = debugMismatch(HLZone.DIVIDEND, step, col)
+                                                        debugMismatch = false
                                                     )
                                                 }
                                             }
@@ -478,9 +459,9 @@ fun DivisionStepGame(
                                                         w = digitW,
                                                         h = digitH,
                                                         fontSize = fontLarge,
-                                                        highlight = shouldHighlight(HLZone.DIVISOR, step, idx, currentTarget),
+                                                        highlight = isHL(HLZone.DIVISOR, step, idx),
                                                         debugLabel = if (debugHL) debugLabel(HLZone.DIVISOR, step, idx) else null,
-                                                        debugMismatch = debugMismatch(HLZone.DIVISOR, step, idx)
+                                                        debugMismatch = false
                                                     )
                                                 }
                                             }
@@ -500,8 +481,7 @@ fun DivisionStepGame(
                                                 it.type == DivisionTargetType.QUOTIENT && it.gridCol == col
                                             }
                                             val step = currentTarget?.stepIndex ?: 0
-                                            val highlightQuotient = shouldHighlight(HLZone.QUOTIENT, step, col, currentTarget)
-                                            val mismatch = debugMismatch(HLZone.QUOTIENT, step, col)
+                                            val highlightQuotient = isHL(HLZone.QUOTIENT, step, col)
                                             if (target != null) {
                                                 val active = target == currentTarget
                                                 DivisionDigitBox(
@@ -516,7 +496,7 @@ fun DivisionStepGame(
                                                     h = digitH,
                                                     fontSize = fontLarge,
                                                     debugLabel = if (debugHL) debugLabel(HLZone.QUOTIENT, step, col) else null,
-                                                    debugMismatch = mismatch
+                                                    debugMismatch = false
                                                 )
                                             } else {
                                                 DivisionDigitBox(
@@ -530,7 +510,7 @@ fun DivisionStepGame(
                                                     h = digitH,
                                                     fontSize = fontLarge,
                                                     debugLabel = if (debugHL) debugLabel(HLZone.QUOTIENT, step, col) else null,
-                                                    debugMismatch = mismatch
+                                                    debugMismatch = false
                                                 )
                                             }
                                         }
@@ -562,21 +542,21 @@ fun DivisionStepGame(
                                                     enabled = active,
                                                     active = active,
                                                     isError = productErrors[si][target.idx].value,
-                                                    highlight = shouldHighlight(HLZone.PRODUCT, si, col, currentTarget),
+                                                    highlight = isHL(HLZone.PRODUCT, si, col),
                                                     microLabel = target.microLabel,
                                                     onValueChange = { onDigitInput(target, it) },
                                                     w = digitSmallW,
                                                     h = digitSmallH,
                                                     fontSize = fontSmall,
                                                     debugLabel = if (debugHL) debugLabel(HLZone.PRODUCT, si, col) else null,
-                                                    debugMismatch = debugMismatch(HLZone.PRODUCT, si, col)
+                                                    debugMismatch = false
                                                 )
                                             } else if (debugHL) {
                                                 DivisionDebugCell(
                                                     w = digitSmallW,
                                                     h = digitSmallH,
                                                     debugLabel = debugLabel(HLZone.PRODUCT, si, col),
-                                                    debugMismatch = debugMismatch(HLZone.PRODUCT, si, col)
+                                                    debugMismatch = false
                                                 )
                                             }
                                         }
@@ -597,14 +577,14 @@ fun DivisionStepGame(
                                                             enabled = active,
                                                             active = active,
                                                             isError = remainderErrors[si][target.idx].value,
-                                                            highlight = shouldHighlight(HLZone.REMAINDER, si, col, currentTarget),
+                                                            highlight = isHL(HLZone.REMAINDER, si, col),
                                                             microLabel = target.microLabel,
                                                             onValueChange = { onDigitInput(target, it) },
                                                             w = digitSmallW,
                                                             h = digitSmallH,
                                                             fontSize = fontSmall,
                                                             debugLabel = if (debugHL) debugLabel(HLZone.REMAINDER, si, col) else null,
-                                                            debugMismatch = debugMismatch(HLZone.REMAINDER, si, col)
+                                                            debugMismatch = false
                                                         )
                                                     }
                                                     bringDownTarget != null &&
@@ -618,9 +598,9 @@ fun DivisionStepGame(
                                                             w = digitSmallW,
                                                             h = digitSmallH,
                                                             fontSize = fontSmall,
-                                                            highlight = shouldHighlight(HLZone.BRING, si, col, currentTarget),
+                                                            highlight = isHL(HLZone.BRING, si, col),
                                                             debugLabel = if (debugHL) debugLabel(HLZone.BRING, si, col) else null,
-                                                            debugMismatch = debugMismatch(HLZone.BRING, si, col)
+                                                            debugMismatch = false
                                                         )
                                                     }
                                                     debugHL -> {
@@ -628,7 +608,7 @@ fun DivisionStepGame(
                                                             w = digitSmallW,
                                                             h = digitSmallH,
                                                             debugLabel = debugLabel(HLZone.REMAINDER, si, col),
-                                                            debugMismatch = debugMismatch(HLZone.REMAINDER, si, col)
+                                                            debugMismatch = false
                                                         )
                                                     }
                                                 }
