@@ -283,6 +283,7 @@ fun DivisionStepGame(
     val divisorWidth = divisorCellW * divisorColumns + gap * (divisorColumns - 1)
     val dividerHeight = digitH + digitH + gap
     val stepGap = if (ui.isCompact) 6.dp else 8.dp
+    val divisorOffset = if (columns > divisorDigits.length) gap else 0.dp
 
     fun isHL(zone: HLZone, step: Int, col: Int): Boolean =
         currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
@@ -486,6 +487,7 @@ fun DivisionStepGame(
                                             }
                                         Box(
                                             modifier = Modifier
+                                                .padding(start = divisorOffset)
                                                 .width(divisorWidth)
                                                 .height(if (ui.isCompact) 2.dp else 3.dp)
                                                 .background(MaterialTheme.colorScheme.primary)
