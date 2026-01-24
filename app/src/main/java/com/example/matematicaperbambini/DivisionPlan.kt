@@ -158,15 +158,13 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
             hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${step.partial}.",
             microLabel = "${step.partial}÷$divisor",
             highlights = dividendHighlights(partialRange) +
-                divisorHighlights +
-                HLCell(HLZone.QUOTIENT, si, quotientCol)
+                divisorHighlights
         )
 
         val productHint = "Moltiplica: $divisor × ${step.qDigit} = ${step.product}. Scrivi il prodotto sotto le cifre selezionate."
         val productHighlights = dividendHighlights(partialRange) +
             divisorHighlights +
-            HLCell(HLZone.QUOTIENT, si, quotientCol) +
-            productHighlightCells(productRange)
+            HLCell(HLZone.QUOTIENT, si, quotientCol)
         productStr.forEachIndexed { idx, ch ->
             add(
                 type = DivisionTargetType.PRODUCT,
@@ -181,8 +179,8 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
         }
 
         val remainderHint = "Sottrai: ${step.partial} − ${step.product} = ${step.remainder}. Scrivi il resto."
-        val remainderHighlights = productHighlightCells(productRange) +
-            remainderHighlightCells(remainderRange)
+        val remainderHighlights = dividendHighlights(partialRange) +
+            productHighlightCells(productRange)
         remainderStr.forEachIndexed { idx, ch ->
             add(
                 type = DivisionTargetType.REMAINDER,
