@@ -17,8 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -47,11 +47,21 @@ fun DivisionDigitRow(
             Box(
                 modifier = Modifier.width(cellW).height(cellH),
                 contentAlignment = Alignment.Center
-            ) {
-                cell(col)
-            }
+            ) { cell(col) }
         }
     }
+}
+
+@Composable
+private fun BoxScope.DivisionDebugBadge(text: String) {
+    androidx.compose.material3.Text(
+        text = text,
+        fontSize = 9.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(bottom = 2.dp, end = 4.dp)
+    )
 }
 
 @Composable
@@ -72,6 +82,7 @@ fun DivisionFixedDigit(
         else -> MaterialTheme.colorScheme.outlineVariant
     }
     val borderW = if (highlight || debugMismatch) 3.dp else 1.dp
+
     Box(
         modifier = Modifier
             .width(w)
@@ -90,7 +101,7 @@ fun DivisionFixedDigit(
             color = MaterialTheme.colorScheme.onSurface
         )
         if (debugLabel != null) {
-            DivisionDebugBadge(text = debugLabel)
+            DivisionDebugBadge(debugLabel)
         }
     }
 }
@@ -110,6 +121,7 @@ fun DivisionActionDigit(
     val shape = RoundedCornerShape(10.dp)
     val bg = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
     val highlightColor = Color(0xFF22C55E)
+
     val border = when {
         debugMismatch -> MaterialTheme.colorScheme.error
         highlight -> highlightColor
@@ -117,6 +129,7 @@ fun DivisionActionDigit(
         else -> MaterialTheme.colorScheme.outlineVariant
     }
     val borderW = if (highlight || active || debugMismatch) 3.dp else 2.dp
+
     Box(
         modifier = Modifier
             .width(w)
@@ -134,6 +147,7 @@ fun DivisionActionDigit(
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface
         )
+
         if (active && microLabel != null) {
             androidx.compose.material3.Text(
                 text = microLabel,
@@ -144,8 +158,9 @@ fun DivisionActionDigit(
                     .padding(bottom = 4.dp)
             )
         }
+
         if (debugLabel != null) {
-            DivisionDebugBadge(text = debugLabel)
+            DivisionDebugBadge(debugLabel)
         }
     }
 }
@@ -183,6 +198,7 @@ fun DivisionDigitBox(
         enabled -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outline
     }
+
     val borderW = when {
         debugMismatch -> 3.dp
         isError -> 2.dp
@@ -191,9 +207,7 @@ fun DivisionDigitBox(
     }
 
     LaunchedEffect(active, enabled) {
-        if (active && enabled) {
-            focusRequester.requestFocus()
-        }
+        if (active && enabled) focusRequester.requestFocus()
     }
 
     Box(
@@ -231,6 +245,7 @@ fun DivisionDigitBox(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { inner() }
             }
         )
+
         if (active && microLabel != null) {
             androidx.compose.material3.Text(
                 text = microLabel,
@@ -241,42 +256,9 @@ fun DivisionDigitBox(
                     .padding(bottom = 4.dp)
             )
         }
+
         if (debugLabel != null) {
-            DivisionDebugBadge(text = debugLabel)
+            DivisionDebugBadge(debugLabel)
         }
-    }
-}
-
-@Composable
-fun DivisionDebugBadge(text: String) {
-    androidx.compose.material3.Text(
-        text = text,
-        fontSize = 9.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(bottom = 2.dp, end = 4.dp)
-    )
-}
-
-@Composable
-fun DivisionDebugCell(
-    w: Dp,
-    h: Dp,
-    debugLabel: String,
-    debugMismatch: Boolean = false
-) {
-    val shape = RoundedCornerShape(10.dp)
-    val borderColor = if (debugMismatch) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
-    val borderW = if (debugMismatch) 2.dp else 1.dp
-    Box(
-        modifier = Modifier
-            .width(w)
-            .height(h)
-            .clip(shape)
-            .border(borderW, borderColor, shape),
-        contentAlignment = Alignment.Center
-    ) {
-        DivisionDebugBadge(text = debugLabel)
     }
 }
