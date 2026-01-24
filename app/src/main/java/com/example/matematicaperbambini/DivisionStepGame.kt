@@ -2,14 +2,14 @@ package com.example.matematicaperbambini
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.pow
@@ -549,35 +549,78 @@ fun DivisionStepGame(
                                         val bringDownTarget = activePlan.targets.firstOrNull {
                                             it.type == DivisionTargetType.BRING_DOWN && it.stepIndex == si
                                         }
-                                        DivisionDigitRow(
-                                            columns = columns,
-                                            cellW = digitSmallW,
-                                            cellH = digitSmallH,
-                                            gap = gap
-                                        ) { col ->
-                                            val target = productTargets.firstOrNull { it.gridCol == col }
-                                            if (target != null) {
-                                                val active = target == currentTarget
-                                                DivisionDigitBox(
-                                                    value = productInputs[si][target.idx].value,
-                                                    enabled = active,
-                                                    active = active,
-                                                    isError = productErrors[si][target.idx].value,
-                                                    highlight = isHL(HLZone.PRODUCT, si, col),
-                                                    microLabel = target.microLabel,
-                                                    onValueChange = { onDigitInput(target, it) },
-                                                    w = digitSmallW,
-                                                    h = digitSmallH,
-                                                    fontSize = fontSmall,
-                                                    debugLabel = if (debugHL) debugLabel(HLZone.PRODUCT, si, col) else null,
-                                                    debugMismatch = false
+                                        val productStartCol = productTargets.minOfOrNull { it.gridCol }
+                                        val productEndCol = productTargets.maxOfOrNull { it.gridCol }
+                                        val productSpanCols = if (productStartCol != null && productEndCol != null) {
+                                            productEndCol - productStartCol + 1
+                                        } else {
+                                            0
+                                        }
+                                        val productRowWidth = digitSmallW * columns + gap * (columns - 1)
+                                        val productCellStride = digitSmallW + gap
+                                        val productLineHeight = if (ui.isCompact) 2.dp else 3.dp
+                                        val productLineGap = if (ui.isCompact) 4.dp else 6.dp
+
+                                        Box(
+                                            modifier = Modifier
+                                                .width(productRowWidth)
+                                                .height(digitSmallH),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            DivisionDigitRow(
+                                                columns = columns,
+                                                cellW = digitSmallW,
+                                                cellH = digitSmallH,
+                                                gap = gap
+                                            ) { col ->
+                                                val target = productTargets.firstOrNull { it.gridCol == col }
+                                                if (target != null) {
+                                                    val active = target == currentTarget
+                                                    DivisionDigitBox(
+                                                        value = productInputs[si][target.idx].value,
+                                                        enabled = active,
+                                                        active = active,
+                                                        isError = productErrors[si][target.idx].value,
+                                                        highlight = isHL(HLZone.PRODUCT, si, col),
+                                                        microLabel = target.microLabel,
+                                                        onValueChange = { onDigitInput(target, it) },
+                                                        w = digitSmallW,
+                                                        h = digitSmallH,
+                                                        fontSize = fontSmall,
+                                                        debugLabel = if (debugHL) debugLabel(HLZone.PRODUCT, si, col) else null,
+                                                        debugMismatch = false
+                                                    )
+                                                } else if (debugHL) {
+                                                    DivisionDebugCell(
+                                                        w = digitSmallW,
+                                                        h = digitSmallH,
+                                                        debugLabel = debugLabel(HLZone.PRODUCT, si, col),
+                                                        debugMismatch = false
+                                                    )
+                                                }
+                                            }
+                                            if (productStartCol != null && productSpanCols > 0) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .offset(x = productCellStride * productStartCol)
+                                                        .offset(y = digitSmallH + productLineGap)
+                                                        .align(Alignment.TopStart)
+                                                        .width(digitSmallW * productSpanCols + gap * (productSpanCols - 1))
+                                                        .height(productLineHeight)
+                                                        .background(MaterialTheme.colorScheme.primary)
                                                 )
-                                            } else if (debugHL) {
-                                                DivisionDebugCell(
-                                                    w = digitSmallW,
-                                                    h = digitSmallH,
-                                                    debugLabel = debugLabel(HLZone.PRODUCT, si, col),
-                                                    debugMismatch = false
+                                                Text(
+                                                    text = "-",
+                                                    fontFamily = FontFamily.Monospace,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = fontSmall,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    modifier = Modifier
+                                                        .offset(
+                                                            x = productCellStride * productStartCol - (digitSmallW * 0.4f),
+                                                            y = digitSmallH * 0.1f
+                                                        )
+                                                        .align(Alignment.TopStart)
                                                 )
                                             }
                                         }
@@ -610,6 +653,7 @@ fun DivisionStepGame(
                                                     }
                                                     bringDownTarget != null &&
                                                         step.bringDownDigit != null &&
+                                                        bringDownDone[si].value &&
                                                         col == bringDownTarget.gridCol -> {
                                                         val active = bringDownTarget == currentTarget
                                                         DivisionActionDigit(
@@ -677,47 +721,6 @@ fun DivisionStepGame(
                                         Text("Next")
                                     }
                                     Text("Target ${targetIndex}/${p.targets.size}")
-                                }
-                            }
-
-                            val highlights = currentTarget?.highlights.orEmpty()
-                            val debugText = buildString {
-                                append("type=")
-                                append(currentTarget?.type?.name ?: "-")
-                                append(" step=")
-                                append(currentTarget?.stepIndex ?: "-")
-                                append(" col=")
-                                append(currentTarget?.gridCol ?: "-")
-                                append(" HL: D=")
-                                append(highlights.count { it.zone == HLZone.DIVIDEND })
-                                append(" P=")
-                                append(highlights.count { it.zone == HLZone.PRODUCT })
-                                append(" R=")
-                                append(highlights.count { it.zone == HLZone.REMAINDER })
-                                append(" B=")
-                                append(highlights.count { it.zone == HLZone.BRING })
-                                append(" Q=")
-                                append(highlights.count { it.zone == HLZone.QUOTIENT })
-                                append(" S=")
-                                append(highlights.count { it.zone == HLZone.DIVISOR })
-                            }
-                            Text(debugText)
-                            if (debugHL) {
-                                val highlightsText = highlights.joinToString(", ") {
-                                    debugLabel(it.zone, it.stepIndex, it.col)
-                                }
-                                Column {
-                                    Text("highlights:")
-                                    Box(
-                                        modifier = Modifier
-                                            .heightIn(max = 120.dp)
-                                            .fillMaxWidth()
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                                            .padding(6.dp)
-                                            .verticalScroll(rememberScrollState())
-                                    ) {
-                                        Text(highlightsText)
-                                    }
                                 }
                             }
 
