@@ -278,7 +278,9 @@ fun DivisionStepGame(
         digitW
     }
     val divisorDigits = p?.divisor?.toString().orEmpty()
-    val divisorWidth = digitW * divisorDigits.length + gap * (divisorDigits.length - 1)
+    val divisorColumns = maxOf(columns, divisorDigits.length, 1)
+    val divisorCellW = if (columns == 4) quotientDigitW else digitW
+    val divisorWidth = divisorCellW * divisorColumns + gap * (divisorColumns - 1)
     val dividerHeight = digitH + digitH + gap
     val stepGap = if (ui.isCompact) 6.dp else 8.dp
 
@@ -451,16 +453,33 @@ fun DivisionStepGame(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)
                                     ) {
-                                            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                                                divisorDigits.forEachIndexed { idx, ch ->
-                                                    val step = currentTarget?.stepIndex ?: 0
+                                            DivisionDigitRow(
+                                                columns = divisorColumns,
+                                                cellW = divisorCellW,
+                                                cellH = digitH,
+                                                gap = gap
+                                            ) { col ->
+                                                val digitIndex = col - (divisorColumns - divisorDigits.length)
+                                                val step = currentTarget?.stepIndex ?: 0
+                                                if (digitIndex in divisorDigits.indices) {
+                                                    val ch = divisorDigits[digitIndex]
                                                     DivisionFixedDigit(
                                                         text = ch.toString(),
-                                                        w = digitW,
+                                                        w = divisorCellW,
                                                         h = digitH,
                                                         fontSize = fontLarge,
-                                                        highlight = isHL(HLZone.DIVISOR, step, idx),
-                                                        debugLabel = if (debugHL) debugLabel(HLZone.DIVISOR, step, idx) else null,
+                                                        highlight = isHL(HLZone.DIVISOR, step, digitIndex),
+                                                        debugLabel = if (debugHL) debugLabel(HLZone.DIVISOR, step, digitIndex) else null,
+                                                        debugMismatch = false
+                                                    )
+                                                } else {
+                                                    DivisionFixedDigit(
+                                                        text = "",
+                                                        w = divisorCellW,
+                                                        h = digitH,
+                                                        fontSize = fontLarge,
+                                                        highlight = false,
+                                                        debugLabel = null,
                                                         debugMismatch = false
                                                     )
                                                 }
