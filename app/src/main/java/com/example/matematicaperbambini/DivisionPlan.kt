@@ -173,8 +173,7 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
         )
 
         val productHint = "Moltiplica: $divisor × ${step.qDigit} = ${step.product}. Scrivi il prodotto sotto le cifre selezionate."
-        val productHighlights = partialHighlights +
-            divisorHighlights +
+        val productHighlights = divisorHighlights +
             HLCell(HLZone.QUOTIENT, si, quotientCol)
         productStr.forEachIndexed { idx, ch ->
             add(
