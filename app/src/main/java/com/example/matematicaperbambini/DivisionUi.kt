@@ -17,8 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -60,18 +60,13 @@ fun DivisionFixedDigit(
     w: Dp,
     h: Dp,
     fontSize: TextUnit,
-    highlight: Boolean = false,
-    debugLabel: String? = null,
-    debugMismatch: Boolean = false
+    highlight: Boolean = false
 ) {
     val shape = RoundedCornerShape(10.dp)
     val highlightColor = Color(0xFF22C55E)
-    val borderColor = when {
-        debugMismatch -> MaterialTheme.colorScheme.error
-        highlight -> highlightColor
-        else -> MaterialTheme.colorScheme.outlineVariant
-    }
-    val borderW = if (highlight || debugMismatch) 3.dp else 1.dp
+    val borderColor = if (highlight) highlightColor else MaterialTheme.colorScheme.outlineVariant
+    val borderW = if (highlight) 3.dp else 1.dp
+
     Box(
         modifier = Modifier
             .width(w)
@@ -89,14 +84,6 @@ fun DivisionFixedDigit(
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface
         )
-        if (debugLabel != null) {
-            DivisionDebugBadge(
-                text = debugLabel,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 2.dp, end = 4.dp)
-            )
-        }
     }
 }
 
@@ -108,20 +95,18 @@ fun DivisionActionDigit(
     h: Dp,
     fontSize: TextUnit,
     highlight: Boolean = false,
-    microLabel: String? = null,
-    debugLabel: String? = null,
-    debugMismatch: Boolean = false
+    microLabel: String? = null
 ) {
     val shape = RoundedCornerShape(10.dp)
     val bg = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
     val highlightColor = Color(0xFF22C55E)
     val border = when {
-        debugMismatch -> MaterialTheme.colorScheme.error
         highlight -> highlightColor
         active -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.outlineVariant
     }
-    val borderW = if (highlight || active || debugMismatch) 3.dp else 2.dp
+    val borderW = if (highlight || active) 3.dp else 2.dp
+
     Box(
         modifier = Modifier
             .width(w)
@@ -139,6 +124,7 @@ fun DivisionActionDigit(
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface
         )
+
         if (active && microLabel != null) {
             androidx.compose.material3.Text(
                 text = microLabel,
@@ -147,14 +133,6 @@ fun DivisionActionDigit(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 4.dp)
-            )
-        }
-        if (debugLabel != null) {
-            DivisionDebugBadge(
-                text = debugLabel,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 2.dp, end = 4.dp)
             )
         }
     }
@@ -171,9 +149,7 @@ fun DivisionDigitBox(
     h: Dp,
     fontSize: TextUnit,
     microLabel: String? = null,
-    onValueChange: (String) -> Unit,
-    debugLabel: String? = null,
-    debugMismatch: Boolean = false
+    onValueChange: (String) -> Unit
 ) {
     val shape = RoundedCornerShape(10.dp)
     val focusRequester = remember { FocusRequester() }
@@ -186,7 +162,6 @@ fun DivisionDigitBox(
     }
 
     val border = when {
-        debugMismatch -> MaterialTheme.colorScheme.error
         isError -> MaterialTheme.colorScheme.error
         highlight -> highlightColor
         active -> MaterialTheme.colorScheme.tertiary
@@ -194,16 +169,13 @@ fun DivisionDigitBox(
         else -> MaterialTheme.colorScheme.outline
     }
     val borderW = when {
-        debugMismatch -> 3.dp
         isError -> 2.dp
         highlight || active -> 3.dp
         else -> 2.dp
     }
 
     LaunchedEffect(active, enabled) {
-        if (active && enabled) {
-            focusRequester.requestFocus()
-        }
+        if (active && enabled) focusRequester.requestFocus()
     }
 
     Box(
@@ -241,6 +213,7 @@ fun DivisionDigitBox(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { inner() }
             }
         )
+
         if (active && microLabel != null) {
             androidx.compose.material3.Text(
                 text = microLabel,
@@ -251,50 +224,5 @@ fun DivisionDigitBox(
                     .padding(bottom = 4.dp)
             )
         }
-        if (debugLabel != null) {
-            DivisionDebugBadge(
-                text = debugLabel,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 2.dp, end = 4.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun DivisionDebugBadge(text: String, modifier: Modifier = Modifier) {
-    androidx.compose.material3.Text(
-        text = text,
-        fontSize = 9.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier
-    )
-}
-
-@Composable
-fun DivisionDebugCell(
-    w: Dp,
-    h: Dp,
-    debugLabel: String,
-    debugMismatch: Boolean = false
-) {
-    val shape = RoundedCornerShape(10.dp)
-    val borderColor = if (debugMismatch) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
-    val borderW = if (debugMismatch) 2.dp else 1.dp
-    Box(
-        modifier = Modifier
-            .width(w)
-            .height(h)
-            .clip(shape)
-            .border(borderW, borderColor, shape),
-        contentAlignment = Alignment.Center
-    ) {
-        DivisionDebugBadge(
-            text = debugLabel,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 2.dp, end = 4.dp)
-        )
     }
 }
