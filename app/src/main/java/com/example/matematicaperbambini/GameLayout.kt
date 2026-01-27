@@ -133,9 +133,13 @@ private fun CompactHud(
     hintText: String,
     ui: UiSizing
 ) {
-    val rewardProgress = correctCount % 5
-    val label = if (rewardProgress == 0) "Bonus: 5/5 🎈" else "Bonus: $rewardProgress/5 🎈"
-    val progress = (rewardProgress / 5f).coerceIn(0f, 1f)
+    val rewardProgress = correctCount % BONUS_TARGET
+    val label = if (rewardProgress == 0) {
+        "Bonus: $BONUS_TARGET/$BONUS_TARGET 🎈"
+    } else {
+        "Bonus: $rewardProgress/$BONUS_TARGET 🎈"
+    }
+    val progress = (rewardProgress / BONUS_TARGET.toFloat()).coerceIn(0f, 1f)
     val isCompact = ui.isCompact
     val fontSize = if (isCompact) 12.sp else 14.sp
     val progressHeight = if (isCompact) 6.dp else 8.dp

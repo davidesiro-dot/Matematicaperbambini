@@ -356,9 +356,9 @@ fun InfoPanel(
 
 @Composable
 fun BonusBar(correctCount: Int, ui: UiSizing? = null) {
-    val rewardProgress = correctCount % 5
-    val label = if (rewardProgress == 0) "Bonus: 5/5 🎈" else "Bonus: $rewardProgress/5"
-    val p = (rewardProgress / 5f).coerceIn(0f, 1f)
+    val rewardProgress = correctCount % BONUS_TARGET
+    val label = if (rewardProgress == 0) "Bonus: $BONUS_TARGET/$BONUS_TARGET 🎈" else "Bonus: $rewardProgress/$BONUS_TARGET"
+    val p = (rewardProgress / BONUS_TARGET.toFloat()).coerceIn(0f, 1f)
     val fontSize = (ui?.font ?: 18).sp
     val barHeight = if (ui?.isCompact == true) 8.dp else 10.dp
 
@@ -429,7 +429,7 @@ fun GameHeader(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    "Fai 5 giuste per il BONUS 🎈",
+                    "Fai $BONUS_TARGET giuste per il BONUS 🎈",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     fontSize = subtitleSize,
                     maxLines = if (isCompact) 1 else 2,
@@ -1373,7 +1373,7 @@ fun LeaderboardScreen(
             LeaderboardTab.BALLOONS -> SeaGlassPanel(title = "Palloncini (Tempo)") {
                 if (balloonEntries.isEmpty()) {
                     Text(
-                        "Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!",
+                        "Nessun record ancora.\nCompleta $BONUS_TARGET risposte giuste e gioca coi palloncini!",
                         color = Color(0xFF6B7280)
                     )
                 } else {
@@ -1399,7 +1399,7 @@ fun LeaderboardScreen(
             LeaderboardTab.STARS -> SeaGlassPanel(title = "Stelline (Punti)") {
                 if (starEntries.isEmpty()) {
                     Text(
-                        "Nessun record ancora.\nCompleta 5 risposte giuste e gioca con le stelline!",
+                        "Nessun record ancora.\nCompleta $BONUS_TARGET risposte giuste e gioca con le stelline!",
                         color = Color(0xFF6B7280)
                     )
                 } else {
