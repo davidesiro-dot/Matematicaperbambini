@@ -170,6 +170,14 @@ enum class GameMode(val title: String) {
     MULT_HARD("Moltiplicazioni difficili")
 }
 
+enum class TabellineMode(val title: String) {
+    CLASSIC("Tabelline classiche"),
+    MIXED("Tabelline miste"),
+    GAPS("Buchi nella tabellina"),
+    REVERSE("Tabellina al contrario"),
+    MULTIPLE_CHOICE("Scelta multipla")
+}
+
 enum class LeaderboardTab {
     BALLOONS,
     STARS
@@ -182,9 +190,15 @@ private enum class Screen {
     HOME,
     DIGITS_PICKER,     // Add/Sub
     OPERATION_START_MENU,
+    TABELLINE_MENU,
     GAME,              // Add/Sub/Money (e altro se vuoi)
     MULT_PICKER,       // scegli tabellina 1..10
     MULT_GAME,         // tabellina 10 caselle
+    MULT_GAPS_PICKER,
+    MULT_MIXED_GAME,
+    MULT_GAPS_GAME,
+    MULT_REVERSE_GAME,
+    MULT_CHOICE_GAME,
     MULT_HARD_GAME,    // moltiplicazioni difficili (2 cifre in colonna)
     DIV_STEP_GAME,     // ✅ Divisioni passo-passo con resto
     LEADERBOARD
@@ -306,14 +320,16 @@ fun SmallCircleButton(
                 fontSize = fontSize,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary
+                color = MaterialTheme.colorScheme.onPrimary,
+                lineHeight = fontSize
             )
         } else {
             Text(
                 text = text,
                 fontSize = fontSize,
                 textAlign = TextAlign.Center,
-                color = Color(0xFF111827)
+                color = Color(0xFF111827),
+                lineHeight = fontSize
             )
         }
     }
@@ -464,6 +480,7 @@ private fun AppShell() {
 
     // tabelline
     var selectedTable by remember { mutableStateOf(2) }
+    var selectedGapsTable by remember { mutableStateOf(2) }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
         mode = m
@@ -477,6 +494,11 @@ private fun AppShell() {
         pendingStartMenuMode = m
         navAnim = NavAnim.SLIDE
         screen = Screen.OPERATION_START_MENU
+    }
+
+    fun openTabellineMenu() {
+        navAnim = NavAnim.SLIDE
+        screen = Screen.TABELLINE_MENU
     }
 
     fun openLb(tab: LeaderboardTab = leaderboardTab) {
@@ -509,7 +531,7 @@ private fun AppShell() {
                 },
                 onPlayDirect = { m ->
                     when (m) {
-                        GameMode.MULT -> openStartMenu(m)
+                        GameMode.MULT -> openTabellineMenu()
                         GameMode.MULT_HARD -> openStartMenu(m)
                         GameMode.DIV -> openStartMenu(m) // ✅
                         GameMode.MONEY -> openGame(m, digits, startMode)
@@ -554,14 +576,51 @@ private fun AppShell() {
                 )
             }
 
+            Screen.TABELLINE_MENU -> TabellineMenuScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onSelectClassicRandom = {
+                    startMode = StartMode.RANDOM
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.MULT_PICKER
+                },
+                onSelectClassicManual = {
+                    startMode = StartMode.MANUAL
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.MULT_PICKER
+                },
+                onSelectMode = { mode ->
+                    navAnim = NavAnim.SLIDE
+                    screen = when (mode) {
+                        TabellineMode.MIXED -> Screen.MULT_MIXED_GAME
+                        TabellineMode.GAPS -> Screen.MULT_GAPS_PICKER
+                        TabellineMode.REVERSE -> Screen.MULT_REVERSE_GAME
+                        TabellineMode.MULTIPLE_CHOICE -> Screen.MULT_CHOICE_GAME
+                        TabellineMode.CLASSIC -> Screen.MULT_PICKER
+                    }
+                }
+            )
+
             Screen.MULT_PICKER -> MultTablePickerScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.OPERATION_START_MENU },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
                 onPickTable = { table ->
                     selectedTable = table
                     navAnim = NavAnim.SLIDE
                     screen = Screen.MULT_GAME
+                }
+            )
+
+            Screen.MULT_GAPS_PICKER -> MultTablePickerScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
+                onPickTable = { table ->
+                    selectedGapsTable = table
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.MULT_GAPS_GAME
                 }
             )
 
@@ -572,6 +631,43 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+            )
+
+            Screen.MULT_MIXED_GAME -> TabellineMixedGame(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+            )
+
+            Screen.MULT_GAPS_GAME -> TabellineGapsGame(
+                table = selectedGapsTable,
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.MULT_GAPS_PICKER },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+            )
+
+            Screen.MULT_REVERSE_GAME -> TabellinaReverseGame(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+            )
+
+            Screen.MULT_CHOICE_GAME -> TabellineMultipleChoiceGame(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
