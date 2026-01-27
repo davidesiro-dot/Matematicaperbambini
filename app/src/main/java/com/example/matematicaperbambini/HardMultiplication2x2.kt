@@ -300,6 +300,7 @@ fun HardMultiplication2x2Game(
     LaunchedEffect(done) {
         if (done && p != null) {
             showSuccessDialog = true
+            correctCount += 1
         }
     }
 
@@ -371,7 +372,6 @@ fun HardMultiplication2x2Game(
             if (soundEnabled) fx.correct()
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
-            correctCount += 1
         } else {
             if (soundEnabled) fx.wrong()
         }
@@ -401,6 +401,7 @@ fun HardMultiplication2x2Game(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
+            bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
             ui = ui,
             content = {
@@ -644,7 +645,7 @@ fun HardMultiplication2x2Game(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            rewardEvery = 3,
+            rewardEvery = BONUS_TARGET_LONG_MULT_DIV,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,

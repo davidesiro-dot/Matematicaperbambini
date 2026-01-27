@@ -355,10 +355,11 @@ fun InfoPanel(
 }
 
 @Composable
-fun BonusBar(correctCount: Int, ui: UiSizing? = null) {
-    val rewardProgress = correctCount % BONUS_TARGET
-    val label = if (rewardProgress == 0) "Bonus: $BONUS_TARGET/$BONUS_TARGET 🎈" else "Bonus: $rewardProgress/$BONUS_TARGET"
-    val p = (rewardProgress / BONUS_TARGET.toFloat()).coerceIn(0f, 1f)
+fun BonusBar(correctCount: Int, bonusTarget: Int = BONUS_TARGET, ui: UiSizing? = null) {
+    val safeTarget = bonusTarget.coerceAtLeast(1)
+    val rewardProgress = correctCount % safeTarget
+    val label = if (rewardProgress == 0) "Bonus: $safeTarget/$safeTarget 🎈" else "Bonus: $rewardProgress/$safeTarget"
+    val p = (rewardProgress / safeTarget.toFloat()).coerceIn(0f, 1f)
     val fontSize = (ui?.font ?: 18).sp
     val barHeight = if (ui?.isCompact == true) 8.dp else 10.dp
 
@@ -394,6 +395,7 @@ fun GameHeader(
     onBack: () -> Unit,
     onLeaderboard: () -> Unit,
     ui: UiSizing? = null,
+    bonusTarget: Int = BONUS_TARGET,
     showBack: Boolean = true
 ) {
     val isCompact = ui?.isCompact == true
@@ -429,7 +431,7 @@ fun GameHeader(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    "Fai $BONUS_TARGET giuste per il BONUS 🎈",
+                    "Fai $bonusTarget giuste per il BONUS 🎈",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     fontSize = subtitleSize,
                     maxLines = if (isCompact) 1 else 2,
@@ -682,7 +684,8 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onOpenLeaderboard = { openLb() }
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
 
             Screen.GAME -> GameRouter(
@@ -1304,7 +1307,8 @@ fun GameRouter(
             onToggleSound = onToggleSound,
             fx = fx,
             onBack = onBack,
-            onOpenLeaderboard = onOpenLeaderboard
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
         )
 
         GameMode.MONEY -> MoneyCountGame(

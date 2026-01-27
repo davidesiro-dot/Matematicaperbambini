@@ -380,7 +380,6 @@ fun LongSubtractionGame(
                 }
                 playCorrect()
                 stepIndex++
-                correctCount += 1
             }
 
             SubStepType.RESULT_DIGIT -> {
@@ -397,7 +396,6 @@ fun LongSubtractionGame(
                 }
                 playCorrect()
                 stepIndex++
-                correctCount += 1
             }
         }
 
@@ -418,6 +416,7 @@ fun LongSubtractionGame(
     LaunchedEffect(done) {
         if (done && expected != null) {
             showSuccessDialog = true
+            correctCount += 1
         }
     }
 
@@ -436,6 +435,7 @@ fun LongSubtractionGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
+            bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
             hintText = hint,
             ui = ui,
             message = message,
@@ -658,6 +658,7 @@ fun LongSubtractionGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
+            rewardEvery = BONUS_TARGET_LONG_ADD_SUB,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,

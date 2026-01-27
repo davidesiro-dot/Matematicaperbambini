@@ -37,6 +37,7 @@ fun GameScreenFrame(
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     correctCount: Int,
+    bonusTarget: Int = BONUS_TARGET,
     hintText: String,
     ui: UiSizing,
     modifier: Modifier = Modifier,
@@ -68,6 +69,7 @@ fun GameScreenFrame(
                         onBack = onBack,
                         onLeaderboard = onOpenLeaderboard,
                         ui = ui,
+                        bonusTarget = bonusTarget,
                         showBack = false
                     )
                 }
@@ -77,6 +79,7 @@ fun GameScreenFrame(
                 SeaGlassPanel {
                     CompactHud(
                         correctCount = correctCount,
+                        bonusTarget = bonusTarget,
                         hintText = hintText,
                         ui = ui
                     )
@@ -130,16 +133,18 @@ fun GameScreenFrame(
 @Composable
 private fun CompactHud(
     correctCount: Int,
+    bonusTarget: Int,
     hintText: String,
     ui: UiSizing
 ) {
-    val rewardProgress = correctCount % BONUS_TARGET
+    val safeTarget = bonusTarget.coerceAtLeast(1)
+    val rewardProgress = correctCount % safeTarget
     val label = if (rewardProgress == 0) {
-        "Bonus: $BONUS_TARGET/$BONUS_TARGET 🎈"
+        "Bonus: $safeTarget/$safeTarget 🎈"
     } else {
-        "Bonus: $rewardProgress/$BONUS_TARGET 🎈"
+        "Bonus: $rewardProgress/$safeTarget 🎈"
     }
-    val progress = (rewardProgress / BONUS_TARGET.toFloat()).coerceIn(0f, 1f)
+    val progress = (rewardProgress / safeTarget.toFloat()).coerceIn(0f, 1f)
     val isCompact = ui.isCompact
     val fontSize = if (isCompact) 12.sp else 14.sp
     val progressHeight = if (isCompact) 6.dp else 8.dp
