@@ -270,6 +270,7 @@ fun FallingStarsGame(
             val hitSizePx = star.sizePx + hitExtraPx
             val offsetX = (star.x - (hitExtraPx / 2f)).roundToInt()
             val offsetY = (star.y - (hitExtraPx / 2f)).roundToInt()
+
             Box(
                 modifier = Modifier
                     .offset { IntOffset(offsetX, offsetY) }
@@ -292,6 +293,7 @@ fun FallingStarsGame(
                 )
             }
         }
+
 
         if (showSummary) {
             Box(
