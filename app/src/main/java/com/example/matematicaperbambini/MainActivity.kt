@@ -368,7 +368,8 @@ fun GameHeader(
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
     onLeaderboard: () -> Unit,
-    ui: UiSizing? = null
+    ui: UiSizing? = null,
+    showBack: Boolean = true
 ) {
     val isCompact = ui?.isCompact == true
     val titleSize = (ui?.title ?: 18).sp
@@ -384,13 +385,17 @@ fun GameHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing)) {
-            SmallCircleButton(
-                "⬅",
-                onClick = onBack,
-                size = buttonSize,
-                iconSize = iconSize,
-                fontSize = buttonFont
-            )
+            if (showBack) {
+                SmallCircleButton(
+                    "⬅",
+                    onClick = onBack,
+                    size = buttonSize,
+                    iconSize = iconSize,
+                    fontSize = buttonFont
+                )
+            } else {
+                Spacer(Modifier.size(buttonSize))
+            }
             Column {
                 Text(
                     title,

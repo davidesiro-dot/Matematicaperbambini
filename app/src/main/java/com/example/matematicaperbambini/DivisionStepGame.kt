@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.pow
@@ -777,7 +778,13 @@ fun DivisionStepGame(
                     modifier = Modifier.fillMaxWidth(),
                     center = {
                         OutlinedButton(onClick = { fillSolution() }, enabled = p != null) {
-                            Text("Soluzione")
+                            Text(
+                                "Soluzione",
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Clip,
+                                fontSize = 15.sp
+                            )
                         }
                     }
                 )
