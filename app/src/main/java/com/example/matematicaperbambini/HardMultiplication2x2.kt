@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -609,7 +610,15 @@ fun HardMultiplication2x2Game(
                                 setCell(HMRowKey.P2, 3, '-', false)
                                 step = activePlan.targets.size
                             }
-                        ) { Text("Soluzione") }
+                        ) {
+                            Text(
+                                "Soluzione",
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Clip,
+                                fontSize = 15.sp
+                            )
+                        }
                     }
                 )
             }
