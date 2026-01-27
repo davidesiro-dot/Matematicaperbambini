@@ -280,22 +280,33 @@ fun SmallCircleButton(
     onClick: () -> Unit
 ) {
     val isBack = text == "⬅"
+    val backgroundColor = if (isBack) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.White.copy(alpha = 0.31f)
+    }
+    val borderColor = if (isBack) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.White.copy(alpha = 0.55f)
+    }
 
     Box(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.31f))
-            .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+            .background(backgroundColor)
+            .border(2.dp, borderColor, CircleShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         if (isBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = null,
-                tint = Color(0xFF111827),
-                modifier = Modifier.size(iconSize)
+            Text(
+                text = text,
+                fontSize = fontSize,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary
             )
         } else {
             Text(

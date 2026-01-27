@@ -440,6 +440,7 @@ fun LongSubtractionGame(
             ui = ui,
             message = message,
             content = {
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                 if (startMode == StartMode.MANUAL) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
@@ -615,6 +616,7 @@ fun LongSubtractionGame(
                         if (done) "Operazione completata." else "Passo ${stepIndex + 1}/${steps.size}",
                         style = MaterialTheme.typography.bodyLarge
                     )
+                }
                 }
             },
             bottomBar = {
