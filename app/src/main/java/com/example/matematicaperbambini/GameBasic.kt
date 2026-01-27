@@ -163,7 +163,7 @@ private fun BasicColumnGame(
                     onClick = {
                         val user = input.toIntOrNull()
                         if (user == correct) {
-                            val hitBonus = (correctCount + 1) % 5 == 0
+                            val hitBonus = (correctCount + 1) % BONUS_TARGET == 0
                             correctCount += 1
                             msg = if (hitBonus) "🎉 Bonus sbloccato!" else "✅ Corretto! Tappa per continuare"
                             if (soundEnabled) fx.correct()
