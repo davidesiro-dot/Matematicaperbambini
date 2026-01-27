@@ -217,6 +217,7 @@ fun LongAdditionGame(
     LaunchedEffect(done) {
         if (done && p != null) {
             showSuccessDialog = true
+            correctCount += 1
         }
     }
 
@@ -257,7 +258,6 @@ fun LongAdditionGame(
         if (ok) {
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
-            correctCount += 1
         }
     }
 
@@ -285,9 +285,11 @@ fun LongAdditionGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
+            bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
             hintText = hint,
             ui = ui,
             content = {
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                 if (startMode == StartMode.MANUAL) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
@@ -432,7 +434,8 @@ fun LongAdditionGame(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
-        },
+                }
+            },
             bottomBar = {
                 GameBottomActions(
                     leftText = "Ricomincia",
@@ -469,6 +472,7 @@ fun LongAdditionGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
+            rewardEvery = BONUS_TARGET_LONG_ADD_SUB,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,

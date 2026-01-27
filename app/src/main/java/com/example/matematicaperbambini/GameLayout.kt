@@ -37,6 +37,7 @@ fun GameScreenFrame(
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     correctCount: Int,
+    bonusTarget: Int = BONUS_TARGET,
     hintText: String,
     ui: UiSizing,
     modifier: Modifier = Modifier,
@@ -44,73 +45,106 @@ fun GameScreenFrame(
     bottomBar: (@Composable () -> Unit)? = null,
     message: String? = null
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing),
-        contentPadding = PaddingValues(ui.pad),
-        verticalArrangement = Arrangement.spacedBy(ui.spacing)
+    val isCompact = ui.isCompact
+    val buttonSize = if (isCompact) 34.dp else 40.dp
+    val iconSize = if (isCompact) 18.dp else 22.dp
+    val buttonFont = if (isCompact) 16.sp else 18.sp
+
+    Box(
+        modifier = modifier.fillMaxSize()
     ) {
-        item {
-            SeaGlassPanel {
-                GameHeader(
-                    title = title,
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onBack = onBack,
-                    onLeaderboard = onOpenLeaderboard,
-                    ui = ui
-                )
-            }
-        }
-
-        item {
-            SeaGlassPanel {
-                CompactHud(
-                    correctCount = correctCount,
-                    hintText = hintText,
-                    ui = ui
-                )
-            }
-        }
-
-        item { content() }
-
-        item {
-            AnimatedVisibility(visible = !message.isNullOrBlank()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing),
+            contentPadding = PaddingValues(ui.pad),
+            verticalArrangement = Arrangement.spacedBy(ui.spacing)
+        ) {
+            item {
                 SeaGlassPanel {
-                    Text(
-                        text = message.orEmpty(),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                    GameHeader(
+                        title = title,
+                        soundEnabled = soundEnabled,
+                        onToggleSound = onToggleSound,
+                        onBack = onBack,
+                        onLeaderboard = onOpenLeaderboard,
+                        ui = ui,
+                        bonusTarget = bonusTarget,
+                        showBack = false
                     )
                 }
             }
-        }
 
-        if (bottomBar != null) {
             item {
                 SeaGlassPanel {
-                    bottomBar()
+                    CompactHud(
+                        correctCount = correctCount,
+                        bonusTarget = bonusTarget,
+                        hintText = hintText,
+                        ui = ui
+                    )
                 }
             }
+
+            item { content() }
+
+            item {
+                AnimatedVisibility(visible = !message.isNullOrBlank()) {
+                    SeaGlassPanel {
+                        Text(
+                            text = message.orEmpty(),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            if (bottomBar != null) {
+                item {
+                    SeaGlassPanel {
+                        bottomBar()
+                    }
+                }
+            }
+
+            item { Spacer(Modifier.height(ui.spacing)) }
         }
 
-        item { Spacer(Modifier.height(ui.spacing)) }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(start = ui.pad, top = ui.pad)
+        ) {
+            SmallCircleButton(
+                "⬅",
+                onClick = onBack,
+                size = buttonSize,
+                iconSize = iconSize,
+                fontSize = buttonFont
+            )
+        }
     }
 }
 
 @Composable
 private fun CompactHud(
     correctCount: Int,
+    bonusTarget: Int,
     hintText: String,
     ui: UiSizing
 ) {
-    val rewardProgress = correctCount % 5
-    val label = if (rewardProgress == 0) "Bonus: 5/5 🎈" else "Bonus: $rewardProgress/5 🎈"
-    val progress = (rewardProgress / 5f).coerceIn(0f, 1f)
+    val safeTarget = bonusTarget.coerceAtLeast(1)
+    val rewardProgress = correctCount % safeTarget
+    val label = if (rewardProgress == 0) {
+        "Bonus: $safeTarget/$safeTarget 🎈"
+    } else {
+        "Bonus: $rewardProgress/$safeTarget 🎈"
+    }
+    val progress = (rewardProgress / safeTarget.toFloat()).coerceIn(0f, 1f)
     val isCompact = ui.isCompact
     val fontSize = if (isCompact) 12.sp else 14.sp
     val progressHeight = if (isCompact) 6.dp else 8.dp
@@ -187,20 +221,46 @@ fun GameBottomActions(
     modifier: Modifier = Modifier,
     center: (@Composable () -> Unit)? = null
 ) {
+    val longLabelLimit = 8
+    val baseFont = 16.sp
+    val compactFont = 15.sp
+    val leftFont = if (leftText.length > longLabelLimit) compactFont else baseFont
+    val rightFont = if (rightText.length > longLabelLimit) compactFont else baseFont
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Button(onClick = onLeft, modifier = Modifier.weight(1f)) {
-            Text(leftText)
+        Button(
+            onClick = onLeft,
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Text(
+                leftText,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                fontSize = leftFont
+            )
         }
 
         if (center != null) {
             Box(Modifier.weight(1f)) { center() }
         }
 
-        Button(onClick = onRight, modifier = Modifier.weight(1f)) {
-            Text(rightText)
+        Button(
+            onClick = onRight,
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Text(
+                rightText,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                fontSize = rightFont
+            )
         }
     }
 }

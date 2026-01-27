@@ -170,6 +170,14 @@ enum class GameMode(val title: String) {
     MULT_HARD("Moltiplicazioni difficili")
 }
 
+enum class TabellineMode(val title: String) {
+    CLASSIC("Tabelline classiche"),
+    MIXED("Tabelline miste"),
+    GAPS("Buchi nella tabellina"),
+    REVERSE("Tabellina al contrario"),
+    MULTIPLE_CHOICE("Scelta multipla")
+}
+
 enum class LeaderboardTab {
     BALLOONS,
     STARS
@@ -182,9 +190,15 @@ private enum class Screen {
     HOME,
     DIGITS_PICKER,     // Add/Sub
     OPERATION_START_MENU,
+    TABELLINE_MENU,
     GAME,              // Add/Sub/Money (e altro se vuoi)
     MULT_PICKER,       // scegli tabellina 1..10
     MULT_GAME,         // tabellina 10 caselle
+    MULT_GAPS_PICKER,
+    MULT_MIXED_GAME,
+    MULT_GAPS_GAME,
+    MULT_REVERSE_GAME,
+    MULT_CHOICE_GAME,
     MULT_HARD_GAME,    // moltiplicazioni difficili (2 cifre in colonna)
     DIV_STEP_GAME,     // ✅ Divisioni passo-passo con resto
     LEADERBOARD
@@ -280,13 +294,23 @@ fun SmallCircleButton(
     onClick: () -> Unit
 ) {
     val isBack = text == "⬅"
+    val backgroundColor = if (isBack) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.White.copy(alpha = 0.31f)
+    }
+    val borderColor = if (isBack) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.White.copy(alpha = 0.55f)
+    }
 
     Box(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.31f))
-            .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+            .background(backgroundColor)
+            .border(2.dp, borderColor, CircleShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -294,7 +318,7 @@ fun SmallCircleButton(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = null,
-                tint = Color(0xFF111827),
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(iconSize)
             )
         } else {
@@ -302,7 +326,8 @@ fun SmallCircleButton(
                 text = text,
                 fontSize = fontSize,
                 textAlign = TextAlign.Center,
-                color = Color(0xFF111827)
+                color = Color(0xFF111827),
+                lineHeight = fontSize
             )
         }
     }
@@ -330,10 +355,11 @@ fun InfoPanel(
 }
 
 @Composable
-fun BonusBar(correctCount: Int, ui: UiSizing? = null) {
-    val rewardProgress = correctCount % 5
-    val label = if (rewardProgress == 0) "Bonus: 5/5 🎈" else "Bonus: $rewardProgress/5"
-    val p = (rewardProgress / 5f).coerceIn(0f, 1f)
+fun BonusBar(correctCount: Int, bonusTarget: Int = BONUS_TARGET, ui: UiSizing? = null) {
+    val safeTarget = bonusTarget.coerceAtLeast(1)
+    val rewardProgress = correctCount % safeTarget
+    val label = if (rewardProgress == 0) "Bonus: $safeTarget/$safeTarget 🎈" else "Bonus: $rewardProgress/$safeTarget"
+    val p = (rewardProgress / safeTarget.toFloat()).coerceIn(0f, 1f)
     val fontSize = (ui?.font ?: 18).sp
     val barHeight = if (ui?.isCompact == true) 8.dp else 10.dp
 
@@ -368,7 +394,9 @@ fun GameHeader(
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
     onLeaderboard: () -> Unit,
-    ui: UiSizing? = null
+    ui: UiSizing? = null,
+    bonusTarget: Int = BONUS_TARGET,
+    showBack: Boolean = true
 ) {
     val isCompact = ui?.isCompact == true
     val titleSize = (ui?.title ?: 18).sp
@@ -384,13 +412,17 @@ fun GameHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing)) {
-            SmallCircleButton(
-                "⬅",
-                onClick = onBack,
-                size = buttonSize,
-                iconSize = iconSize,
-                fontSize = buttonFont
-            )
+            if (showBack) {
+                SmallCircleButton(
+                    "⬅",
+                    onClick = onBack,
+                    size = buttonSize,
+                    iconSize = iconSize,
+                    fontSize = buttonFont
+                )
+            } else {
+                Spacer(Modifier.size(buttonSize))
+            }
             Column {
                 Text(
                     title,
@@ -399,7 +431,7 @@ fun GameHeader(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    "Fai 5 giuste per il BONUS 🎈",
+                    "Fai $bonusTarget giuste per il BONUS 🎈",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     fontSize = subtitleSize,
                     maxLines = if (isCompact) 1 else 2,
@@ -448,6 +480,7 @@ private fun AppShell() {
 
     // tabelline
     var selectedTable by remember { mutableStateOf(2) }
+    var selectedGapsTable by remember { mutableStateOf(2) }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
         mode = m
@@ -461,6 +494,11 @@ private fun AppShell() {
         pendingStartMenuMode = m
         navAnim = NavAnim.SLIDE
         screen = Screen.OPERATION_START_MENU
+    }
+
+    fun openTabellineMenu() {
+        navAnim = NavAnim.SLIDE
+        screen = Screen.TABELLINE_MENU
     }
 
     fun openLb(tab: LeaderboardTab = leaderboardTab) {
@@ -493,7 +531,7 @@ private fun AppShell() {
                 },
                 onPlayDirect = { m ->
                     when (m) {
-                        GameMode.MULT -> openStartMenu(m)
+                        GameMode.MULT -> openTabellineMenu()
                         GameMode.MULT_HARD -> openStartMenu(m)
                         GameMode.DIV -> openStartMenu(m) // ✅
                         GameMode.MONEY -> openGame(m, digits, startMode)
@@ -538,14 +576,46 @@ private fun AppShell() {
                 )
             }
 
+            Screen.TABELLINE_MENU -> TabellineMenuScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onSelectClassicManual = {
+                    startMode = StartMode.MANUAL
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.MULT_PICKER
+                },
+                onSelectMode = { mode ->
+                    navAnim = NavAnim.SLIDE
+                    screen = when (mode) {
+                        TabellineMode.MIXED -> Screen.MULT_MIXED_GAME
+                        TabellineMode.GAPS -> Screen.MULT_GAPS_PICKER
+                        TabellineMode.REVERSE -> Screen.MULT_REVERSE_GAME
+                        TabellineMode.MULTIPLE_CHOICE -> Screen.MULT_CHOICE_GAME
+                        TabellineMode.CLASSIC -> Screen.MULT_PICKER
+                    }
+                }
+            )
+
             Screen.MULT_PICKER -> MultTablePickerScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.OPERATION_START_MENU },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
                 onPickTable = { table ->
                     selectedTable = table
                     navAnim = NavAnim.SLIDE
                     screen = Screen.MULT_GAME
+                }
+            )
+
+            Screen.MULT_GAPS_PICKER -> MultTablePickerScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
+                onPickTable = { table ->
+                    selectedGapsTable = table
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.MULT_GAPS_GAME
                 }
             )
 
@@ -556,6 +626,43 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+            )
+
+            Screen.MULT_MIXED_GAME -> TabellineMixedGame(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+            )
+
+            Screen.MULT_GAPS_GAME -> TabellineGapsGame(
+                table = selectedGapsTable,
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.MULT_GAPS_PICKER },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+            )
+
+            Screen.MULT_REVERSE_GAME -> TabellinaReverseGame(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+            )
+
+            Screen.MULT_CHOICE_GAME -> TabellineMultipleChoiceGame(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TABELLINE_MENU },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
@@ -577,7 +684,8 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onOpenLeaderboard = { openLb() }
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
 
             Screen.GAME -> GameRouter(
@@ -1199,7 +1307,8 @@ fun GameRouter(
             onToggleSound = onToggleSound,
             fx = fx,
             onBack = onBack,
-            onOpenLeaderboard = onOpenLeaderboard
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
         )
 
         GameMode.MONEY -> MoneyCountGame(
@@ -1268,7 +1377,7 @@ fun LeaderboardScreen(
             LeaderboardTab.BALLOONS -> SeaGlassPanel(title = "Palloncini (Tempo)") {
                 if (balloonEntries.isEmpty()) {
                     Text(
-                        "Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!",
+                        "Nessun record ancora.\nCompleta $BONUS_TARGET risposte giuste e gioca coi palloncini!",
                         color = Color(0xFF6B7280)
                     )
                 } else {
@@ -1294,7 +1403,7 @@ fun LeaderboardScreen(
             LeaderboardTab.STARS -> SeaGlassPanel(title = "Stelline (Punti)") {
                 if (starEntries.isEmpty()) {
                     Text(
-                        "Nessun record ancora.\nCompleta 5 risposte giuste e gioca con le stelline!",
+                        "Nessun record ancora.\nCompleta $BONUS_TARGET risposte giuste e gioca con le stelline!",
                         color = Color(0xFF6B7280)
                     )
                 } else {

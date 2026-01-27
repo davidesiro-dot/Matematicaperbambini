@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -299,6 +300,7 @@ fun HardMultiplication2x2Game(
     LaunchedEffect(done) {
         if (done && p != null) {
             showSuccessDialog = true
+            correctCount += 1
         }
     }
 
@@ -370,7 +372,6 @@ fun HardMultiplication2x2Game(
             if (soundEnabled) fx.correct()
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
-            correctCount += 1
         } else {
             if (soundEnabled) fx.wrong()
         }
@@ -400,9 +401,11 @@ fun HardMultiplication2x2Game(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
+            bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
             ui = ui,
             content = {
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                 if (startMode == StartMode.MANUAL) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
@@ -565,6 +568,7 @@ fun HardMultiplication2x2Game(
                         Text("Inserisci i numeri per iniziare.", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
+                }
             },
             bottomBar = {
                 GameBottomActions(
@@ -609,7 +613,15 @@ fun HardMultiplication2x2Game(
                                 setCell(HMRowKey.P2, 3, '-', false)
                                 step = activePlan.targets.size
                             }
-                        ) { Text("Soluzione") }
+                        ) {
+                            Text(
+                                "Soluzione",
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Clip,
+                                fontSize = 15.sp
+                            )
+                        }
                     }
                 )
             }
@@ -633,6 +645,7 @@ fun HardMultiplication2x2Game(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
+            rewardEvery = BONUS_TARGET_LONG_MULT_DIV,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,

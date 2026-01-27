@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.pow
@@ -55,7 +56,8 @@ fun DivisionStepGame(
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     var mode by remember { mutableStateOf(DivMode.ONE_DIGIT) }
@@ -79,6 +81,7 @@ fun DivisionStepGame(
     val done = p != null && currentTarget == null
 
     var correctCount by remember { mutableStateOf(0) }
+    var rewardsEarned by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
@@ -275,6 +278,7 @@ fun DivisionStepGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
+            bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
             ui = ui,
             message = message,
@@ -642,11 +646,28 @@ fun DivisionStepGame(
                     modifier = Modifier.fillMaxWidth(),
                     center = {
                         OutlinedButton(onClick = { fillSolution() }, enabled = p != null) {
-                            Text("Soluzione")
+                            Text(
+                                "Soluzione",
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Clip,
+                                fontSize = 15.sp
+                            )
                         }
                     }
                 )
             }
+        )
+
+        BonusRewardHost(
+            correctCount = correctCount,
+            rewardsEarned = rewardsEarned,
+            rewardEvery = BONUS_TARGET_LONG_MULT_DIV,
+            soundEnabled = soundEnabled,
+            fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
+            onRewardEarned = { rewardsEarned += 1 },
+            onRewardSkipped = { rewardsEarned += 1 }
         )
 
         SuccessDialog(

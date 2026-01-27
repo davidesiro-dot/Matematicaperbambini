@@ -75,13 +75,15 @@ private data class BalloonParticle(
 fun BonusRewardHost(
     correctCount: Int,
     rewardsEarned: Int,
+    rewardEvery: Int = BONUS_TARGET,
     soundEnabled: Boolean,
     fx: SoundFx,
     onOpenLeaderboard: (LeaderboardTab) -> Unit,
     onRewardEarned: () -> Unit,
     onRewardSkipped: () -> Unit
 ) {
-    val nextRewardAt = (rewardsEarned + 1) * 5
+    val normalizedRewardEvery = rewardEvery.coerceAtLeast(1)
+    val nextRewardAt = (rewardsEarned + 1) * normalizedRewardEvery
     val rng = remember { Random(System.currentTimeMillis()) }
     var showPrompt by remember { mutableStateOf(false) }
     var showGame by remember { mutableStateOf(false) }
