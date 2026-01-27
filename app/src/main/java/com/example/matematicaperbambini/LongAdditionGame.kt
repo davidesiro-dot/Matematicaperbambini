@@ -288,6 +288,7 @@ fun LongAdditionGame(
             hintText = hint,
             ui = ui,
             content = {
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                 if (startMode == StartMode.MANUAL) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
@@ -432,7 +433,8 @@ fun LongAdditionGame(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
-        },
+                }
+            },
             bottomBar = {
                 GameBottomActions(
                     leftText = "Ricomincia",

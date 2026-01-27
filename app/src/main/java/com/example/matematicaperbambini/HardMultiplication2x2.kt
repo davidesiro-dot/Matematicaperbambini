@@ -404,6 +404,7 @@ fun HardMultiplication2x2Game(
             hintText = hint,
             ui = ui,
             content = {
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                 if (startMode == StartMode.MANUAL) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
@@ -565,6 +566,7 @@ fun HardMultiplication2x2Game(
                     } else {
                         Text("Inserisci i numeri per iniziare.", style = MaterialTheme.typography.bodyLarge)
                     }
+                }
                 }
             },
             bottomBar = {
