@@ -75,7 +75,7 @@ private data class BalloonParticle(
 fun BonusRewardHost(
     correctCount: Int,
     rewardsEarned: Int,
-    rewardEvery: Int = 5,
+    rewardEvery: Int = BONUS_TARGET,
     soundEnabled: Boolean,
     fx: SoundFx,
     onOpenLeaderboard: (LeaderboardTab) -> Unit,
