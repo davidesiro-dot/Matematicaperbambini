@@ -312,15 +312,14 @@ fun TabellinaReverseGame(
     onOpenLeaderboard: () -> Unit,
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
-    data class ReverseQuestion(val a: Int, val b: Int, val showDivision: Boolean)
+    data class ReverseQuestion(val a: Int, val b: Int)
 
     val rng = remember { Random(System.currentTimeMillis()) }
     var question by remember {
         mutableStateOf(
             ReverseQuestion(
                 a = rng.nextInt(1, 11),
-                b = rng.nextInt(1, 11),
-                showDivision = rng.nextBoolean()
+                b = rng.nextInt(1, 11)
             )
         )
     }
@@ -332,18 +331,13 @@ fun TabellinaReverseGame(
     fun newQuestion() {
         question = ReverseQuestion(
             a = rng.nextInt(1, 11),
-            b = rng.nextInt(1, 11),
-            showDivision = rng.nextBoolean()
+            b = rng.nextInt(1, 11)
         )
         input = ""
     }
 
     val product = question.a * question.b
-    val prompt = if (question.showDivision) {
-        "$product ÷ ${question.b} = __"
-    } else {
-        "__ × ${question.b} = $product"
-    }
+    val prompt = "__ × ${question.b} = $product"
 
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
