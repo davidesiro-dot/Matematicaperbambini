@@ -126,6 +126,7 @@ fun TabellineMixedGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
+            rewardEvery = 10,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,
@@ -216,13 +217,15 @@ fun TabellineGapsGame(
                                             if (inputs[index].length < expectedLength) return@OutlinedTextField
                                             val v = inputs[index].toIntOrNull()
                                             if (v == expected) {
+                                                if (ok[index] != true) {
+                                                    correctCount += 1
+                                                }
                                                 ok[index] = true
                                                 if (soundEnabled) fx.correct()
                                                 val allDone = blanks.all { blankIndex ->
                                                     ok[blankIndex - 1] == true
                                                 }
                                                 if (allDone) {
-                                                    correctCount += 1
                                                     msg = "✅ Tabellina completata!"
                                                     resetRound()
                                                 }
@@ -294,6 +297,7 @@ fun TabellineGapsGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
+            rewardEvery = 10,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,
@@ -405,6 +409,7 @@ fun TabellinaReverseGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
+            rewardEvery = 10,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,
@@ -507,6 +512,7 @@ fun TabellineMultipleChoiceGame(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
+            rewardEvery = 10,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,

@@ -578,11 +578,6 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onSelectClassicRandom = {
-                    startMode = StartMode.RANDOM
-                    navAnim = NavAnim.SLIDE
-                    screen = Screen.MULT_PICKER
-                },
                 onSelectClassicManual = {
                     startMode = StartMode.MANUAL
                     navAnim = NavAnim.SLIDE
