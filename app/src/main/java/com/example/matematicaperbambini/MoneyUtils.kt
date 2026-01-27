@@ -63,6 +63,16 @@ fun parseInputToCents(text: String): Int? {
     return euros * 100 + cents
 }
 
+fun moneyVisualScale(cents: Int): Float {
+    return when {
+        cents <= 5 -> 0.68f        // 1c, 2c, 5c
+        cents <= 50 -> 0.80f       // 10c, 20c, 50c
+        cents == 100 -> 0.92f      // 1€
+        cents == 200 -> 1.00f      // 2€
+        else -> 1.05f              // banconote
+    }
+}
+
 object MoneyRoundGenerator {
     fun generateRound(
         rng: Random,

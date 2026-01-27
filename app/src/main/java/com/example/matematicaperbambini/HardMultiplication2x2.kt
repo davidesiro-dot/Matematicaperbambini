@@ -202,17 +202,27 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
 
 @Composable
 fun HardMultiplication2x2Game(
-    boardId: String,
+    startMode: StartMode = StartMode.RANDOM,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
-    var plan by remember { mutableStateOf(hmComputePlan(47, 36)) }
+    var plan by remember(startMode) {
+        mutableStateOf(
+            if (startMode == StartMode.RANDOM) hmComputePlan(47, 36) else null
+        )
+    }
+    var manualA by remember { mutableStateOf("") }
+    var manualB by remember { mutableStateOf("") }
+    var manualNumbers by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+
     var step by remember { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
     var inP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -231,6 +241,7 @@ fun HardMultiplication2x2Game(
     fun reset(newA: Int, newB: Int) {
         plan = hmComputePlan(newA, newB)
         step = 0
+        showSuccessDialog = false
         inCarryP1 = CharArray(4) { '\u0000' }
         inP1 = CharArray(4) { '\u0000' }
         inCarryP2 = CharArray(4) { '\u0000' }
@@ -246,14 +257,50 @@ fun HardMultiplication2x2Game(
         errSUM = BooleanArray(4) { false }
     }
 
+    fun clearInputsOnly() {
+        step = 0
+        showSuccessDialog = false
+        inCarryP1 = CharArray(4) { '\u0000' }
+        inP1 = CharArray(4) { '\u0000' }
+        inCarryP2 = CharArray(4) { '\u0000' }
+        inP2 = CharArray(4) { '\u0000' }.also { it[3] = '-' }
+        inCarrySUM = CharArray(4) { '\u0000' }
+        inSUM = CharArray(4) { '\u0000' }
+
+        errCarryP1 = BooleanArray(4) { false }
+        errP1 = BooleanArray(4) { false }
+        errCarryP2 = BooleanArray(4) { false }
+        errP2 = BooleanArray(4) { false }
+        errCarrySUM = BooleanArray(4) { false }
+        errSUM = BooleanArray(4) { false }
+    }
+
+    fun resetManualInputs() {
+        manualA = ""
+        manualB = ""
+        manualNumbers = null
+    }
+
+    fun startManual(a: Int, b: Int) {
+        manualNumbers = a to b
+        reset(a, b)
+    }
+
     LaunchedEffect(Unit) {
         val p2 = inP2.copyOf()
         p2[3] = '-'
         inP2 = p2
     }
 
-    val current = plan.targets.getOrNull(step)
-    val done = step >= plan.targets.size
+    val p = plan
+    val current = p?.targets?.getOrNull(step)
+    val done = p != null && step >= p.targets.size
+
+    LaunchedEffect(done) {
+        if (done && p != null) {
+            showSuccessDialog = true
+        }
+    }
 
     fun enabled(row: HMRowKey, col: Int, kind: HMCellKind): Boolean {
         val t = current ?: return false
@@ -321,14 +368,19 @@ fun HardMultiplication2x2Game(
 
         if (ok) {
             if (soundEnabled) fx.correct()
-            step = (step + 1).coerceAtMost(plan.targets.size)
+            val activePlan = plan ?: return
+            step = (step + 1).coerceAtMost(activePlan.targets.size)
             correctCount += 1
         } else {
             if (soundEnabled) fx.wrong()
         }
     }
 
-    val hint = if (done) "Bravo! ✅ Risultato: ${plan.result}" else current!!.hint
+    val hint = when {
+        plan == null -> "Inserisci i numeri e premi Avvia."
+        done && p != null -> "Bravo! ✅ Risultato: ${p.result}"
+        else -> current?.hint.orEmpty()
+    }
 
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
@@ -351,138 +403,211 @@ fun HardMultiplication2x2Game(
             hintText = hint,
             ui = ui,
             content = {
+                if (startMode == StartMode.MANUAL) {
+                    val manualAValue = manualA.toIntOrNull()
+                    val manualBValue = manualB.toIntOrNull()
+                    val manualValid = manualAValue in 10..99 && manualBValue in 10..99
+                    val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
+                        null
+                    } else {
+                        "Inserisci due numeri da 10 a 99."
+                    }
+
+                    SeaGlassPanel(title = "Inserimento") {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = manualA,
+                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(2) },
+                                label = { Text("Numero A") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = manualB,
+                                onValueChange = { manualB = it.filter { c -> c.isDigit() }.take(2) },
+                                label = { Text("Numero B") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Button(
+                                onClick = {
+                                    val aVal = manualAValue ?: return@Button
+                                    val bVal = manualBValue ?: return@Button
+                                    startManual(aVal, bVal)
+                                },
+                                enabled = manualValid,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Avvia")
+                            }
+                            if (manualError != null) {
+                                Text(manualError, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+
                 SeaGlassPanel(title = "Esercizio") {
-                    Text(
-                        "Esercizio: ${plan.a} × ${plan.b}",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
+                    if (p == null) {
+                        Text("Inserisci i numeri e premi Avvia.")
+                    } else {
+                        val activePlan = p
+                        Text(
+                            "Esercizio: ${activePlan.a} × ${activePlan.b}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
 
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        HMGridRowRight(signW, gap) {
-                            HMFixedDigit(plan.a4[0], digitW, digitH, digitFont)
-                            HMFixedDigit(plan.a4[1], digitW, digitH, digitFont)
-                            HMFixedDigit(plan.a4[2], digitW, digitH, digitFont)
-                            HMFixedDigit(plan.a4[3], digitW, digitH, digitFont)
-                            HMSignCell("", signW)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            HMGridRowRight(signW, gap) {
+                                HMFixedDigit(activePlan.a4[0], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.a4[1], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.a4[2], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.a4[3], digitW, digitH, digitFont)
+                                HMSignCell("", signW)
+                            }
+
+                            HMGridRowRight(signW, gap) {
+                                HMFixedDigit(activePlan.b4[0], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.b4[1], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.b4[2], digitW, digitH, digitFont)
+                                HMFixedDigit(activePlan.b4[3], digitW, digitH, digitFont)
+                                HMSignCell("×", signW)
+                            }
+
+                            Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
+
+                            HMCarryRowRight(
+                                signW, gap, digitW, carryW, carryH,
+                                expected = activePlan.carryP1,
+                                input = inCarryP1,
+                                err = errCarryP1,
+                                enabled = { c -> enabled(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
+                                isActive = { c -> isActive(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
+                                shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P1, c) },
+                                onChange = { c, v -> onTyped(HMRowKey.CARRY_P1, c, HMCellKind.CARRY, v) },
+                                fontSize = carryFont
+                            )
+
+                            HMDigitRowRight(
+                                signW, gap, digitW, digitH,
+                                expected = activePlan.p1_4,
+                                input = inP1,
+                                err = errP1,
+                                enabled = { c -> enabled(HMRowKey.P1, c, HMCellKind.DIGIT) },
+                                isActive = { c -> isActive(HMRowKey.P1, c, HMCellKind.DIGIT) },
+                                onChange = { c, v -> onTyped(HMRowKey.P1, c, HMCellKind.DIGIT, v) },
+                                fontSize = digitFont
+                            )
+
+                            HMCarryRowRight(
+                                signW, gap, digitW, carryW, carryH,
+                                expected = activePlan.carryP2,
+                                input = inCarryP2,
+                                err = errCarryP2,
+                                enabled = { c -> enabled(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
+                                isActive = { c -> isActive(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
+                                shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P2, c) },
+                                onChange = { c, v -> onTyped(HMRowKey.CARRY_P2, c, HMCellKind.CARRY, v) },
+                                fontSize = carryFont
+                            )
+
+                            HMDigitRowRight(
+                                signW, gap, digitW, digitH,
+                                expected = activePlan.p2_4,
+                                input = inP2,
+                                err = errP2,
+                                enabled = { c -> enabled(HMRowKey.P2, c, HMCellKind.DIGIT) },
+                                isActive = { c -> isActive(HMRowKey.P2, c, HMCellKind.DIGIT) },
+                                onChange = { c, v -> onTyped(HMRowKey.P2, c, HMCellKind.DIGIT, v) },
+                                fixedUnitDash = true,
+                                fontSize = digitFont
+                            )
+
+                            Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
+
+                            HMCarryRowRight(
+                                signW, gap, digitW, carryW, carryH,
+                                expected = activePlan.carrySUM,
+                                input = inCarrySUM,
+                                err = errCarrySUM,
+                                enabled = { c -> enabled(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
+                                isActive = { c -> isActive(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
+                                shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_SUM, c) },
+                                onChange = { c, v -> onTyped(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY, v) },
+                                fontSize = carryFont
+                            )
+
+                            HMDigitRowRight(
+                                signW, gap, digitW, digitH,
+                                expected = activePlan.res_4,
+                                input = inSUM,
+                                err = errSUM,
+                                enabled = { c -> enabled(HMRowKey.SUM, c, HMCellKind.DIGIT) },
+                                isActive = { c -> isActive(HMRowKey.SUM, c, HMCellKind.DIGIT) },
+                                onChange = { c, v -> onTyped(HMRowKey.SUM, c, HMCellKind.DIGIT, v) },
+                                fontSize = digitFont
+                            )
                         }
-
-                        HMGridRowRight(signW, gap) {
-                            HMFixedDigit(plan.b4[0], digitW, digitH, digitFont)
-                            HMFixedDigit(plan.b4[1], digitW, digitH, digitFont)
-                            HMFixedDigit(plan.b4[2], digitW, digitH, digitFont)
-                            HMFixedDigit(plan.b4[3], digitW, digitH, digitFont)
-                            HMSignCell("×", signW)
-                        }
-
-                        Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
-
-                        HMCarryRowRight(
-                            signW, gap, digitW, carryW, carryH,
-                            expected = plan.carryP1,
-                            input = inCarryP1,
-                            err = errCarryP1,
-                            enabled = { c -> enabled(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
-                            isActive = { c -> isActive(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
-                            shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P1, c) },
-                            onChange = { c, v -> onTyped(HMRowKey.CARRY_P1, c, HMCellKind.CARRY, v) },
-                            fontSize = carryFont
-                        )
-
-                        HMDigitRowRight(
-                            signW, gap, digitW, digitH,
-                            expected = plan.p1_4,
-                            input = inP1,
-                            err = errP1,
-                            enabled = { c -> enabled(HMRowKey.P1, c, HMCellKind.DIGIT) },
-                            isActive = { c -> isActive(HMRowKey.P1, c, HMCellKind.DIGIT) },
-                            onChange = { c, v -> onTyped(HMRowKey.P1, c, HMCellKind.DIGIT, v) },
-                            fontSize = digitFont
-                        )
-
-                        HMCarryRowRight(
-                            signW, gap, digitW, carryW, carryH,
-                            expected = plan.carryP2,
-                            input = inCarryP2,
-                            err = errCarryP2,
-                            enabled = { c -> enabled(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
-                            isActive = { c -> isActive(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
-                            shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P2, c) },
-                            onChange = { c, v -> onTyped(HMRowKey.CARRY_P2, c, HMCellKind.CARRY, v) },
-                            fontSize = carryFont
-                        )
-
-                        HMDigitRowRight(
-                            signW, gap, digitW, digitH,
-                            expected = plan.p2_4,
-                            input = inP2,
-                            err = errP2,
-                            enabled = { c -> enabled(HMRowKey.P2, c, HMCellKind.DIGIT) },
-                            isActive = { c -> isActive(HMRowKey.P2, c, HMCellKind.DIGIT) },
-                            onChange = { c, v -> onTyped(HMRowKey.P2, c, HMCellKind.DIGIT, v) },
-                            fixedUnitDash = true,
-                            fontSize = digitFont
-                        )
-
-                        Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
-
-                        HMCarryRowRight(
-                            signW, gap, digitW, carryW, carryH,
-                            expected = plan.carrySUM,
-                            input = inCarrySUM,
-                            err = errCarrySUM,
-                            enabled = { c -> enabled(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
-                            isActive = { c -> isActive(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
-                            shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_SUM, c) },
-                            onChange = { c, v -> onTyped(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY, v) },
-                            fontSize = carryFont
-                        )
-
-                        HMDigitRowRight(
-                            signW, gap, digitW, digitH,
-                            expected = plan.res_4,
-                            input = inSUM,
-                            err = errSUM,
-                            enabled = { c -> enabled(HMRowKey.SUM, c, HMCellKind.DIGIT) },
-                            isActive = { c -> isActive(HMRowKey.SUM, c, HMCellKind.DIGIT) },
-                            onChange = { c, v -> onTyped(HMRowKey.SUM, c, HMCellKind.DIGIT, v) },
-                            fontSize = digitFont
-                        )
                     }
                 }
 
                 SeaGlassPanel(title = "Stato") {
                     if (done) {
                         Text("Operazione completata.", style = MaterialTheme.typography.bodyLarge)
+                    } else if (p != null && current != null) {
+                        Text("Passo ${step + 1}/${p.targets.size}", style = MaterialTheme.typography.bodyLarge)
+                        Text("Casella attiva: ${hmRowLabel(current.row)} – ${hmColLabel(current.col)}")
                     } else {
-                        Text("Passo ${step + 1}/${plan.targets.size}", style = MaterialTheme.typography.bodyLarge)
-                        Text("Casella attiva: ${hmRowLabel(current!!.row)} – ${hmColLabel(current.col)}")
+                        Text("Inserisci i numeri per iniziare.", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             },
             bottomBar = {
                 GameBottomActions(
                     leftText = "Ricomincia",
-                    onLeft = { reset(plan.a, plan.b) },
+                    onLeft = {
+                        if (startMode == StartMode.MANUAL) {
+                            val manual = manualNumbers
+                            if (manual != null && p != null) {
+                                reset(manual.first, manual.second)
+                            } else {
+                                resetManualInputs()
+                                plan = null
+                                clearInputsOnly()
+                            }
+                        } else if (p != null) {
+                            reset(p.a, p.b)
+                        }
+                    },
                     rightText = "Nuovo",
-                    onRight = { reset(Random.nextInt(10, 100), Random.nextInt(10, 100)) },
+                    onRight = {
+                        if (startMode == StartMode.MANUAL) {
+                            resetManualInputs()
+                            plan = null
+                            clearInputsOnly()
+                        } else {
+                            reset(Random.nextInt(10, 100), Random.nextInt(10, 100))
+                        }
+                    },
                     center = {
                         OutlinedButton(
                             onClick = {
+                                val activePlan = plan ?: return@OutlinedButton
                                 for (c in 0..3) {
-                                    val cp1 = plan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
-                                    val cp2 = plan.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)
-                                    val cs = plan.carrySUM[c]; if (cs != ' ') setCell(HMRowKey.CARRY_SUM, c, cs, false)
+                                    val cp1 = activePlan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
+                                    val cp2 = activePlan.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)
+                                    val cs = activePlan.carrySUM[c]; if (cs != ' ') setCell(HMRowKey.CARRY_SUM, c, cs, false)
 
-                                    val d1 = plan.p1_4[c]; if (d1 != ' ') setCell(HMRowKey.P1, c, d1, false)
-                                    val d2 = plan.p2_4[c]; if (d2 != ' ') setCell(HMRowKey.P2, c, d2, false)
-                                    val dr = plan.res_4[c]; if (dr != ' ') setCell(HMRowKey.SUM, c, dr, false)
+                                    val d1 = activePlan.p1_4[c]; if (d1 != ' ') setCell(HMRowKey.P1, c, d1, false)
+                                    val d2 = activePlan.p2_4[c]; if (d2 != ' ') setCell(HMRowKey.P2, c, d2, false)
+                                    val dr = activePlan.res_4[c]; if (dr != ' ') setCell(HMRowKey.SUM, c, dr, false)
                                 }
                                 setCell(HMRowKey.P2, 3, '-', false)
-                                step = plan.targets.size
+                                step = activePlan.targets.size
                             }
                         ) { Text("Soluzione") }
                     }
@@ -490,12 +615,27 @@ fun HardMultiplication2x2Game(
             }
         )
 
+        SuccessDialog(
+            show = showSuccessDialog,
+            onNew = {
+                showSuccessDialog = false
+                if (startMode == StartMode.MANUAL) {
+                    resetManualInputs()
+                    plan = null
+                } else {
+                    reset(Random.nextInt(10, 100), Random.nextInt(10, 100))
+                }
+            },
+            onDismiss = { showSuccessDialog = false },
+            resultText = plan?.result?.toString().orEmpty()
+        )
+
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )

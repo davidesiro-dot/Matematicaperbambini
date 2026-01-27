@@ -29,6 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+
 
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,12 +42,12 @@ import kotlin.random.Random
 
 @Composable
 fun MoneyCountGame(
-    boardId: String,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     var items by remember { mutableStateOf<List<MoneyItem>>(emptyList()) }
@@ -54,6 +59,7 @@ fun MoneyCountGame(
     var coinsOnly by remember { mutableStateOf(false) }
     var wrongAttempts by remember { mutableStateOf(0) }
     var revealSolution by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     fun generateRound(clearMessage: Boolean) {
         val round = MoneyRoundGenerator.generateRound(
@@ -66,6 +72,7 @@ fun MoneyCountGame(
         input = ""
         wrongAttempts = 0
         revealSolution = false
+        showSuccessDialog = false
         if (clearMessage) {
             message = null
         }
@@ -161,7 +168,7 @@ fun MoneyCountGame(
                         )
                     }
 
-                    SeaGlassPanel(title = "Scrivi il totale") {
+                    SeaGlassPanel(title = "Scrivi il totale. Es: 3,50") {
                         Column(
                             verticalArrangement = Arrangement.spacedBy(ui.spacing),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -172,10 +179,15 @@ fun MoneyCountGame(
                                 onValueChange = { value ->
                                     input = value.filter { it.isDigit() || it == ',' || it == '.' }
                                 },
-                                placeholder = { Text("Es. 3,50") },
+                                placeholder = { Text("") },
                                 singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
                                 modifier = Modifier.fillMaxWidth()
                             )
+
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -194,7 +206,9 @@ fun MoneyCountGame(
                                             correctCount += 1
                                             message = "Bravo! Totale ${formatEuro(expectedTotalCents)}"
                                             if (soundEnabled) fx.correct()
-                                            generateRound(clearMessage = false)
+                                            if (!showSuccessDialog) {
+                                                showSuccessDialog = true
+                                            }
                                         } else {
                                             wrongAttempts += 1
                                             message = "Riprova. Hai scritto ${formatEuro(parsed)}"
@@ -238,12 +252,22 @@ fun MoneyCountGame(
             }
         )
 
+        SuccessDialog(
+            show = showSuccessDialog,
+            onNew = {
+                showSuccessDialog = false
+                generateRound(clearMessage = true)
+            },
+            onDismiss = { showSuccessDialog = false },
+            resultText = formatEuro(expectedTotalCents)
+        )
+
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
-            boardId = boardId,
             soundEnabled = soundEnabled,
             fx = fx,
+            onOpenLeaderboard = onOpenLeaderboardFromBonus,
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )
@@ -284,36 +308,38 @@ private fun MoneyItemsGrid(
 
 @Composable
 private fun MoneyItemImage(item: MoneyItem, ui: UiSizing) {
-    val painter = remember(item.drawableRes) {
-        runCatching { item.drawableRes }.getOrNull()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val res = ctx.resources
+
+    // ✅ scala visiva (centesimi più piccoli)
+    val scale = moneyVisualScale(item.cents)
+
+    // ✅ controllo "safe" senza crash
+    val canDraw = remember(item.drawableRes) {
+        runCatching { res.getResourceEntryName(item.drawableRes) }.isSuccess
     }
 
-    // painterResource è composable: la chiamiamo fuori da try/catch
-    val resolvedPainter = remember(item.drawableRes) {
-        // solo per trigger di remember; la risoluzione vera la facciamo sotto
-        0
-    }
+    val baseSize = if (ui.isCompact) 86.dp else 110.dp
+    val pad = if (ui.isCompact) 2.dp else 4.dp
 
-    // Tentativo “safe”: se la risorsa non esiste, Android lancia prima ancora di disegnare.
-    // Quindi invece facciamo un check usando getIdentifier.
-    val res = androidx.compose.ui.platform.LocalContext.current.resources
-    val pkg = androidx.compose.ui.platform.LocalContext.current.packageName
-    val name = res.getResourceEntryName(item.drawableRes) // se item.drawableRes è valido
-    val id = res.getIdentifier(name, "drawable", pkg)
-
-    if (id != 0) {
+    if (canDraw) {
         Image(
-            painter = painterResource(id = id),
+            painter = painterResource(id = item.drawableRes),
             contentDescription = item.label,
             modifier = Modifier
-                .size(if (ui.isCompact) 86.dp else 110.dp)
-                .padding(if (ui.isCompact) 2.dp else 4.dp)
+                .size(baseSize)
+                .padding(pad)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                },
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit
         )
     } else {
         Box(
             modifier = Modifier
-                .size(if (ui.isCompact) 86.dp else 110.dp)
-                .padding(if (ui.isCompact) 2.dp else 4.dp)
+                .size(baseSize)
+                .padding(pad)
                 .background(Color.White.copy(alpha = 0.75f)),
             contentAlignment = Alignment.Center
         ) {
@@ -325,3 +351,4 @@ private fun MoneyItemImage(item: MoneyItem, ui: UiSizing) {
         }
     }
 }
+

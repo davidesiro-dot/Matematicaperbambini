@@ -21,9 +21,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
@@ -33,8 +36,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -45,10 +50,13 @@ import java.net.URLEncoder
 import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.foundation.BorderStroke
+
 
 
 // -----------------------------
@@ -57,6 +65,8 @@ import androidx.compose.ui.unit.TextUnit
 data class ScoreEntry(val name: String, val value: Long)
 
 private const val PREFS_NAME = "math_kids_prefs"
+const val GLOBAL_STARS_LEADERBOARD_ID = "global_stars_score"
+const val GLOBAL_BALLOONS_LEADERBOARD_ID = "global_balloons_time"
 private fun encodeName(name: String) = URLEncoder.encode(name, "UTF-8")
 private fun decodeName(name: String) = URLDecoder.decode(name, "UTF-8")
 
@@ -160,17 +170,10 @@ enum class GameMode(val title: String) {
     MULT_HARD("Moltiplicazioni difficili")
 }
 
-fun boardIdFor(mode: GameMode, digits: Int): String = when (mode) {
-    GameMode.ADD -> "add_$digits"
-    GameMode.SUB -> "sub_$digits"
-    GameMode.MULT -> "mult_${digits}" // digits qui non serve, ma lo lascio per compatibilità
-    GameMode.DIV -> "div_step"        // ✅ divisioni step-by-step
-    GameMode.MONEY -> "money"
-    GameMode.MULT_HARD -> "mult_hard"
+enum class LeaderboardTab {
+    BALLOONS,
+    STARS
 }
-
-fun balloonsBoardId(boardId: String): String = "${boardId}_balloons_time"
-fun starsBoardId(boardId: String): String = "${boardId}_stars_score"
 
 // -----------------------------
 // NAV
@@ -178,6 +181,7 @@ fun starsBoardId(boardId: String): String = "${boardId}_stars_score"
 private enum class Screen {
     HOME,
     DIGITS_PICKER,     // Add/Sub
+    OPERATION_START_MENU,
     GAME,              // Add/Sub/Money (e altro se vuoi)
     MULT_PICKER,       // scegli tabellina 1..10
     MULT_GAME,         // tabellina 10 caselle
@@ -228,10 +232,14 @@ private fun AppBackground(content: @Composable () -> Unit) {
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.12f)))
+
+        // ✅ RIMOSSO: overlay rettangolare semi-trasparente che “sporca” il layout
+        // Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.12f)))
+
         content()
     }
 }
+
 
 // -----------------------------
 // GLASS PANEL
@@ -277,7 +285,7 @@ fun SmallCircleButton(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.78f))
+            .background(Color.White.copy(alpha = 0.31f))
             .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -425,26 +433,39 @@ fun GameHeader(
 private fun AppShell() {
     var screen by remember { mutableStateOf(Screen.HOME) }
     var navAnim by remember { mutableStateOf(NavAnim.SLIDE) }
+    var returnScreenAfterLeaderboard by remember { mutableStateOf<Screen?>(null) }
+    var leaderboardTab by remember { mutableStateOf(LeaderboardTab.STARS) }
 
     var soundEnabled by remember { mutableStateOf(true) }
     val fx = remember { SoundFx() }
 
     var mode by remember { mutableStateOf(GameMode.ADD) }
     var digits by remember { mutableStateOf(2) }
+    var startMode by remember { mutableStateOf(StartMode.RANDOM) }
 
     var pendingDigitsMode by remember { mutableStateOf<GameMode?>(null) }
+    var pendingStartMenuMode by remember { mutableStateOf<GameMode?>(null) }
 
     // tabelline
     var selectedTable by remember { mutableStateOf(2) }
 
-    fun openGame(m: GameMode, d: Int = digits) {
+    fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
         mode = m
         digits = d
+        startMode = startModeValue
         navAnim = NavAnim.EXPAND
         screen = Screen.GAME
     }
 
-    fun openLb() {
+    fun openStartMenu(m: GameMode) {
+        pendingStartMenuMode = m
+        navAnim = NavAnim.SLIDE
+        screen = Screen.OPERATION_START_MENU
+    }
+
+    fun openLb(tab: LeaderboardTab = leaderboardTab) {
+        leaderboardTab = tab
+        returnScreenAfterLeaderboard = screen
         navAnim = NavAnim.SLIDE
         screen = Screen.LEADERBOARD
     }
@@ -468,19 +489,42 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
                 onPickDigitsFor = { m ->
-                    pendingDigitsMode = m
-                    navAnim = NavAnim.SLIDE
-                    screen = Screen.DIGITS_PICKER
+                    openStartMenu(m)
                 },
                 onPlayDirect = { m ->
                     when (m) {
-                        GameMode.MULT -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER }
-                        GameMode.MULT_HARD -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_HARD_GAME }
-                        GameMode.DIV -> { navAnim = NavAnim.SLIDE; screen = Screen.DIV_STEP_GAME } // ✅
+                        GameMode.MULT -> openStartMenu(m)
+                        GameMode.MULT_HARD -> openStartMenu(m)
+                        GameMode.DIV -> openStartMenu(m) // ✅
+                        GameMode.MONEY -> openGame(m, digits, startMode)
                         else -> openGame(m, digits)
                     }
                 }
             )
+
+            Screen.OPERATION_START_MENU -> {
+                val startMenuMode = pendingStartMenuMode ?: GameMode.ADD
+                OperationStartMenuScreen(
+                    gameMode = startMenuMode,
+                    soundEnabled = soundEnabled,
+                    onToggleSound = { soundEnabled = !soundEnabled },
+                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onSelectStartMode = { chosenMode ->
+                        startMode = chosenMode
+                        when (startMenuMode) {
+                            GameMode.ADD, GameMode.SUB -> {
+                                pendingDigitsMode = startMenuMode
+                                navAnim = NavAnim.SLIDE
+                                screen = Screen.DIGITS_PICKER
+                            }
+                            GameMode.MULT -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER }
+                            GameMode.MULT_HARD -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_HARD_GAME }
+                            GameMode.DIV -> { navAnim = NavAnim.SLIDE; screen = Screen.DIV_STEP_GAME }
+                            GameMode.MONEY -> openGame(startMenuMode, digits, startMode)
+                        }
+                    }
+                )
+            }
 
             Screen.DIGITS_PICKER -> {
                 val m = pendingDigitsMode ?: GameMode.ADD
@@ -488,16 +532,16 @@ private fun AppShell() {
                     mode = m,
                     soundEnabled = soundEnabled,
                     onToggleSound = { soundEnabled = !soundEnabled },
-                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.OPERATION_START_MENU },
                     onOpenLeaderboard = { openLb() },
-                    onStart = { chosenDigits -> openGame(m, chosenDigits) }
+                    onStart = { chosenDigits -> openGame(m, chosenDigits, startMode) }
                 )
             }
 
             Screen.MULT_PICKER -> MultTablePickerScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.OPERATION_START_MENU },
                 onPickTable = { table ->
                     selectedTable = table
                     navAnim = NavAnim.SLIDE
@@ -507,26 +551,28 @@ private fun AppShell() {
 
             Screen.MULT_GAME -> MultiplicationTableGame(
                 table = selectedTable,
-                boardId = "mult_$selectedTable",
+                startMode = startMode,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER },
-                onOpenLeaderboard = { openLb() }
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
 
             Screen.MULT_HARD_GAME -> HardMultiplication2x2Game(
-                boardId = "mult_hard",
+                startMode = startMode,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onOpenLeaderboard = { openLb() }
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
 
             // ✅ NUOVA SCHERMATA: DIVISIONI PASSO-PASSO
             Screen.DIV_STEP_GAME -> DivisionStepGame(
-                boardId = "div_step",
+                startMode = startMode,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
@@ -537,19 +583,25 @@ private fun AppShell() {
             Screen.GAME -> GameRouter(
                 mode = mode,
                 digits = digits,
+                startMode = startMode,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = { navAnim = NavAnim.EXPAND; screen = Screen.HOME },
-                onOpenLeaderboard = { openLb() }
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
 
             Screen.LEADERBOARD -> LeaderboardScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                digits = digits,
-                onDigitsChange = { digits = it },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME }
+                selectedTab = leaderboardTab,
+                onTabChange = { leaderboardTab = it },
+                onBack = {
+                    navAnim = NavAnim.SLIDE
+                    screen = returnScreenAfterLeaderboard ?: Screen.HOME
+                    returnScreenAfterLeaderboard = null
+                }
             )
         }
     }
@@ -566,83 +618,202 @@ private fun HomeMenuKids(
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        val sizeProfile = when {
+            maxHeight < 620.dp -> MenuSizeProfile.Small
+            maxHeight < 760.dp -> MenuSizeProfile.Normal
+            else -> MenuSizeProfile.Large
+        }
 
-        Image(
-            painter = painterResource(R.drawable.math_kids_logo),
-            contentDescription = "Math Kids",
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 22.dp)
-                .fillMaxWidth(0.90f),
-            contentScale = ContentScale.Fit
+        val baseButtonHeight = when (sizeProfile) {
+        MenuSizeProfile.Small -> 56.dp
+        MenuSizeProfile.Normal -> 64.dp
+        MenuSizeProfile.Large -> 72.dp
+    }
+        val buttonHeight = baseButtonHeight * 0.75f
+
+        val buttonSpacing = when (sizeProfile) {
+            MenuSizeProfile.Small -> 10.dp
+            MenuSizeProfile.Normal -> 12.dp
+            MenuSizeProfile.Large -> 16.dp
+        }
+        val cardPadding = when (sizeProfile) {
+            MenuSizeProfile.Small -> 14.dp
+            MenuSizeProfile.Normal -> 18.dp
+            MenuSizeProfile.Large -> 22.dp
+        }
+        val titleFont = when (sizeProfile) {
+            MenuSizeProfile.Small -> 14.sp
+            MenuSizeProfile.Normal -> 16.sp
+            MenuSizeProfile.Large -> 18.sp
+        }
+        val buttonTextSize = when (sizeProfile) {
+            MenuSizeProfile.Small -> 16.sp
+            MenuSizeProfile.Normal -> 18.sp
+            MenuSizeProfile.Large -> 20.sp
+        }
+        val bonusTextSize = when (sizeProfile) {
+            MenuSizeProfile.Small -> 11.sp
+            MenuSizeProfile.Normal -> 12.sp
+            MenuSizeProfile.Large -> 13.sp
+        }
+
+        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+
+
+        val buttons = listOf(
+            MenuButtonData(
+                title = "Addizioni",
+                baseColor = Color(0xFFE74C3C),
+                iconText = "＋",
+                onClick = { onPickDigitsFor(GameMode.ADD) }
+            ),
+            MenuButtonData(
+                title = "Sottrazioni",
+                baseColor = Color(0xFF2ECC71),
+                iconText = "−",
+                onClick = { onPickDigitsFor(GameMode.SUB) }
+            ),
+            MenuButtonData(
+                title = "Tabelline",
+                baseColor = Color(0xFFF39C12),
+                iconText = "×",
+                onClick = { onPlayDirect(GameMode.MULT) }
+            ),
+            MenuButtonData(
+                title = "Moltiplicazioni difficili",
+                baseColor = Color(0xFF8B5CF6),
+                iconText = "××",
+                onClick = { onPlayDirect(GameMode.MULT_HARD) }
+            ),
+            MenuButtonData(
+                title = "Divisioni",
+                baseColor = Color(0xFF3498DB),
+                iconText = "÷",
+                onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
+            ),
+            MenuButtonData(
+                title = "Conta i soldi (Euro)",
+                baseColor = Color(0xFFF1C40F),
+                iconText = "€",
+                onClick = { onPlayDirect(GameMode.MONEY) }
+            )
         )
 
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-            SmallCircleButton("🏆") { onOpenLeaderboard() }
-        }
+        val animationsReady = remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { animationsReady.value = true }
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(top = 200.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .fillMaxSize()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            KidsMenuButton(
-                title = "Addizioni",
-                baseColor = Color(0xFFE74C3C),
-                icon = { Text("＋", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
-                onClick = { onPickDigitsFor(GameMode.ADD) }
-            )
-            KidsMenuButton(
-                title = "Sottrazioni",
-                baseColor = Color(0xFF2ECC71),
-                icon = { Text("−", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
-                onClick = { onPickDigitsFor(GameMode.SUB) }
-            )
-            KidsMenuButton(
-                title = "Tabelline",
-                baseColor = Color(0xFFF39C12),
-                icon = { Text("×", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
-                onClick = { onPlayDirect(GameMode.MULT) }
-            )
-            KidsMenuButton(
-                title = "Moltiplicazioni difficili",
-                baseColor = Color(0xFF8B5CF6),
-                icon = { Text("××", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black) },
-                onClick = { onPlayDirect(GameMode.MULT_HARD) }
-            )
-            KidsMenuButton(
-                title = "Divisioni",
-                baseColor = Color(0xFF3498DB),
-                icon = { Text("÷", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
-                onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
-            )
-            KidsMenuButton(
-                title = "Conta i soldi (Euro)",
-                baseColor = Color(0xFFF1C40F),
-                icon = { Text("€", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black) },
-                onClick = { onPlayDirect(GameMode.MONEY) }
-            )
 
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Completa gli esercizi e vinci il BONUS! 🎈",
-                color = Color.White.copy(alpha = 0.92f),
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 13.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+
+        Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                if (logoPainter != null) {
+                    Image(
+                        painter = logoPainter,
+                        contentDescription = "Math Kids",
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .fillMaxWidth(0.85f),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.HelpOutline,
+                        contentDescription = "Logo mancante",
+                        tint = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .size(48.dp)
+                    )
+                }
+
+                TopActionsPill(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 6.dp)
+                ) {
+                    SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+                    SmallCircleButton("🏆") { onOpenLeaderboard() }
+                }
+            }
+
+            // ✅ BOTTONI SENZA PANNELLO "GLASSCARD" + alzati di 20dp
+            val offsetPx = with(LocalDensity.current) {
+                when (sizeProfile) {
+                    MenuSizeProfile.Small -> 12.dp.toPx()
+                    MenuSizeProfile.Normal -> 16.dp.toPx()
+                    MenuSizeProfile.Large -> 18.dp.toPx()
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .offset(y = (-10).dp),   // ✅ 20px/20dp più in alto
+                verticalArrangement = Arrangement.spacedBy(buttonSpacing)
+            ) {
+                TitlePill(
+                    text = "Scegli un gioco!",
+                    fontSize = titleFont
+                )
+
+                buttons.forEachIndexed { index, data ->
+                    val alpha by animateFloatAsState(
+                        targetValue = if (animationsReady.value) 1f else 0f,
+                        animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                        label = "menuAlpha$index"
+                    )
+                    val offsetY by animateFloatAsState(
+                        targetValue = if (animationsReady.value) 0f else offsetPx,
+                        animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                        label = "menuOffset$index"
+                    )
+
+                    KidsMenuButton(
+                        title = data.title,
+                        baseColor = data.baseColor,
+                        icon = {
+                            Text(
+                                data.iconText,
+                                color = Color.White,
+                                fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        },
+                        onClick = data.onClick,
+                        height = buttonHeight,
+                        textSize = buttonTextSize,
+                        modifier = Modifier.graphicsLayer {
+                            this.alpha = alpha
+                            translationY = offsetY
+                        }
+                    )
+                }
+
+                BonusPill(
+                    text = "Completa gli esercizi e vinci il BONUS! 🎈",
+                    fontSize = bonusTextSize
+                )
+            }
+
+
+
+                }
+            }
         }
-    }
-}
+
+
 
 @Composable
 private fun KidsMenuButton(
@@ -650,29 +821,43 @@ private fun KidsMenuButton(
     baseColor: Color,
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    height: Dp = 72.dp,
+    textSize: TextUnit = 18.sp
 ) {
     val dark = baseColor
     val light = lerp(baseColor, Color.White, 0.35f)
 
-    var pressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (pressed) 0.985f else 1f, label = "kidsBtnScale")
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        label = "kidsBtnScale"
+    )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(72.dp)
-            .shadow(10.dp, RoundedCornerShape(999.dp))
+            .height(height)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(12.dp, RoundedCornerShape(999.dp))
             .clip(RoundedCornerShape(999.dp))
             .background(Brush.verticalGradient(colors = listOf(light, dark)))
-            .border(3.dp, dark.copy(alpha = 0.55f), RoundedCornerShape(999.dp))
-            .clickable {
-                pressed = true
-                onClick()
-            }
-            .padding(horizontal = 18.dp),
+            .border(2.dp, dark.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(
+                    bounded = true,
+                    color = Color.White.copy(alpha = 0.45f)
+                )
+            ) { onClick() }
+            .padding(horizontal = 22.dp),
         contentAlignment = Alignment.CenterStart
     ) {
+        // highlight top gloss
         Box(
             Modifier
                 .fillMaxWidth()
@@ -681,36 +866,142 @@ private fun KidsMenuButton(
                 .clip(RoundedCornerShape(999.dp))
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.40f), Color.Transparent)
+                        colors = listOf(Color.White.copy(alpha = 0.90f), Color.Transparent)
                     )
                 )
         )
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Box(
                 Modifier
                     .size(44.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White.copy(alpha = 0.22f))
-                    .border(2.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
+                    .background(Color.White.copy(alpha = 0.01f))
+                    .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
-            ) { icon() }
+            ) {
+                icon()
+            }
 
             Text(
-                title,
+                text = title,
                 color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Black
+                fontSize = textSize,
+                fontWeight = FontWeight.Black,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
+}
 
-    LaunchedEffect(pressed) {
-        if (pressed) {
-            kotlinx.coroutines.delay(70)
-            pressed = false
-        }
+
+private enum class MenuSizeProfile {
+    Small,
+    Normal,
+    Large
+}
+
+private data class MenuButtonData(
+    val title: String,
+    val baseColor: Color,
+    val iconText: String,
+    val onClick: () -> Unit
+)
+
+@Composable
+private fun GlassCard(
+    modifier: Modifier = Modifier,
+    padding: Dp = 18.dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val shape = RoundedCornerShape(26.dp)
+
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = Color.White.copy(alpha = 0.14f),
+        tonalElevation = 0.dp,
+        shadowElevation = 14.dp,
+        border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.22f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(padding),
+            content = content
+        )
     }
+}
+
+
+@Composable
+private fun TitlePill(
+    text: String,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.White.copy(alpha = 0.55f))
+            .border(1.dp, Color.White.copy(alpha = 0.65f), RoundedCornerShape(999.dp))
+            .padding(vertical = 8.dp, horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            color = Color(0xFF1F2937),
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = fontSize
+        )
+    }
+}
+
+@Composable
+private fun BonusPill(
+    text: String,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color(0xFF111827).copy(alpha = 0.65f))
+            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(999.dp))
+            .padding(vertical = 8.dp, horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            color = Color.White.copy(alpha = 0.96f),
+            fontWeight = FontWeight.Bold,
+            fontSize = fontSize,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun TopActionsPill(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.White.copy(alpha = 0.29f))
+            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(999.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content
+    )
 }
 
 // -----------------------------
@@ -869,38 +1160,41 @@ fun MultTablePickerScreen(
 fun GameRouter(
     mode: GameMode,
     digits: Int,
+    startMode: StartMode,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
     onBack: () -> Unit,
-    onOpenLeaderboard: () -> Unit
+    onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
 ) {
-    val boardId = boardIdFor(mode, digits)
-
     when (mode) {
         GameMode.ADD -> LongAdditionGame(
             digits = digits,
-            boardId = boardId,
+            startMode = startMode,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,
             onBack = onBack,
-            onOpenLeaderboard = onOpenLeaderboard
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
         )
 
 
         GameMode.SUB -> LongSubtractionGame(
             digits = digits,
+            startMode = startMode,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,
             onBack = onBack,
-            onOpenLeaderboard = onOpenLeaderboard
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
         )
 
         // ✅ anche se dal menu vai alla schermata dedicata, qui lo gestiamo uguale
         GameMode.DIV -> DivisionStepGame(
-            boardId = boardId,
+            startMode = startMode,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,
@@ -908,7 +1202,14 @@ fun GameRouter(
             onOpenLeaderboard = onOpenLeaderboard
         )
 
-        GameMode.MONEY -> MoneyCountGame(boardId, soundEnabled, onToggleSound, fx, onBack, onOpenLeaderboard)
+        GameMode.MONEY -> MoneyCountGame(
+            soundEnabled,
+            onToggleSound,
+            fx,
+            onBack,
+            onOpenLeaderboard,
+            onOpenLeaderboardFromBonus
+        )
 
         else -> {
             // MULT e MULT_HARD hanno schermate dedicate in AppShell
@@ -924,32 +1225,19 @@ fun GameRouter(
 fun LeaderboardScreen(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
-    digits: Int,
-    onDigitsChange: (Int) -> Unit,
+    selectedTab: LeaderboardTab,
+    onTabChange: (LeaderboardTab) -> Unit,
     onBack: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-
-    var modeTab by remember { mutableStateOf(0) }
-    val mode = when (modeTab) {
-        0 -> GameMode.ADD
-        1 -> GameMode.SUB
-        2 -> GameMode.MULT
-        3 -> GameMode.DIV
-        4 -> GameMode.MONEY
-        else -> GameMode.MULT_HARD
-    }
-
-    val usesDigits = (mode == GameMode.ADD || mode == GameMode.SUB)
-    val boardId = boardIdFor(mode, digits)
-    val balloonsId = balloonsBoardId(boardId)
-    val starsId = starsBoardId(boardId)
+    val balloonsId = GLOBAL_BALLOONS_LEADERBOARD_ID
+    val starsId = GLOBAL_STARS_LEADERBOARD_ID
 
     var refreshToken by remember { mutableStateOf(0) }
-    val balloonEntries = remember(modeTab, digits, refreshToken) {
+    val balloonEntries = remember(refreshToken) {
         loadEntries(context, balloonsId).sortedBy { it.value }
     }
-    val starEntries = remember(modeTab, digits, refreshToken) {
+    val starEntries = remember(refreshToken) {
         loadEntries(context, starsId).sortedByDescending { it.value }
     }
 
@@ -965,75 +1253,69 @@ fun LeaderboardScreen(
             SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
         }
 
-        SeaGlassPanel(title = "Modalità") {
+        SeaGlassPanel(title = "Classifiche Bonus") {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ModeTabPill("➕", selected = modeTab == 0) { modeTab = 0 }
-                ModeTabPill("➖", selected = modeTab == 1) { modeTab = 1 }
-                ModeTabPill("✖️", selected = modeTab == 2) { modeTab = 2 }
-                ModeTabPill("➗", selected = modeTab == 3) { modeTab = 3 }
-                ModeTabPill("💶", selected = modeTab == 4) { modeTab = 4 }
-                ModeTabPill("🧠×", selected = modeTab == 5) { modeTab = 5 }
-            }
-
-            if (usesDigits) {
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ModeTabPill("2 cifre", selected = digits == 2) { onDigitsChange(2) }
-                    ModeTabPill("3 cifre", selected = digits == 3) { onDigitsChange(3) }
+                ModeTabPill("🎈 Palloncini", selected = selectedTab == LeaderboardTab.BALLOONS) {
+                    onTabChange(LeaderboardTab.BALLOONS)
+                }
+                ModeTabPill("⭐ Stelline", selected = selectedTab == LeaderboardTab.STARS) {
+                    onTabChange(LeaderboardTab.STARS)
                 }
             }
         }
 
-        SeaGlassPanel(title = "Palloncini (Tempo)") {
-            if (balloonEntries.isEmpty()) {
-                Text(
-                    "Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!",
-                    color = Color(0xFF6B7280)
-                )
-            } else {
-                balloonEntries.take(10).forEachIndexed { i, e ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
-                        Text(
-                            formatMs(e.value),
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+        when (selectedTab) {
+            LeaderboardTab.BALLOONS -> SeaGlassPanel(title = "Palloncini (Tempo)") {
+                if (balloonEntries.isEmpty()) {
+                    Text(
+                        "Nessun record ancora.\nCompleta 5 risposte giuste e gioca coi palloncini!",
+                        color = Color(0xFF6B7280)
+                    )
+                } else {
+                    balloonEntries.take(10).forEachIndexed { i, e ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
+                            Text(
+                                formatMs(e.value),
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
+
+                OutlinedButton(
+                    onClick = { clearLeaderboard(context, balloonsId); refreshToken++ },
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Svuota classifica palloncini") }
             }
 
-            OutlinedButton(
-                onClick = { clearLeaderboard(context, balloonsId); refreshToken++ },
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Svuota classifica palloncini") }
-        }
-
-        SeaGlassPanel(title = "Stelline (Punti)") {
-            if (starEntries.isEmpty()) {
-                Text(
-                    "Nessun record ancora.\nCompleta 5 risposte giuste e gioca con le stelline!",
-                    color = Color(0xFF6B7280)
-                )
-            } else {
-                starEntries.take(10).forEachIndexed { i, e ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
-                        Text(
-                            "${e.value}",
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
+            LeaderboardTab.STARS -> SeaGlassPanel(title = "Stelline (Punti)") {
+                if (starEntries.isEmpty()) {
+                    Text(
+                        "Nessun record ancora.\nCompleta 5 risposte giuste e gioca con le stelline!",
+                        color = Color(0xFF6B7280)
+                    )
+                } else {
+                    starEntries.take(10).forEachIndexed { i, e ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("#${i + 1}  ${e.name}", fontWeight = FontWeight.Bold)
+                            Text(
+                                "${e.value}",
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
                     }
                 }
-            }
 
-            OutlinedButton(
-                onClick = { clearLeaderboard(context, starsId); refreshToken++ },
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Svuota classifica stelline") }
+                OutlinedButton(
+                    onClick = { clearLeaderboard(context, starsId); refreshToken++ },
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Svuota classifica stelline") }
+            }
         }
     }
 }

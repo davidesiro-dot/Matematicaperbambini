@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -76,9 +75,9 @@ private data class BalloonParticle(
 fun BonusRewardHost(
     correctCount: Int,
     rewardsEarned: Int,
-    boardId: String,
     soundEnabled: Boolean,
     fx: SoundFx,
+    onOpenLeaderboard: (LeaderboardTab) -> Unit,
     onRewardEarned: () -> Unit,
     onRewardSkipped: () -> Unit
 ) {
@@ -132,21 +131,21 @@ fun BonusRewardHost(
     if (showGame) {
         when (pickedGame) {
             BonusGame.Stars -> FallingStarsGame(
-                boardId = boardId,
                 soundEnabled = soundEnabled,
                 fx = fx,
-                onBackToMath = {
+                onFinish = {
                     showGame = false
                     pickedGame = null
                     onRewardEarned()
+                    onOpenLeaderboard(LeaderboardTab.STARS)
                 }
             )
             else -> BonusBalloonGame(
-                boardId = boardId,
-                onBackToMath = {
+                onFinish = {
                     showGame = false
                     pickedGame = null
                     onRewardEarned()
+                    onOpenLeaderboard(LeaderboardTab.BALLOONS)
                 }
             )
         }
@@ -160,9 +159,8 @@ private enum class BonusGame {
 
 @Composable
 fun BonusBalloonGame(
-    boardId: String,
     balloonCount: Int = 8,
-    onBackToMath: () -> Unit
+    onFinish: () -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -171,22 +169,16 @@ fun BonusBalloonGame(
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     var elapsedMs by remember { mutableStateOf(0L) }
     var finished by remember { mutableStateOf(false) }
-    var started by remember { mutableStateOf(false) }
-    var showNameDialog by remember { mutableStateOf(true) }
-    var playerName by remember { mutableStateOf("Bimbo") }
+    var started by remember { mutableStateOf(true) }
+    var showNameEntry by remember { mutableStateOf(false) }
+    var playerName by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
-    var showLeaderboard by remember { mutableStateOf(false) }
-    var refreshToken by remember { mutableStateOf(0) }
-    var showSummary by remember { mutableStateOf(false) }
-    var summaryRank by remember { mutableStateOf<Int?>(null) }
-    var summaryTimeMs by remember { mutableStateOf<Long?>(null) }
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
     var lastFrameNs by remember { mutableStateOf(0L) }
 
-    val balloonBoardId = balloonsBoardId(boardId)
     val widthPx = containerSize.width.toFloat()
     val heightPx = containerSize.height.toFloat()
-    val paused = showNameDialog || showLeaderboard || finished
+    val paused = showNameEntry || finished
 
     val colors = listOf(
         Color(0xFF60A5FA),
@@ -214,51 +206,9 @@ fun BonusBalloonGame(
         )
     }
 
-    if (showNameDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Nome del bimbo") },
-            text = {
-                Column {
-                    Text("Scrivi il tuo nome per iniziare!")
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = playerName,
-                        onValueChange = { newValue ->
-                            val filtered = newValue.trimStart().trimEnd().take(12)
-                            playerName = filtered
-                        },
-                        singleLine = true,
-                        label = { Text("Nome") }
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val trimmed = playerName.trim()
-                        playerName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
-                        showNameDialog = false
-                        started = true
-                    }
-                ) { Text("Inizia") }
-            }
-        )
-    }
-
     LaunchedEffect(finished) {
         if (finished && !saved) {
-            saved = true
-            addTimeEntry(
-                context,
-                balloonBoardId,
-                ScoreEntry(playerName, elapsedMs)
-            )
-            refreshToken++
-            val updatedEntries = loadEntries(context, balloonBoardId)
-            summaryRank = computeRankTime(updatedEntries, elapsedMs)
-            summaryTimeMs = elapsedMs
-            showSummary = true
+            showNameEntry = true
         }
     }
 
@@ -277,9 +227,6 @@ fun BonusBalloonGame(
         val ui = rememberUiSizing()
         val headerPad = ui.pad
         val headerSpacing = if (ui.isCompact) 8.dp else 16.dp
-        val buttonSize = if (ui.isCompact) 34.dp else 40.dp
-        val buttonFont = if (ui.isCompact) 16.sp else 18.sp
-        val buttonIcon = if (ui.isCompact) 18.dp else 22.dp
         val balloonSizeDp = if (ui.isCompact) 58.dp else 72.dp
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cloudColor = Color.White.copy(alpha = 0.7f)
@@ -367,14 +314,6 @@ fun BonusBalloonGame(
                         Text("Tempo: ${formatMs(elapsedMs)}", fontWeight = FontWeight.Bold)
                     }
                 }
-                Spacer(Modifier.width(if (ui.isCompact) 6.dp else 10.dp))
-                SmallCircleButton(
-                    "🏆",
-                    onClick = { showLeaderboard = true },
-                    size = buttonSize,
-                    iconSize = buttonIcon,
-                    fontSize = buttonFont
-                )
             }
 
             Spacer(Modifier.height(if (ui.isCompact) 8.dp else 12.dp))
@@ -475,42 +414,40 @@ fun BonusBalloonGame(
             }
         }
 
-        if (showLeaderboard) {
-            val entries = remember(refreshToken) {
-                loadEntries(context, balloonBoardId).sortedBy { it.value }
-            }
-            LeaderboardDialog(
-                title = "Classifica Palloncini",
-                entries = entries,
-                valueFormatter = { formatMs(it) },
-                onDismiss = { showLeaderboard = false }
-            )
-        }
-
-        if (showSummary) {
+        if (showNameEntry) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0x99000000)),
+                    .background(Color(0xCC0F172A)),
                 contentAlignment = Alignment.Center
             ) {
-                SeaGlassPanel(title = "Riepilogo Bonus") {
-                    Text(
-                        "Tempo: ${formatMs(summaryTimeMs ?: elapsedMs)}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "Posizione in classifica: #${summaryRank ?: "-"}",
-                        color = MaterialTheme.colorScheme.onSurface
+                SeaGlassPanel(title = "Salva il tuo tempo") {
+                    Text("Scrivi il tuo nome (max 12 caratteri)")
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = playerName,
+                        onValueChange = { newValue ->
+                            playerName = newValue.trimStart().trimEnd().take(12)
+                        },
+                        singleLine = true,
+                        label = { Text("Nome") }
                     )
                     Spacer(Modifier.height(16.dp))
                     Button(
                         onClick = {
-                            showSummary = false
-                            onBackToMath()
+                            if (saved) return@Button
+                            val trimmed = playerName.trim()
+                            val finalName = if (trimmed.isNotEmpty()) trimmed else "Bimbo"
+                            saved = true
+                            addTimeEntry(
+                                context,
+                                GLOBAL_BALLOONS_LEADERBOARD_ID,
+                                ScoreEntry(finalName, elapsedMs)
+                            )
+                            showNameEntry = false
+                            onFinish()
                         }
-                    ) { Text("⬅ Torna agli esercizi") }
+                    ) { Text("Salva e vai alla classifica") }
                 }
             }
         }
