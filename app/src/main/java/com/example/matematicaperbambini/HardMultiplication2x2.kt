@@ -644,6 +644,7 @@ fun HardMultiplication2x2Game(
         BonusRewardHost(
             correctCount = correctCount,
             rewardsEarned = rewardsEarned,
+            rewardEvery = 3,
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,

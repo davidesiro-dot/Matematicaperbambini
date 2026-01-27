@@ -39,7 +39,6 @@ fun TabellineMenuScreen(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
-    onSelectClassicRandom: () -> Unit,
     onSelectClassicManual: () -> Unit,
     onSelectMode: (TabellineMode) -> Unit
 ) {
@@ -72,12 +71,6 @@ fun TabellineMenuScreen(
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ModeMenuButton(
-                    title = "Operazioni casuali",
-                    subtitle = "Stessa tabellina, risultati completi",
-                    baseColor = Color(0xFF0EA5E9),
-                    onClick = onSelectClassicRandom
-                )
                 ModeMenuButton(
                     title = "Inserimento manuale",
                     subtitle = "Scegli la tabellina da completare",
