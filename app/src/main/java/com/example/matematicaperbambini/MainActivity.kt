@@ -315,13 +315,11 @@ fun SmallCircleButton(
         contentAlignment = Alignment.Center
     ) {
         if (isBack) {
-            Text(
-                text = text,
-                fontSize = fontSize,
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary,
-                lineHeight = fontSize
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(iconSize)
             )
         } else {
             Text(
