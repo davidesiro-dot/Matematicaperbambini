@@ -3,7 +3,6 @@ package com.example.matematicaperbambini
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -22,6 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.ExperimentalFoundationApi
+
 
 /**
  * Cornice unica stile "Sottrazioni":
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
  * - Contenuto (slot)
  * - Bottom bar (slot)
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GameScreenFrame(
     title: String,
@@ -54,75 +56,77 @@ fun GameScreenFrame(
     val buttonFont = if (isCompact) 16.sp else 18.sp
 
     Box(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
-        LazyColumn(
+        // Header + Hud sempre visibili (NON scrollano)
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing),
-            contentPadding = PaddingValues(ui.pad),
+                .padding(ui.pad),
             verticalArrangement = Arrangement.spacedBy(ui.spacing)
         ) {
-            stickyHeader {
-                SeaGlassPanel {
-                    GameHeader(
-                        title = title,
-                        soundEnabled = soundEnabled,
-                        onToggleSound = onToggleSound,
-                        onBack = onBack,
-                        onLeaderboard = onOpenLeaderboard,
-                        ui = ui,
-                        bonusTarget = bonusTarget,
-                        showBack = false,
-                        noHintsMode = noHintsMode,
-                        onToggleHints = onToggleHints
-                    )
-                }
+            SeaGlassPanel {
+                GameHeader(
+                    title = title,
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onBack = onBack,
+                    onLeaderboard = onOpenLeaderboard,
+                    ui = ui,
+                    bonusTarget = bonusTarget,
+                    showBack = false,
+                    noHintsMode = noHintsMode,
+                    onToggleHints = onToggleHints
+                )
             }
 
-            item {
-                SeaGlassPanel {
-                    CompactHud(
-                        correctCount = correctCount,
-                        bonusTarget = bonusTarget,
-                        hintText = hintText,
-                        showHints = !noHintsMode,
-                        ui = ui
-                    )
-                }
+            SeaGlassPanel {
+                CompactHud(
+                    correctCount = correctCount,
+                    bonusTarget = bonusTarget,
+                    hintText = hintText,
+                    showHints = !noHintsMode,
+                    ui = ui
+                )
             }
 
-            item { content() }
+            // Qui scrolla solo il contenuto della schermata
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(ui.spacing)
+            ) {
+                item { content() }
 
-            item {
-                AnimatedVisibility(visible = !message.isNullOrBlank()) {
-                    SeaGlassPanel {
-                        Text(
-                            text = message.orEmpty(),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-
-            if (bottomBar != null) {
                 item {
-                    SeaGlassPanel {
-                        bottomBar()
+                    AnimatedVisibility(visible = !message.isNullOrBlank()) {
+                        SeaGlassPanel {
+                            Text(
+                                text = message.orEmpty(),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
-            }
 
-            item { Spacer(Modifier.height(ui.spacing)) }
+                if (bottomBar != null) {
+                    item {
+                        SeaGlassPanel { bottomBar() }
+                    }
+                }
+
+                item { Spacer(Modifier.height(ui.spacing)) }
+            }
         }
 
+        // Freccia sempre visibile (overlay)
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(start = ui.pad, top = ui.pad)
         ) {
             SmallCircleButton(
@@ -135,6 +139,7 @@ fun GameScreenFrame(
         }
     }
 }
+
 
 @Composable
 private fun CompactHud(
