@@ -56,7 +56,6 @@ fun MoneyCountGame(
     var message by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
-    var noHintsMode by remember { mutableStateOf(false) }
     var coinsOnly by remember { mutableStateOf(false) }
     var wrongAttempts by remember { mutableStateOf(0) }
     var revealSolution by remember { mutableStateOf(false) }
@@ -99,8 +98,6 @@ fun MoneyCountGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Somma il valore delle monete e delle banconote e scrivi il totale in euro.",
-            noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = message,
             content = {
@@ -354,3 +351,4 @@ private fun MoneyItemImage(item: MoneyItem, ui: UiSizing) {
         }
     }
 }
+

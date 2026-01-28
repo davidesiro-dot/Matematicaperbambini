@@ -21,8 +21,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.ExperimentalFoundationApi
-
 
 /**
  * Cornice unica stile "Sottrazioni":
@@ -31,7 +29,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
  * - Contenuto (slot)
  * - Bottom bar (slot)
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GameScreenFrame(
     title: String,
@@ -42,8 +39,6 @@ fun GameScreenFrame(
     correctCount: Int,
     bonusTarget: Int = BONUS_TARGET,
     hintText: String,
-    noHintsMode: Boolean,
-    onToggleHints: () -> Unit,
     ui: UiSizing,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
@@ -56,77 +51,72 @@ fun GameScreenFrame(
     val buttonFont = if (isCompact) 16.sp else 18.sp
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
+        modifier = modifier.fillMaxSize()
     ) {
-        // Header + Hud sempre visibili (NON scrollano)
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(ui.pad),
+                .windowInsetsPadding(WindowInsets.safeDrawing),
+            contentPadding = PaddingValues(ui.pad),
             verticalArrangement = Arrangement.spacedBy(ui.spacing)
         ) {
-            SeaGlassPanel {
-                GameHeader(
-                    title = title,
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onBack = onBack,
-                    onLeaderboard = onOpenLeaderboard,
-                    ui = ui,
-                    bonusTarget = bonusTarget,
-                    showBack = false,
-                    noHintsMode = noHintsMode,
-                    onToggleHints = onToggleHints
-                )
+            item {
+                SeaGlassPanel {
+                    GameHeader(
+                        title = title,
+                        soundEnabled = soundEnabled,
+                        onToggleSound = onToggleSound,
+                        onBack = onBack,
+                        onLeaderboard = onOpenLeaderboard,
+                        ui = ui,
+                        bonusTarget = bonusTarget,
+                        showBack = false
+                    )
+                }
             }
 
-            SeaGlassPanel {
-                CompactHud(
-                    correctCount = correctCount,
-                    bonusTarget = bonusTarget,
-                    hintText = hintText,
-                    showHints = !noHintsMode,
-                    ui = ui
-                )
+            item {
+                SeaGlassPanel {
+                    CompactHud(
+                        correctCount = correctCount,
+                        bonusTarget = bonusTarget,
+                        hintText = hintText,
+                        ui = ui
+                    )
+                }
             }
 
-            // Qui scrolla solo il contenuto della schermata
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(ui.spacing)
-            ) {
-                item { content() }
+            item { content() }
 
+            item {
+                AnimatedVisibility(visible = !message.isNullOrBlank()) {
+                    SeaGlassPanel {
+                        Text(
+                            text = message.orEmpty(),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            if (bottomBar != null) {
                 item {
-                    AnimatedVisibility(visible = !message.isNullOrBlank()) {
-                        SeaGlassPanel {
-                            Text(
-                                text = message.orEmpty(),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                    SeaGlassPanel {
+                        bottomBar()
                     }
                 }
-
-                if (bottomBar != null) {
-                    item {
-                        SeaGlassPanel { bottomBar() }
-                    }
-                }
-
-                item { Spacer(Modifier.height(ui.spacing)) }
             }
+
+            item { Spacer(Modifier.height(ui.spacing)) }
         }
 
-        // Freccia sempre visibile (overlay)
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(start = ui.pad, top = ui.pad)
         ) {
             SmallCircleButton(
@@ -140,13 +130,11 @@ fun GameScreenFrame(
     }
 }
 
-
 @Composable
 private fun CompactHud(
     correctCount: Int,
     bonusTarget: Int,
     hintText: String,
-    showHints: Boolean,
     ui: UiSizing
 ) {
     val safeTarget = bonusTarget.coerceAtLeast(1)
@@ -182,34 +170,32 @@ private fun CompactHud(
                 trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             )
         }
-        if (showHints) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = hintText,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = fontSize,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = hintText,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = fontSize,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(
+                onClick = { showHintDialog = true },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
                 )
-                TextButton(
-                    onClick = { showHintDialog = true },
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("?", fontSize = fontSize)
-                }
+            ) {
+                Text("?", fontSize = fontSize)
             }
         }
     }
 
-    if (showHints && showHintDialog) {
+    if (showHintDialog) {
         AlertDialog(
             onDismissRequest = { showHintDialog = false },
             confirmButton = {

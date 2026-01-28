@@ -104,7 +104,6 @@ private fun BasicColumnGame(
     var waitTap by remember { mutableStateOf(false) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
-    var noHintsMode by remember { mutableStateOf(false) }
 
     val correct = generator(a, b)
 
@@ -131,8 +130,6 @@ private fun BasicColumnGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Scrivi il risultato e premi Controlla.",
-            noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
@@ -230,7 +227,6 @@ fun MultiplicationTableGame(
     val ok = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
-    var noHintsMode by remember { mutableStateOf(false) }
 
     fun reset() {
         step = 1
@@ -255,8 +251,6 @@ fun MultiplicationTableGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Completa la tabellina scrivendo tutti i risultati.",
-            noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             content = {
                 SeaGlassPanel(title = "Completa la tabellina") {
@@ -439,7 +433,6 @@ fun MoneyGame(
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
-    var noHintsMode by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
@@ -454,8 +447,6 @@ fun MoneyGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Somma le monete e scrivi il totale.",
-            noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {

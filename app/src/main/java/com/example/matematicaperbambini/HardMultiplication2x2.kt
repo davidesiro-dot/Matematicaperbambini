@@ -137,6 +137,11 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
         carry = s / 10
         if (carry > 0) carrySUM[1] = carry.toString()[0]
     }
+    run {
+        val s = p1d[1] + p2d[1] + carry
+        carry = s / 10
+        if (carry > 0) carrySUM[0] = carry.toString()[0]  // ✅ riporto verso migliaia
+    }
 
     val targets = mutableListOf<HMTarget>()
 
@@ -166,9 +171,15 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
             HMRowKey.SUM, col, digit.toString()[0],
             "Somma ${hmColLabel(col)}: ${p1d[col]} + ${p2d[col]}${if (carryIn > 0) " + riporto $carryIn" else ""} → scrivi $digit"
         )
-        if (carryOut > 0 && col - 1 >= 0 && (col - 1) != 0) {
-            addCarry(HMRowKey.CARRY_SUM, col - 1, carryOut.toString()[0], "Riporta $carryOut nella ${hmColLabel(col - 1)}")
+        if (carryOut > 0 && col - 1 >= 0) {
+            addCarry(
+                HMRowKey.CARRY_SUM,
+                col - 1,
+                carryOut.toString()[0],
+                "Riporta $carryOut nella ${hmColLabel(col - 1)}"
+            )
         }
+
     }
 
     var cin = 0
@@ -223,7 +234,6 @@ fun HardMultiplication2x2Game(
     var step by remember { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
-    var noHintsMode by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -404,8 +414,6 @@ fun HardMultiplication2x2Game(
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
-            noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
