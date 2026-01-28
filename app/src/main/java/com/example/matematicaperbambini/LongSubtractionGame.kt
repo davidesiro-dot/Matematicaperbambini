@@ -41,7 +41,7 @@ private data class ExpectedSub(
     val bottomDigits: List<Int>,
     val topDigitsAfterBorrow: List<Int>, // come devono diventare dopo i prestiti
     val resultDigits: List<Int>,
-    val borrowChanged: List<Boolean>     // true se quella cifra “sopra” cambia
+    val borrowSteps: List<List<Int>>      // colonne da aggiornare prima della cifra risultato
 )
 
 private enum class SubStepType { BORROW_NEW_TOP_DIGIT, RESULT_DIGIT }
@@ -131,7 +131,7 @@ private fun computeExpectedSub(problem: SubProblem, digits: Int): ExpectedSub {
     val top = problem.a.toString().padStart(digits, '0').map { it.digitToInt() }.toMutableList()
     val bottom = problem.b.toString().padStart(digits, '0').map { it.digitToInt() }
     val topAfter = top.toMutableList()
-    val changed = MutableList(digits) { false }
+    val borrowSteps = MutableList(digits) { mutableListOf<Int>() }
     val res = MutableList(digits) { 0 }
 
     for (i in digits - 1 downTo 0) {
@@ -140,16 +140,20 @@ private fun computeExpectedSub(problem: SubProblem, digits: Int): ExpectedSub {
             var j = i - 1
             while (j >= 0 && topAfter[j] == 0) j--
             if (j >= 0) {
+                val updatedColumns = mutableListOf<Int>()
                 topAfter[j] -= 1
-                changed[j] = true
+                updatedColumns += j
                 for (k in j + 1 until i) {
                     if (topAfter[k] == 0) {
                         topAfter[k] = 9
-                        changed[k] = true
+                        updatedColumns += k
                     }
                 }
                 topAfter[i] += 10
-                changed[i] = true
+                if (i != digits - 1) {
+                    updatedColumns += i
+                }
+                borrowSteps[i].addAll(updatedColumns)
             }
         }
         res[i] = topAfter[i] - b
@@ -160,7 +164,7 @@ private fun computeExpectedSub(problem: SubProblem, digits: Int): ExpectedSub {
         bottomDigits = bottom,
         topDigitsAfterBorrow = topAfter,
         resultDigits = res,
-        borrowChanged = changed
+        borrowSteps = borrowSteps
     )
 }
 
@@ -168,10 +172,11 @@ private fun buildStepsSub(expected: ExpectedSub): List<SubStep> {
     val digits = expected.topDigitsOriginal.size
     val steps = mutableListOf<SubStep>()
     for (i in digits - 1 downTo 0) {
-        val left = i - 1
-        // se la cifra a sinistra cambia per il prestito, prima la scrivo “sopra”
-        if (left >= 0 && expected.borrowChanged[left]) {
-            steps += SubStep(SubStepType.BORROW_NEW_TOP_DIGIT, left)
+        val borrowColumns = expected.borrowSteps[i]
+        if (borrowColumns.isNotEmpty()) {
+            borrowColumns.forEach { col ->
+                steps += SubStep(SubStepType.BORROW_NEW_TOP_DIGIT, col)
+            }
         }
         // poi scrivo la cifra del risultato in colonna i
         steps += SubStep(SubStepType.RESULT_DIGIT, i)
@@ -202,15 +207,16 @@ private fun instructionSub(step: SubStep, digits: Int): String = when (step.type
 
 @Composable
 private fun SubStaticBox(text: String, size: Dp, active: Boolean) {
-    val borderColor = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)
-    else Color.White.copy(alpha = 0.45f)
+    val highlightColor = Color(0xFF22C55E)
+    val borderColor = if (active) highlightColor else MaterialTheme.colorScheme.outlineVariant
+    val borderWidth = if (active) 3.dp else 1.dp
 
     Box(
         modifier = Modifier
             .size(size)
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.80f))
-            .border(2.dp, borderColor, RoundedCornerShape(14.dp)),
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(borderWidth, borderColor, RoundedCornerShape(14.dp)),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -232,11 +238,23 @@ private fun SubDigitInput(
     bg: Color,
     status: Boolean?
 ) {
+    val highlightColor = Color(0xFF22C55E)
     val border = when {
-        status == false -> Color(0xFFEF4444)
-        status == true -> Color(0xFF10B981)
-        active -> MaterialTheme.colorScheme.primary
-        else -> Color.White.copy(alpha = 0.55f)
+        status == false -> MaterialTheme.colorScheme.error
+        status == true -> highlightColor
+        active -> MaterialTheme.colorScheme.tertiary
+        enabled -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+    val borderWidth = when {
+        status == false -> 2.dp
+        status == true || active -> 3.dp
+        else -> 2.dp
+    }
+    val bgColor = when {
+        active -> MaterialTheme.colorScheme.tertiaryContainer
+        value.isNotBlank() && status != false -> MaterialTheme.colorScheme.secondaryContainer
+        else -> bg
     }
 
     Box(
@@ -244,7 +262,8 @@ private fun SubDigitInput(
             .size(size)
             .scale(if (active) 1.03f else 1f)
             .clip(RoundedCornerShape(14.dp))
-            .background(bg.copy(alpha = 0.85f)),
+            .background(bgColor.copy(alpha = 0.9f))
+            .border(borderWidth, border, RoundedCornerShape(14.dp))
         contentAlignment = Alignment.Center
     ) {
         OutlinedTextField(
@@ -261,9 +280,9 @@ private fun SubDigitInput(
             ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = border,
-                unfocusedBorderColor = border,
-                disabledBorderColor = border.copy(alpha = 0.35f),
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                disabledBorderColor = Color.Transparent,
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 disabledContainerColor = Color.Transparent,
@@ -271,7 +290,8 @@ private fun SubDigitInput(
                 unfocusedTextColor = Color(0xFF111827),
                 disabledTextColor = Color(0xFF111827).copy(alpha = 0.6f),
                 cursorColor = border
-            )
+            ),
+            modifier = Modifier.fillMaxSize()
         )
     }
 }
@@ -496,12 +516,13 @@ fun LongSubtractionGame(
                         @Composable fun BlankBox() { Box(Modifier.size(boxSize)) }
 
                         // Riga “nuovi numeri sopra” (solo dove serve)
+                        val borrowColumns = expected.borrowSteps.flatten().toSet()
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             BlankBox()
                             Spacer(Modifier.width(gap))
                             for (col in 0 until digits) {
                                 val enabled = topEnabled(col)
-                                val show = expected.borrowChanged[col] || enabled
+                                val show = borrowColumns.contains(col) || enabled
                                 if (show) {
                                     SubDigitInput(
                                         value = topNewInputs[col],
