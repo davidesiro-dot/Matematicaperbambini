@@ -638,11 +638,22 @@ fun LongSubtractionGame(
                     }
                 }
 
-                SeaGlassPanel(title = "Stato") {
-                    Text(
-                        if (done) "Operazione completata." else "Passo ${stepIndex + 1}/${steps.size}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                SeaGlassPanel(title = "Aiuto") {
+                    val totalSteps = steps.size
+                    val stepLabel = when {
+                        totalSteps == 0 -> "Passo 0/0"
+                        done -> "Passo $totalSteps/$totalSteps"
+                        else -> "Passo ${stepIndex + 1}/$totalSteps"
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
+                        Text(text = hint, color = MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            text = stepLabel,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
                 }
                 }
             },
