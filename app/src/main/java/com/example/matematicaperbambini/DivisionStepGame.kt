@@ -84,6 +84,7 @@ fun DivisionStepGame(
     var rewardsEarned by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var noHintsMode by remember { mutableStateOf(false) }
 
     val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
@@ -225,10 +226,14 @@ fun DivisionStepGame(
         showSuccessDialog = true
     }
 
-    val hint = when {
-        done && p != null -> "Bravo! Quoziente ${p.finalQuotient} con resto ${p.finalRemainder}."
-        p == null -> "Inserisci dividendo e divisore e premi Avvia."
-        else -> currentTarget?.hint.orEmpty()
+    val hint = if (noHintsMode) {
+        ""
+    } else {
+        when {
+            done && p != null -> "Bravo! Quoziente ${p.finalQuotient} con resto ${p.finalRemainder}."
+            p == null -> "Inserisci dividendo e divisore e premi Avvia."
+            else -> currentTarget?.hint.orEmpty()
+        }
     }
 
     LaunchedEffect(done) {
@@ -268,7 +273,7 @@ fun DivisionStepGame(
     val divisorWidth = divisorCellW * divisorColumns + gap * (divisorColumns - 1)
 
     fun isHL(zone: HLZone, step: Int, col: Int): Boolean =
-        currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
+        !noHintsMode && currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
 
     Box(Modifier.fillMaxSize()) {
         GameScreenFrame(
@@ -280,6 +285,8 @@ fun DivisionStepGame(
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = message,
             content = {
@@ -467,7 +474,7 @@ fun DivisionStepGame(
                                                     active = active,
                                                     isError = quotientErrors[col].value,
                                                     highlight = highlightQuotient,
-                                                    microLabel = target.microLabel,
+                                                    microLabel = if (noHintsMode) null else target.microLabel,
                                                     onValueChange = { onDigitInput(target, it) },
                                                     w = quotientDigitW,
                                                     h = digitH,
@@ -520,7 +527,7 @@ fun DivisionStepGame(
                                                     active = active,
                                                     isError = productErrors[si][target.idx].value,
                                                     highlight = isHL(HLZone.PRODUCT, si, col),
-                                                    microLabel = target.microLabel,
+                                                    microLabel = if (noHintsMode) null else target.microLabel,
                                                     onValueChange = { onDigitInput(target, it) },
                                                     w = digitSmallW,
                                                     h = digitSmallH,
@@ -554,7 +561,7 @@ fun DivisionStepGame(
                                                             active = active,
                                                             isError = remainderErrors[si][target.idx].value,
                                                             highlight = isHL(HLZone.REMAINDER, si, col),
-                                                            microLabel = target.microLabel,
+                                                            microLabel = if (noHintsMode) null else target.microLabel,
                                                             onValueChange = { onDigitInput(target, it) },
                                                             w = digitSmallW,
                                                             h = digitSmallH,
@@ -570,7 +577,7 @@ fun DivisionStepGame(
                                                         DivisionActionDigit(
                                                             text = step.bringDownDigit.toString(),
                                                             active = active,
-                                                            microLabel = bringDownTarget.microLabel,
+                                                            microLabel = if (noHintsMode) null else bringDownTarget.microLabel,
                                                             w = digitSmallW,
                                                             h = digitSmallH,
                                                             fontSize = fontSmall,
@@ -608,7 +615,9 @@ fun DivisionStepGame(
 
                     SeaGlassPanel(title = "Aiuto") {
                         Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
-                            Text(text = hint, color = MaterialTheme.colorScheme.onSurface)
+                            if (!noHintsMode) {
+                                Text(text = hint, color = MaterialTheme.colorScheme.onSurface)
+                            }
                             Text(
                                 text = if (p == null) "Passo 0/0"
                                 else if (done) "Passo ${p.steps.size}/${p.steps.size}"

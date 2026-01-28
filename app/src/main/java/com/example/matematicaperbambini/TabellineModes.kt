@@ -53,6 +53,7 @@ fun TabellineMixedGame(
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var noHintsMode by remember { mutableStateOf(false) }
 
     fun newQuestion() {
         a = rng.nextInt(1, 11)
@@ -75,6 +76,8 @@ fun TabellineMixedGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Scrivi il risultato della moltiplicazione.",
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
@@ -153,6 +156,7 @@ fun TabellineGapsGame(
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var noHintsMode by remember { mutableStateOf(false) }
 
     fun resetRound() {
         blanks = (1..10).shuffled(rng).take(4).toSet()
@@ -186,6 +190,8 @@ fun TabellineGapsGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Completa solo i risultati mancanti.",
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
@@ -358,6 +364,8 @@ fun TabellinaReverseGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Inserisci il numero mancante per completare l’operazione.",
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
@@ -435,6 +443,7 @@ fun TabellineMultipleChoiceGame(
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var noHintsMode by remember { mutableStateOf(false) }
 
     fun newQuestion() {
         a = rng.nextInt(1, 11)
@@ -464,6 +473,8 @@ fun TabellineMultipleChoiceGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             hintText = "Scegli il risultato corretto.",
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {

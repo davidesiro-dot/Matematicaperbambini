@@ -3,6 +3,7 @@ package com.example.matematicaperbambini
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -39,6 +40,8 @@ fun GameScreenFrame(
     correctCount: Int,
     bonusTarget: Int = BONUS_TARGET,
     hintText: String,
+    noHintsMode: Boolean,
+    onToggleHints: () -> Unit,
     ui: UiSizing,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
@@ -60,7 +63,7 @@ fun GameScreenFrame(
             contentPadding = PaddingValues(ui.pad),
             verticalArrangement = Arrangement.spacedBy(ui.spacing)
         ) {
-            item {
+            stickyHeader {
                 SeaGlassPanel {
                     GameHeader(
                         title = title,
@@ -70,7 +73,9 @@ fun GameScreenFrame(
                         onLeaderboard = onOpenLeaderboard,
                         ui = ui,
                         bonusTarget = bonusTarget,
-                        showBack = false
+                        showBack = false,
+                        noHintsMode = noHintsMode,
+                        onToggleHints = onToggleHints
                     )
                 }
             }
@@ -81,6 +86,7 @@ fun GameScreenFrame(
                         correctCount = correctCount,
                         bonusTarget = bonusTarget,
                         hintText = hintText,
+                        showHints = !noHintsMode,
                         ui = ui
                     )
                 }
@@ -135,6 +141,7 @@ private fun CompactHud(
     correctCount: Int,
     bonusTarget: Int,
     hintText: String,
+    showHints: Boolean,
     ui: UiSizing
 ) {
     val safeTarget = bonusTarget.coerceAtLeast(1)
@@ -170,32 +177,34 @@ private fun CompactHud(
                 trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = hintText,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = fontSize,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            TextButton(
-                onClick = { showHintDialog = true },
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
+        if (showHints) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("?", fontSize = fontSize)
+                Text(
+                    text = hintText,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = fontSize,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(
+                    onClick = { showHintDialog = true },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("?", fontSize = fontSize)
+                }
             }
         }
     }
 
-    if (showHintDialog) {
+    if (showHints && showHintDialog) {
         AlertDialog(
             onDismissRequest = { showHintDialog = false },
             confirmButton = {
