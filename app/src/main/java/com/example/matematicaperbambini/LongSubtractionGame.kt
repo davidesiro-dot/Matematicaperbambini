@@ -236,7 +236,8 @@ private fun SubDigitInput(
     enabled: Boolean,
     active: Boolean,
     bg: Color,
-    status: Boolean?
+    status: Boolean?,
+    maxDigits: Int = 1
 ) {
     val highlightColor = Color(0xFF22C55E)
     val border = when {
@@ -268,7 +269,7 @@ private fun SubDigitInput(
     ) {
         OutlinedTextField(
             value = value,
-            onValueChange = { onChange(it.filter { c -> c.isDigit() }.take(1)) },
+            onValueChange = { onChange(it.filter { c -> c.isDigit() }.take(maxDigits)) },
             enabled = enabled,
             singleLine = true,
             modifier = Modifier.fillMaxSize(),
@@ -523,17 +524,23 @@ fun LongSubtractionGame(
                                 val enabled = topEnabled(col)
                                 val show = borrowColumns.contains(col) || enabled
                                 if (show) {
+                                    val expBorrow = expected.topDigitsAfterBorrow[col] // <-- atteso in quella colonna (può essere 10..19)
+
                                     SubDigitInput(
                                         value = topNewInputs[col],
                                         onChange = { v ->
                                             topNewInputs[col] = v
-                                            if (enabled) tryValidate()
+                                            if (enabled) {
+                                                val needLen = if (expBorrow >= 10) 2 else 1
+                                                if (v.length >= needLen) tryValidate()
+                                            }
                                         },
                                         size = boxSize,
                                         enabled = enabled,
                                         active = enabled,
                                         bg = borrowBg,
-                                        status = topOk[col]
+                                        status = topOk[col],
+                                        maxDigits = 2
                                     )
                                 } else {
                                     Box(Modifier.size(boxSize))

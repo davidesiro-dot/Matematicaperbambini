@@ -544,8 +544,6 @@ fun HardMultiplication2x2Game(
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
-            noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
