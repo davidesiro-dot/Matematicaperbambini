@@ -307,6 +307,7 @@ fun LongSubtractionGame(
     var stepIndex by remember(problem, digits) { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var noHintsMode by remember { mutableStateOf(false) }
     val currentStep = steps.getOrNull(stepIndex)
     val done = problem != null && currentStep == null
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -437,6 +438,8 @@ fun LongSubtractionGame(
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
             hintText = hint,
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = message,
             content = {

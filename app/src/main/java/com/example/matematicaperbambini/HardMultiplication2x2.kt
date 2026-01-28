@@ -223,6 +223,7 @@ fun HardMultiplication2x2Game(
     var step by remember { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var noHintsMode by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -403,6 +404,8 @@ fun HardMultiplication2x2Game(
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
