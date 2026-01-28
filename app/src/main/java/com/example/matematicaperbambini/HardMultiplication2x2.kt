@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -30,13 +31,20 @@ import kotlin.random.Random
 
 private enum class HMRowKey { CARRY_P1, P1, CARRY_P2, P2, CARRY_SUM, SUM }
 private enum class HMCellKind { CARRY, DIGIT }
+private enum class HMHighlightRow { TOP_A, TOP_B, CARRY_P1, P1, CARRY_P2, P2, CARRY_SUM, SUM }
+
+private data class HMHighlight(
+    val row: HMHighlightRow,
+    val col: Int
+)
 
 private data class HMTarget(
     val row: HMRowKey,
     val col: Int, // 0..3 -> migliaia..unità
     val kind: HMCellKind,
     val expected: Char,
-    val hint: String
+    val hint: String,
+    val highlights: List<HMHighlight>
 )
 
 private data class HMPlan(
@@ -137,49 +145,164 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
         carry = s / 10
         if (carry > 0) carrySUM[1] = carry.toString()[0]
     }
-    run {
-        val s = p1d[1] + p2d[1] + carry
-        carry = s / 10
-        if (carry > 0) carrySUM[0] = carry.toString()[0]  // ✅ riporto verso migliaia
-    }
 
     val targets = mutableListOf<HMTarget>()
 
-    fun addDigit(row: HMRowKey, col: Int, ch: Char, hint: String) {
-        targets += HMTarget(row, col, HMCellKind.DIGIT, ch, hint)
+    fun addHighlight(
+        list: MutableList<HMHighlight>,
+        row: HMHighlightRow,
+        col: Int,
+        ch: Char? = null
+    ) {
+        if (col !in 0..3) return
+        if (ch != null && ch == ' ') return
+        list += HMHighlight(row, col)
     }
 
-    fun addCarry(row: HMRowKey, col: Int, ch: Char, hint: String) {
-        targets += HMTarget(row, col, HMCellKind.CARRY, ch, hint)
+    fun addDigit(row: HMRowKey, col: Int, ch: Char, hint: String, highlights: List<HMHighlight>) {
+        targets += HMTarget(row, col, HMCellKind.DIGIT, ch, hint, highlights)
+    }
+
+    fun addCarry(row: HMRowKey, col: Int, ch: Char, hint: String, highlights: List<HMHighlight>) {
+        targets += HMTarget(row, col, HMCellKind.CARRY, ch, hint, highlights)
+    }
+
+    fun highlightsForMul(
+        aCol: Int,
+        bCol: Int,
+        targetRow: HMHighlightRow,
+        targetCol: Int,
+        extra: List<HMHighlight> = emptyList()
+    ): List<HMHighlight> {
+        val list = mutableListOf<HMHighlight>()
+        addHighlight(list, HMHighlightRow.TOP_A, aCol, a4[aCol])
+        addHighlight(list, HMHighlightRow.TOP_B, bCol, b4[bCol])
+        addHighlight(list, targetRow, targetCol)
+        list.addAll(extra)
+        return list.distinct()
+    }
+
+    fun highlightsForSum(
+        col: Int,
+        targetRow: HMHighlightRow,
+        targetCol: Int,
+        carryCol: Int? = null
+    ): List<HMHighlight> {
+        val list = mutableListOf<HMHighlight>()
+        addHighlight(list, HMHighlightRow.P1, col, p1_4[col])
+        addHighlight(list, HMHighlightRow.P2, col, p2_4[col])
+        addHighlight(list, targetRow, targetCol)
+        if (carryCol != null) {
+            addHighlight(list, HMHighlightRow.CARRY_SUM, carryCol, carrySUM[carryCol])
+        }
+        return list.distinct()
     }
 
     // P1
-    addDigit(HMRowKey.P1, 3, w11.toString()[0], "${aU}×${bU} = $m1 → scrivi $w11 nelle unità")
-    if (c11 > 0) addCarry(HMRowKey.CARRY_P1, 2, c11.toString()[0], "${aU}×${bU} = $m1 → riporta $c11 nelle decine")
-    addDigit(HMRowKey.P1, 2, w12.toString()[0], "${aT}×${bU} = $m2raw${if (c11 > 0) " + $c11 = $m2" else ""} → scrivi $w12 nelle decine")
-    if (c12 > 0) addDigit(HMRowKey.P1, 1, c12.toString()[0], "Ultimo riporto riga 1: scrivi $c12 nella casella delle centinaia")
+    addDigit(
+        HMRowKey.P1,
+        3,
+        w11.toString()[0],
+        "${aU}×${bU} = $m1 → scrivi $w11 nelle unità",
+        highlightsForMul(3, 3, HMHighlightRow.P1, 3)
+    )
+    if (c11 > 0) {
+        addCarry(
+            HMRowKey.CARRY_P1,
+            2,
+            c11.toString()[0],
+            "${aU}×${bU} = $m1 → riporta $c11 nelle decine",
+            highlightsForMul(3, 3, HMHighlightRow.CARRY_P1, 2)
+        )
+    }
+    val p1TensHighlights = highlightsForMul(
+        2,
+        3,
+        HMHighlightRow.P1,
+        2,
+        extra = buildList {
+            if (carryP1[2] != ' ') add(HMHighlight(HMHighlightRow.CARRY_P1, 2))
+        }
+    )
+    addDigit(
+        HMRowKey.P1,
+        2,
+        w12.toString()[0],
+        "${aT}×${bU} = $m2raw${if (c11 > 0) " + $c11 = $m2" else ""} → scrivi $w12 nelle decine",
+        p1TensHighlights
+    )
+    if (c12 > 0) {
+        addDigit(
+            HMRowKey.P1,
+            1,
+            c12.toString()[0],
+            "Ultimo riporto riga 1: scrivi $c12 nella casella delle centinaia",
+            highlightsForMul(2, 3, HMHighlightRow.P1, 1)
+        )
+    }
 
     // P2
-    addDigit(HMRowKey.P2, 2, w21.toString()[0], "Riga decine: ${aU}×${bT} = $n1 → scrivi $w21 (unità è un trattino)")
-    if (c21 > 0) addCarry(HMRowKey.CARRY_P2, 1, c21.toString()[0], "Riporta $c21 nelle centinaia (riga 2)")
-    addDigit(HMRowKey.P2, 1, w22.toString()[0], "${aT}×${bT} = $n2raw${if (c21 > 0) " + $c21 = $n2" else ""} → scrivi $w22 nelle centinaia")
-    if (c22 > 0) addDigit(HMRowKey.P2, 0, c22.toString()[0], "Ultimo riporto riga 2: scrivi $c22 nella casella delle migliaia")
+    addDigit(
+        HMRowKey.P2,
+        2,
+        w21.toString()[0],
+        "Riga decine: ${aU}×${bT} = $n1 → scrivi $w21 (unità è un trattino)",
+        highlightsForMul(3, 2, HMHighlightRow.P2, 2)
+    )
+    if (c21 > 0) {
+        addCarry(
+            HMRowKey.CARRY_P2,
+            1,
+            c21.toString()[0],
+            "Riporta $c21 nelle centinaia (riga 2)",
+            highlightsForMul(3, 2, HMHighlightRow.CARRY_P2, 1)
+        )
+    }
+    val p2HundredsHighlights = highlightsForMul(
+        2,
+        2,
+        HMHighlightRow.P2,
+        1,
+        extra = buildList {
+            if (carryP2[1] != ' ') add(HMHighlight(HMHighlightRow.CARRY_P2, 1))
+        }
+    )
+    addDigit(
+        HMRowKey.P2,
+        1,
+        w22.toString()[0],
+        "${aT}×${bT} = $n2raw${if (c21 > 0) " + $c21 = $n2" else ""} → scrivi $w22 nelle centinaia",
+        p2HundredsHighlights
+    )
+    if (c22 > 0) {
+        addDigit(
+            HMRowKey.P2,
+            0,
+            c22.toString()[0],
+            "Ultimo riporto riga 2: scrivi $c22 nella casella delle migliaia",
+            highlightsForMul(2, 2, HMHighlightRow.P2, 0)
+        )
+    }
 
     // SOMMA
     fun addSum(col: Int, carryIn: Int, carryOut: Int, digit: Int) {
+        val carryHighlightCol = if (carryIn > 0 && carrySUM[col] != ' ') col else null
         addDigit(
-            HMRowKey.SUM, col, digit.toString()[0],
-            "Somma ${hmColLabel(col)}: ${p1d[col]} + ${p2d[col]}${if (carryIn > 0) " + riporto $carryIn" else ""} → scrivi $digit"
+            HMRowKey.SUM,
+            col,
+            digit.toString()[0],
+            "Somma ${hmColLabel(col)}: ${p1d[col]} + ${p2d[col]}${if (carryIn > 0) " + riporto $carryIn" else ""} → scrivi $digit",
+            highlightsForSum(col, HMHighlightRow.SUM, col, carryHighlightCol)
         )
-        if (carryOut > 0 && col - 1 >= 0) {
+        if (carryOut > 0 && col - 1 >= 0 && (col - 1) != 0) {
             addCarry(
                 HMRowKey.CARRY_SUM,
                 col - 1,
                 carryOut.toString()[0],
-                "Riporta $carryOut nella ${hmColLabel(col - 1)}"
+                "Riporta $carryOut nella ${hmColLabel(col - 1)}",
+                highlightsForSum(col, HMHighlightRow.CARRY_SUM, col - 1)
             )
         }
-
     }
 
     var cin = 0
@@ -189,8 +312,11 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
     run {
         val s = p1d[0] + p2d[0] + cin
         addDigit(
-            HMRowKey.SUM, 0, (s % 10).toString()[0],
-            "Ultima colonna a sinistra: ${p1d[0]} + ${p2d[0]}${if (cin > 0) " + riporto $cin" else ""} → scrivi ${s % 10}"
+            HMRowKey.SUM,
+            0,
+            (s % 10).toString()[0],
+            "Ultima colonna a sinistra: ${p1d[0]} + ${p2d[0]}${if (cin > 0) " + riporto $cin" else ""} → scrivi ${s % 10}",
+            highlightsForSum(0, HMHighlightRow.SUM, 0)
         )
     }
 
@@ -234,6 +360,7 @@ fun HardMultiplication2x2Game(
     var step by remember { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var noHintsMode by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -394,6 +521,9 @@ fun HardMultiplication2x2Game(
         else -> current?.hint.orEmpty()
     }
 
+    fun isHL(row: HMHighlightRow, col: Int): Boolean =
+        !noHintsMode && current?.highlights?.contains(HMHighlight(row, col)) == true
+
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
         val digitW = if (ui.isCompact) 34.dp else 44.dp
@@ -414,6 +544,8 @@ fun HardMultiplication2x2Game(
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
@@ -477,18 +609,66 @@ fun HardMultiplication2x2Game(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             HMGridRowRight(signW, gap) {
-                                HMFixedDigit(activePlan.a4[0], digitW, digitH, digitFont)
-                                HMFixedDigit(activePlan.a4[1], digitW, digitH, digitFont)
-                                HMFixedDigit(activePlan.a4[2], digitW, digitH, digitFont)
-                                HMFixedDigit(activePlan.a4[3], digitW, digitH, digitFont)
+                                HMFixedDigit(
+                                    activePlan.a4[0],
+                                    digitW,
+                                    digitH,
+                                    digitFont,
+                                    highlight = isHL(HMHighlightRow.TOP_A, 0)
+                                )
+                                HMFixedDigit(
+                                    activePlan.a4[1],
+                                    digitW,
+                                    digitH,
+                                    digitFont,
+                                    highlight = isHL(HMHighlightRow.TOP_A, 1)
+                                )
+                                HMFixedDigit(
+                                    activePlan.a4[2],
+                                    digitW,
+                                    digitH,
+                                    digitFont,
+                                    highlight = isHL(HMHighlightRow.TOP_A, 2)
+                                )
+                                HMFixedDigit(
+                                    activePlan.a4[3],
+                                    digitW,
+                                    digitH,
+                                    digitFont,
+                                    highlight = isHL(HMHighlightRow.TOP_A, 3)
+                                )
                                 HMSignCell("", signW)
                             }
 
                             HMGridRowRight(signW, gap) {
-                                HMFixedDigit(activePlan.b4[0], digitW, digitH, digitFont)
-                                HMFixedDigit(activePlan.b4[1], digitW, digitH, digitFont)
-                                HMFixedDigit(activePlan.b4[2], digitW, digitH, digitFont)
-                                HMFixedDigit(activePlan.b4[3], digitW, digitH, digitFont)
+                                HMFixedDigit(
+                                    activePlan.b4[0],
+                                    digitW,
+                                    digitH,
+                                    digitFont,
+                                    highlight = isHL(HMHighlightRow.TOP_B, 0)
+                                )
+                                HMFixedDigit(
+                                    activePlan.b4[1],
+                                    digitW,
+                                    digitH,
+                                    digitFont,
+                                    highlight = isHL(HMHighlightRow.TOP_B, 1)
+                                )
+                                HMFixedDigit(
+                                    activePlan.b4[2],
+                                    digitW,
+                                    digitH,
+                                    digitFont,
+                                    highlight = isHL(HMHighlightRow.TOP_B, 2)
+                                )
+                                HMFixedDigit(
+                                    activePlan.b4[3],
+                                    digitW,
+                                    digitH,
+                                    digitFont,
+                                    highlight = isHL(HMHighlightRow.TOP_B, 3)
+                                )
                                 HMSignCell("×", signW)
                             }
 
@@ -501,6 +681,7 @@ fun HardMultiplication2x2Game(
                                 err = errCarryP1,
                                 enabled = { c -> enabled(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
                                 isActive = { c -> isActive(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
+                                highlight = { c -> isHL(HMHighlightRow.CARRY_P1, c) },
                                 shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P1, c) },
                                 onChange = { c, v -> onTyped(HMRowKey.CARRY_P1, c, HMCellKind.CARRY, v) },
                                 fontSize = carryFont
@@ -513,6 +694,7 @@ fun HardMultiplication2x2Game(
                                 err = errP1,
                                 enabled = { c -> enabled(HMRowKey.P1, c, HMCellKind.DIGIT) },
                                 isActive = { c -> isActive(HMRowKey.P1, c, HMCellKind.DIGIT) },
+                                highlight = { c -> isHL(HMHighlightRow.P1, c) },
                                 onChange = { c, v -> onTyped(HMRowKey.P1, c, HMCellKind.DIGIT, v) },
                                 fontSize = digitFont
                             )
@@ -524,6 +706,7 @@ fun HardMultiplication2x2Game(
                                 err = errCarryP2,
                                 enabled = { c -> enabled(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
                                 isActive = { c -> isActive(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
+                                highlight = { c -> isHL(HMHighlightRow.CARRY_P2, c) },
                                 shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P2, c) },
                                 onChange = { c, v -> onTyped(HMRowKey.CARRY_P2, c, HMCellKind.CARRY, v) },
                                 fontSize = carryFont
@@ -536,6 +719,7 @@ fun HardMultiplication2x2Game(
                                 err = errP2,
                                 enabled = { c -> enabled(HMRowKey.P2, c, HMCellKind.DIGIT) },
                                 isActive = { c -> isActive(HMRowKey.P2, c, HMCellKind.DIGIT) },
+                                highlight = { c -> isHL(HMHighlightRow.P2, c) },
                                 onChange = { c, v -> onTyped(HMRowKey.P2, c, HMCellKind.DIGIT, v) },
                                 fixedUnitDash = true,
                                 fontSize = digitFont
@@ -550,6 +734,7 @@ fun HardMultiplication2x2Game(
                                 err = errCarrySUM,
                                 enabled = { c -> enabled(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
                                 isActive = { c -> isActive(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
+                                highlight = { c -> isHL(HMHighlightRow.CARRY_SUM, c) },
                                 shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_SUM, c) },
                                 onChange = { c, v -> onTyped(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY, v) },
                                 fontSize = carryFont
@@ -562,6 +747,7 @@ fun HardMultiplication2x2Game(
                                 err = errSUM,
                                 enabled = { c -> enabled(HMRowKey.SUM, c, HMCellKind.DIGIT) },
                                 isActive = { c -> isActive(HMRowKey.SUM, c, HMCellKind.DIGIT) },
+                                highlight = { c -> isHL(HMHighlightRow.SUM, c) },
                                 onChange = { c, v -> onTyped(HMRowKey.SUM, c, HMCellKind.DIGIT, v) },
                                 fontSize = digitFont
                             )
@@ -699,16 +885,20 @@ private fun HMFixedDigit(
     ch: Char,
     w: Dp,
     h: Dp,
-    fontSize: TextUnit
+    fontSize: TextUnit,
+    highlight: Boolean = false
 ) {
     val shape = RoundedCornerShape(10.dp)
+    val highlightColor = Color(0xFF22C55E)
+    val borderColor = if (highlight) highlightColor else MaterialTheme.colorScheme.outlineVariant
+    val borderW = if (highlight) 3.dp else 1.dp
     Box(
         modifier = Modifier
             .width(w)
             .height(h)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+            .border(borderW, borderColor, shape),
         contentAlignment = Alignment.Center
     ) {
         val color = if (ch == '-') MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface
@@ -735,6 +925,7 @@ private fun HMCarryRowRight(
     err: BooleanArray,
     enabled: (Int) -> Boolean,
     isActive: (Int) -> Boolean,
+    highlight: (Int) -> Boolean,
     shouldFade: (Int) -> Boolean,
     onChange: (Int, String) -> Unit,
     fontSize: TextUnit
@@ -758,6 +949,7 @@ private fun HMCarryRowRight(
                         enabled = enabled(col),
                         isActive = isActive(col),
                         isError = err[col],
+                        highlight = highlight(col),
                         w = carryW,
                         h = carryH,
                         fontSize = fontSize,
@@ -781,6 +973,7 @@ private fun HMDigitRowRight(
     err: BooleanArray,
     enabled: (Int) -> Boolean,
     isActive: (Int) -> Boolean,
+    highlight: (Int) -> Boolean,
     onChange: (Int, String) -> Unit,
     fixedUnitDash: Boolean = false,
     fontSize: TextUnit
@@ -803,6 +996,7 @@ private fun HMDigitRowRight(
                     enabled = enabled(col),
                     isActive = isActive(col),
                     isError = err[col],
+                    highlight = highlight(col),
                     w = digitW,
                     h = digitH,
                     fontSize = fontSize,
@@ -820,12 +1014,14 @@ private fun HMInputBox(
     enabled: Boolean,
     isActive: Boolean,
     isError: Boolean,
+    highlight: Boolean,
     w: Dp,
     h: Dp,
     fontSize: TextUnit,
     onValueChange: (String) -> Unit
 ) {
     val shape = RoundedCornerShape(10.dp)
+    val highlightColor = Color(0xFF22C55E)
 
     val bg = when {
         isActive -> MaterialTheme.colorScheme.tertiaryContainer
@@ -835,12 +1031,17 @@ private fun HMInputBox(
 
     val borderColor = when {
         isError -> MaterialTheme.colorScheme.error
+        highlight -> highlightColor
         isActive -> MaterialTheme.colorScheme.tertiary
         enabled -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outline
     }
 
-    val borderW = if (isActive) 3.dp else 2.dp
+    val borderW = when {
+        isError -> 2.dp
+        highlight || isActive -> 3.dp
+        else -> 2.dp
+    }
 
     Box(
         modifier = Modifier
