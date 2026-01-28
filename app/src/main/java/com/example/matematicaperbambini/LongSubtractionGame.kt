@@ -263,7 +263,7 @@ private fun SubDigitInput(
             .scale(if (active) 1.03f else 1f)
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor.copy(alpha = 0.9f))
-            .border(borderWidth, border, RoundedCornerShape(14.dp))
+            .border(borderWidth, border, RoundedCornerShape(14.dp)),
         contentAlignment = Alignment.Center
     ) {
         OutlinedTextField(
@@ -290,8 +290,7 @@ private fun SubDigitInput(
                 unfocusedTextColor = Color(0xFF111827),
                 disabledTextColor = Color(0xFF111827).copy(alpha = 0.6f),
                 cursorColor = border
-            ),
-            modifier = Modifier.fillMaxSize()
+            )
         )
     }
 }
