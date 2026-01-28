@@ -77,11 +77,19 @@ fun TabellineMixedGame(
             correctCount = correctCount,
             hintText = "Scrivi il risultato della moltiplicazione.",
             noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(title = "Quanto fa?") {
+                SeaGlassPanel(
+                    title = "Quanto fa?",
+                    titleTrailing = {
+                        HintsToggleButton(
+                            noHintsMode = noHintsMode,
+                            onToggleHints = { noHintsMode = !noHintsMode },
+                            isCompact = ui.isCompact
+                        )
+                    }
+                ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(ui.spacing)
@@ -191,11 +199,19 @@ fun TabellineGapsGame(
             correctCount = correctCount,
             hintText = "Completa solo i risultati mancanti.",
             noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(title = "Tabellina del $table") {
+                SeaGlassPanel(
+                    title = "Tabellina del $table",
+                    titleTrailing = {
+                        HintsToggleButton(
+                            noHintsMode = noHintsMode,
+                            onToggleHints = { noHintsMode = !noHintsMode },
+                            isCompact = ui.isCompact
+                        )
+                    }
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                         for (i in 1..10) {
                             val index = i - 1
@@ -366,11 +382,19 @@ fun TabellinaReverseGame(
             correctCount = correctCount,
             hintText = "Inserisci il numero mancante per completare l’operazione.",
             noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(title = "Completa l’operazione") {
+                SeaGlassPanel(
+                    title = "Completa l’operazione",
+                    titleTrailing = {
+                        HintsToggleButton(
+                            noHintsMode = noHintsMode,
+                            onToggleHints = { noHintsMode = !noHintsMode },
+                            isCompact = ui.isCompact
+                        )
+                    }
+                ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(ui.spacing)
@@ -475,11 +499,19 @@ fun TabellineMultipleChoiceGame(
             correctCount = correctCount,
             hintText = "Scegli il risultato corretto.",
             noHintsMode = noHintsMode,
-            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(title = "Quanto fa?") {
+                SeaGlassPanel(
+                    title = "Quanto fa?",
+                    titleTrailing = {
+                        HintsToggleButton(
+                            noHintsMode = noHintsMode,
+                            onToggleHints = { noHintsMode = !noHintsMode },
+                            isCompact = ui.isCompact
+                        )
+                    }
+                ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(ui.spacing)

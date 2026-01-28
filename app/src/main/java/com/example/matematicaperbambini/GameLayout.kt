@@ -41,7 +41,6 @@ fun GameScreenFrame(
     bonusTarget: Int = BONUS_TARGET,
     hintText: String,
     noHintsMode: Boolean,
-    onToggleHints: () -> Unit,
     ui: UiSizing,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
@@ -73,9 +72,7 @@ fun GameScreenFrame(
                         onLeaderboard = onOpenLeaderboard,
                         ui = ui,
                         bonusTarget = bonusTarget,
-                        showBack = false,
-                        noHintsMode = noHintsMode,
-                        onToggleHints = onToggleHints
+                        showBack = false
                     )
                 }
             }
@@ -214,6 +211,28 @@ private fun CompactHud(
             },
             title = { Text("Cosa fare") },
             text = { Text(hintText) }
+        )
+    }
+}
+
+@Composable
+fun HintsToggleButton(
+    noHintsMode: Boolean,
+    onToggleHints: () -> Unit,
+    isCompact: Boolean
+) {
+    val hintsFont = if (isCompact) 12.sp else 14.sp
+    TextButton(
+        onClick = onToggleHints,
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Text(
+            text = if (noHintsMode) "Aiuti OFF" else "Aiuti ON",
+            fontSize = hintsFont,
+            maxLines = 1
         )
     }
 }
