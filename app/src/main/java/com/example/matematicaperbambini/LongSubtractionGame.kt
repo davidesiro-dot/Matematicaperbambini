@@ -192,14 +192,22 @@ private fun colNameFromRight(posFromRight: Int): String = when (posFromRight) {
     else -> "colonna ${posFromRight + 1}"
 }
 
-private fun instructionSub(step: SubStep, digits: Int): String = when (step.type) {
-    SubStepType.BORROW_NEW_TOP_DIGIT -> {
-        val posFromRight = (digits - 1) - step.colIndexFromLeft
-        "Scrivi il nuovo numero sopra nelle ${colNameFromRight(posFromRight)} (dopo il prestito)"
-    }
-    SubStepType.RESULT_DIGIT -> {
-        val posFromRight = (digits - 1) - step.colIndexFromLeft
-        "Scrivi la cifra del risultato nelle ${colNameFromRight(posFromRight)}"
+private fun instructionSub(step: SubStep, digits: Int, expected: ExpectedSub): String {
+    val col = step.colIndexFromLeft
+    val posFromRight = (digits - 1) - col
+    val colName = colNameFromRight(posFromRight)
+    return when (step.type) {
+        SubStepType.BORROW_NEW_TOP_DIGIT -> {
+            val before = expected.topDigitsOriginal[col]
+            val after = expected.topDigitsAfterBorrow[col]
+            "Aggiorna la cifra nelle $colName: da $before a $after dopo il prestito."
+        }
+        SubStepType.RESULT_DIGIT -> {
+            val top = expected.topDigitsAfterBorrow[col]
+            val bottom = expected.bottomDigits[col]
+            val result = expected.resultDigits[col]
+            "Calcola $top − $bottom nelle $colName e scrivi $result."
+        }
     }
 }
 
@@ -429,7 +437,7 @@ fun LongSubtractionGame(
 
     val hint = when {
         expected == null -> "Inserisci i numeri e premi Avvia."
-        !done -> instructionSub(currentStep!!, digits)
+        !done -> instructionSub(currentStep!!, digits, expected)
         else -> "Bravo! 🙂"
     }
 
