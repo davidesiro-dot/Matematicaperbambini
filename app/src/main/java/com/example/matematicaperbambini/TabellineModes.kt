@@ -337,6 +337,7 @@ fun TabellinaReverseGame(
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var noHintsMode by remember { mutableStateOf(false) }
 
     fun newQuestion() {
         question = ReverseQuestion(
