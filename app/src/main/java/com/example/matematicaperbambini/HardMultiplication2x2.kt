@@ -755,14 +755,21 @@ fun HardMultiplication2x2Game(
                     }
                 }
 
-                SeaGlassPanel(title = "Stato") {
-                    if (done) {
-                        Text("Operazione completata.", style = MaterialTheme.typography.bodyLarge)
-                    } else if (p != null && current != null) {
-                        Text("Passo ${step + 1}/${p.targets.size}", style = MaterialTheme.typography.bodyLarge)
-                        Text("Casella attiva: ${hmRowLabel(current.row)} – ${hmColLabel(current.col)}")
-                    } else {
-                        Text("Inserisci i numeri per iniziare.", style = MaterialTheme.typography.bodyLarge)
+                SeaGlassPanel(title = "Aiuto") {
+                    val totalSteps = p?.targets?.size ?: 0
+                    val stepLabel = when {
+                        totalSteps == 0 -> "Passo 0/0"
+                        done -> "Passo $totalSteps/$totalSteps"
+                        else -> "Passo ${step + 1}/$totalSteps"
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
+                        Text(text = hint, color = MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            text = stepLabel,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = FontFamily.Monospace
+                        )
                     }
                 }
                 }

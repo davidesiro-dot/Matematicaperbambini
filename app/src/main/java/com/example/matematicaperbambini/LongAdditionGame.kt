@@ -427,12 +427,22 @@ fun LongAdditionGame(
                     }
                 }
 
-                SeaGlassPanel(title = "Stato") {
+                SeaGlassPanel(title = "Aiuto") {
                     val totalSteps = plan?.targets?.size ?: 0
-                    Text(
-                        if (done) "Operazione completata." else "Passo ${step + 1}/$totalSteps",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    val stepLabel = when {
+                        totalSteps == 0 -> "Passo 0/0"
+                        done -> "Passo $totalSteps/$totalSteps"
+                        else -> "Passo ${step + 1}/$totalSteps"
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp)) {
+                        Text(text = hint, color = MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            text = stepLabel,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
                 }
                 }
             },
