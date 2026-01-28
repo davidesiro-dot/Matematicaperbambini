@@ -100,6 +100,7 @@ fun MoneyCountGame(
             correctCount = correctCount,
             hintText = "Somma il valore delle monete e delle banconote e scrivi il totale in euro.",
             noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = message,
             content = {
@@ -158,16 +159,7 @@ fun MoneyCountGame(
                         }
                     }
 
-                    SeaGlassPanel(
-                        title = "Conta le immagini",
-                        titleTrailing = {
-                            HintsToggleButton(
-                                noHintsMode = noHintsMode,
-                                onToggleHints = { noHintsMode = !noHintsMode },
-                                isCompact = ui.isCompact
-                            )
-                        }
-                    ) {
+                    SeaGlassPanel(title = "Conta le immagini") {
                         val columns = remember(items.size) { if (items.size <= 4) 2 else 3 }
                         MoneyItemsGrid(
                             items = items,
