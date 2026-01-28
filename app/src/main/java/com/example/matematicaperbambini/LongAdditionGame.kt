@@ -164,6 +164,7 @@ fun LongAdditionGame(
     var step by remember(plan) { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var noHintsMode by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
     // input
@@ -287,6 +288,8 @@ fun LongAdditionGame(
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
             hintText = hint,
+            noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
