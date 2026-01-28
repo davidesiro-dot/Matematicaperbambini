@@ -619,7 +619,7 @@ fun HardMultiplication2x2Game(
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Clip,
-                                fontSize = 15.sp
+                                fontSize = 12.sp
                             )
                         }
                     }
