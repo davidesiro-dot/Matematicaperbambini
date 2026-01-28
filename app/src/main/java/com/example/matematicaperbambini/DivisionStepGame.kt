@@ -286,6 +286,7 @@ fun DivisionStepGame(
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
             noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = message,
             content = {
@@ -369,16 +370,7 @@ fun DivisionStepGame(
                         }
                     }
 
-                    SeaGlassPanel(
-                        title = "Calcolo",
-                        titleTrailing = {
-                            HintsToggleButton(
-                                noHintsMode = noHintsMode,
-                                onToggleHints = { noHintsMode = !noHintsMode },
-                                isCompact = ui.isCompact
-                            )
-                        }
-                    ) {
+                    SeaGlassPanel(title = "Calcolo") {
                         if (p == null) {
                             Text("Inserisci dividendo e divisore e premi Avvia.")
                         } else {

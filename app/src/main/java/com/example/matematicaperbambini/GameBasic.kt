@@ -132,19 +132,11 @@ private fun BasicColumnGame(
             correctCount = correctCount,
             hintText = "Scrivi il risultato e premi Controlla.",
             noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(
-                    title = "Quanto fa?",
-                    titleTrailing = {
-                        HintsToggleButton(
-                            noHintsMode = noHintsMode,
-                            onToggleHints = { noHintsMode = !noHintsMode },
-                            isCompact = ui.isCompact
-                        )
-                    }
-                ) {
+                SeaGlassPanel(title = "Quanto fa?") {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(ui.spacing)
@@ -264,18 +256,10 @@ fun MultiplicationTableGame(
             correctCount = correctCount,
             hintText = "Completa la tabellina scrivendo tutti i risultati.",
             noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             content = {
-                SeaGlassPanel(
-                    title = "Completa la tabellina",
-                    titleTrailing = {
-                        HintsToggleButton(
-                            noHintsMode = noHintsMode,
-                            onToggleHints = { noHintsMode = !noHintsMode },
-                            isCompact = ui.isCompact
-                        )
-                    }
-                ) {
+                SeaGlassPanel(title = "Completa la tabellina") {
                     Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                         for (i in 1..10) {
                             val index = i - 1
@@ -471,19 +455,11 @@ fun MoneyGame(
             correctCount = correctCount,
             hintText = "Somma le monete e scrivi il totale.",
             noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(
-                    title = "Quanto fa?",
-                    titleTrailing = {
-                        HintsToggleButton(
-                            noHintsMode = noHintsMode,
-                            onToggleHints = { noHintsMode = !noHintsMode },
-                            isCompact = ui.isCompact
-                        )
-                    }
-                ) {
+                SeaGlassPanel(title = "Quanto fa?") {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("€ $a + € $b", fontSize = titleSize, fontWeight = FontWeight.ExtraBold)
 

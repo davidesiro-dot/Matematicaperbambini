@@ -439,6 +439,7 @@ fun LongSubtractionGame(
             bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
             hintText = hint,
             noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             message = message,
             content = {
@@ -491,16 +492,7 @@ fun LongSubtractionGame(
                     }
                 }
 
-                SeaGlassPanel(
-                    title = "Operazione in colonna",
-                    titleTrailing = {
-                        HintsToggleButton(
-                            noHintsMode = noHintsMode,
-                            onToggleHints = { noHintsMode = !noHintsMode },
-                            isCompact = ui.isCompact
-                        )
-                    }
-                ) {
+                SeaGlassPanel(title = "Operazione in colonna") {
                     if (expected == null) {
                         Text("Inserisci i numeri e premi Avvia.")
                     } else {

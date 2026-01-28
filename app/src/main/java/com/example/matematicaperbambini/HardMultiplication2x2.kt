@@ -405,6 +405,7 @@ fun HardMultiplication2x2Game(
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
             hintText = hint,
             noHintsMode = noHintsMode,
+            onToggleHints = { noHintsMode = !noHintsMode },
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
@@ -452,16 +453,7 @@ fun HardMultiplication2x2Game(
                     }
                 }
 
-                SeaGlassPanel(
-                    title = "Esercizio",
-                    titleTrailing = {
-                        HintsToggleButton(
-                            noHintsMode = noHintsMode,
-                            onToggleHints = { noHintsMode = !noHintsMode },
-                            isCompact = ui.isCompact
-                        )
-                    }
-                ) {
+                SeaGlassPanel(title = "Esercizio") {
                     if (p == null) {
                         Text("Inserisci i numeri e premi Avvia.")
                     } else {

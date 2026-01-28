@@ -261,7 +261,6 @@ private fun AppBackground(content: @Composable () -> Unit) {
 @Composable
 fun SeaGlassPanel(
     title: String? = null,
-    titleTrailing: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
@@ -278,27 +277,8 @@ fun SeaGlassPanel(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (!title.isNullOrBlank() || titleTrailing != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (!title.isNullOrBlank()) {
-                        Text(
-                            title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            modifier = Modifier.weight(1f)
-                        )
-                    } else {
-                        Spacer(Modifier.weight(1f))
-                    }
-                    if (titleTrailing != null) {
-                        Box(modifier = Modifier.padding(start = 8.dp)) {
-                            titleTrailing()
-                        }
-                    }
-                }
+            if (!title.isNullOrBlank()) {
+                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
             }
             content()
         }
@@ -416,7 +396,9 @@ fun GameHeader(
     onLeaderboard: () -> Unit,
     ui: UiSizing? = null,
     bonusTarget: Int = BONUS_TARGET,
-    showBack: Boolean = true
+    showBack: Boolean = true,
+    noHintsMode: Boolean = false,
+    onToggleHints: (() -> Unit)? = null
 ) {
     val isCompact = ui?.isCompact == true
     val titleSize = (ui?.title ?: 18).sp
@@ -424,6 +406,7 @@ fun GameHeader(
     val buttonSize = if (isCompact) 34.dp else 40.dp
     val iconSize = if (isCompact) 18.dp else 22.dp
     val buttonFont = if (isCompact) 16.sp else 18.sp
+    val hintsFont = if (isCompact) 12.sp else 14.sp
     val spacing = if (isCompact) 6.dp else 10.dp
 
     Row(
@@ -460,6 +443,21 @@ fun GameHeader(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+            if (onToggleHints != null) {
+                TextButton(
+                    onClick = onToggleHints,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(
+                        text = if (noHintsMode) "Aiuti OFF" else "Aiuti ON",
+                        fontSize = hintsFont,
+                        maxLines = 1
+                    )
+                }
+            }
             SmallCircleButton(
                 if (soundEnabled) "🔊" else "🔇",
                 onClick = onToggleSound,
