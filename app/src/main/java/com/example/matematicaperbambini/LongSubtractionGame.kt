@@ -317,7 +317,10 @@ fun LongSubtractionGame(
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
+    exercise: ExerciseInstance? = null,
+    helps: HelpSettings? = null,
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
 ) {
     val minValue = (1..digits - 1).fold(1) { acc, _ -> acc * 10 }
     val maxValue = (1..digits).fold(1) { acc, _ -> acc * 10 } - 1
@@ -325,6 +328,7 @@ fun LongSubtractionGame(
     var manualA by remember { mutableStateOf("") }
     var manualB by remember { mutableStateOf("") }
     var manualNumbers by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val isHomeworkMode = exercise != null || onExerciseFinished != null
 
     var problem by remember(digits, startMode) {
         mutableStateOf(
@@ -341,6 +345,9 @@ fun LongSubtractionGame(
     val done = problem != null && currentStep == null
     var showSuccessDialog by remember { mutableStateOf(false) }
     var solutionRevealed by remember { mutableStateOf(false) }
+    var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
+    val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
+    var solutionUsed by remember(exercise?.a, exercise?.b) { mutableStateOf(false) }
 
     var message by remember { mutableStateOf<String?>(null) }
     var waitTapToContinue by remember { mutableStateOf(false) }
@@ -359,6 +366,9 @@ fun LongSubtractionGame(
         waitTapToContinue = false
         showSuccessDialog = false
         solutionRevealed = false
+        attempts = 0
+        wrongAnswers.clear()
+        solutionUsed = false
         for (i in topNewInputs.indices) topNewInputs[i] = ""
         for (i in resInputs.indices) resInputs[i] = ""
         for (i in topOk.indices) topOk[i] = null
@@ -381,6 +391,7 @@ fun LongSubtractionGame(
     fun revealSolution() {
         val expectedValues = expected ?: return
         solutionRevealed = true
+        solutionUsed = true
         showSuccessDialog = false
         message = null
         waitTapToContinue = false
@@ -421,6 +432,10 @@ fun LongSubtractionGame(
                 topOk[col] = ok
                 if (!ok) {
                     playWrong()
+                    attempts += 1
+                    if (topNewInputs[col].isNotBlank()) {
+                        wrongAnswers += topNewInputs[col]
+                    }
                     topNewInputs[col] = "" // cancella
                     message = "❌ Riprova"
                     return
@@ -437,6 +452,10 @@ fun LongSubtractionGame(
                 resOk[col] = ok
                 if (!ok) {
                     playWrong()
+                    attempts += 1
+                    if (resInputs[col].isNotBlank()) {
+                        wrongAnswers += resInputs[col]
+                    }
                     resInputs[col] = "" // cancella
                     message = "❌ Riprova"
                     return
@@ -456,6 +475,7 @@ fun LongSubtractionGame(
 
     val hint = when {
         expected == null -> "Inserisci i numeri e premi Avvia."
+        helps?.hintsEnabled == false && !done -> "Completa l'operazione."
         !done -> instructionSub(currentStep!!, digits, expected)
         solutionRevealed -> "Soluzione: ${expected.resultDigits.joinToString("")}"
         else -> "Bravo! 🙂"
@@ -464,7 +484,19 @@ fun LongSubtractionGame(
     LaunchedEffect(done) {
         if (done && expected != null && !solutionRevealed) {
             showSuccessDialog = true
-            correctCount += 1
+            if (!isHomeworkMode) {
+                correctCount += 1
+            }
+        }
+    }
+
+    LaunchedEffect(exercise?.a, exercise?.b) {
+        val a = exercise?.a
+        val b = exercise?.b
+        if (a != null && b != null) {
+            manualNumbers = a to b
+            problem = SubProblem(a, b)
+            resetSame()
         }
     }
 
@@ -489,7 +521,7 @@ fun LongSubtractionGame(
             message = message,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
-                if (startMode == StartMode.MANUAL) {
+                if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
                     val manualValid = manualAValue in minValue..maxValue &&
@@ -705,12 +737,27 @@ fun LongSubtractionGame(
                             resetSame()
                         }
                     },
-                    rightText = "Nuovo",
-                    onRight = { resetForNew() },
+                    rightText = if (isHomeworkMode) "Avanti" else "Nuovo",
+                    onRight = {
+                        if (isHomeworkMode) {
+                            if (done) {
+                                onExerciseFinished?.invoke(
+                                    ExerciseResultPartial(
+                                        correct = true,
+                                        attempts = attempts,
+                                        wrongAnswers = wrongAnswers.toList(),
+                                        solutionUsed = solutionUsed
+                                    )
+                                )
+                            }
+                        } else {
+                            resetForNew()
+                        }
+                    },
                     center = {
                         Button(
                             onClick = { revealSolution() },
-                            enabled = expected != null,
+                            enabled = expected != null && (helps?.allowSolution != false),
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
@@ -731,23 +778,37 @@ fun LongSubtractionGame(
             show = showSuccessDialog,
             onNew = {
                 showSuccessDialog = false
-                resetForNew()
+                if (isHomeworkMode) {
+                    onExerciseFinished?.invoke(
+                        ExerciseResultPartial(
+                            correct = true,
+                            attempts = attempts,
+                            wrongAnswers = wrongAnswers.toList(),
+                            solutionUsed = solutionUsed
+                        )
+                    )
+                } else {
+                    resetForNew()
+                }
             },
             onDismiss = { showSuccessDialog = false },
-            resultText = expected?.resultDigits?.joinToString("").orEmpty()
+            resultText = expected?.resultDigits?.joinToString("").orEmpty(),
+            confirmText = if (isHomeworkMode) "Avanti" else "Nuova operazione"
         )
 
-        BonusRewardHost(
-            correctCount = correctCount,
-            rewardsEarned = rewardsEarned,
-            rewardEvery = BONUS_TARGET_LONG_ADD_SUB,
-            soundEnabled = soundEnabled,
-            fx = fx,
-            onOpenLeaderboard = onOpenLeaderboardFromBonus,
-            onBonusPromptAction = { showSuccessDialog = false },
-            onRewardEarned = { rewardsEarned += 1 },
-            onRewardSkipped = { rewardsEarned += 1 }
-        )
+        if (!isHomeworkMode) {
+            BonusRewardHost(
+                correctCount = correctCount,
+                rewardsEarned = rewardsEarned,
+                rewardEvery = BONUS_TARGET_LONG_ADD_SUB,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onOpenLeaderboard = onOpenLeaderboardFromBonus,
+                onBonusPromptAction = { showSuccessDialog = false },
+                onRewardEarned = { rewardsEarned += 1 },
+                onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
 
         // Overlay tap-to-continue
         if (waitTapToContinue) {

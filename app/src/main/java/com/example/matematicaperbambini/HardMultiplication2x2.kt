@@ -346,8 +346,12 @@ fun HardMultiplication2x2Game(
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
+    exercise: ExerciseInstance? = null,
+    helps: HelpSettings? = null,
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
 ) {
+    val isHomeworkMode = exercise != null || onExerciseFinished != null
     var plan by remember(startMode) {
         mutableStateOf(
             if (startMode == StartMode.RANDOM) hmComputePlan(47, 36) else null
@@ -360,9 +364,12 @@ fun HardMultiplication2x2Game(
     var step by remember { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    val hintsEnabled = helps?.hintsEnabled != false
     var noHintsMode by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var solutionUsed by remember { mutableStateOf(false) }
+    var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
+    val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
 
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
     var inP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -383,6 +390,8 @@ fun HardMultiplication2x2Game(
         step = 0
         showSuccessDialog = false
         solutionUsed = false
+        attempts = 0
+        wrongAnswers.clear()
         inCarryP1 = CharArray(4) { '\u0000' }
         inP1 = CharArray(4) { '\u0000' }
         inCarryP2 = CharArray(4) { '\u0000' }
@@ -402,6 +411,8 @@ fun HardMultiplication2x2Game(
         step = 0
         showSuccessDialog = false
         solutionUsed = false
+        attempts = 0
+        wrongAnswers.clear()
         inCarryP1 = CharArray(4) { '\u0000' }
         inP1 = CharArray(4) { '\u0000' }
         inCarryP2 = CharArray(4) { '\u0000' }
@@ -435,6 +446,15 @@ fun HardMultiplication2x2Game(
         inP2 = p2
     }
 
+    LaunchedEffect(exercise?.a, exercise?.b) {
+        val a = exercise?.a
+        val b = exercise?.b
+        if (a != null && b != null) {
+            manualNumbers = a to b
+            reset(a, b)
+        }
+    }
+
     val p = plan
     val current = p?.targets?.getOrNull(step)
     val done = p != null && step >= p.targets.size
@@ -443,7 +463,9 @@ fun HardMultiplication2x2Game(
         if (done && p != null) {
             if (!solutionUsed) {
                 showSuccessDialog = true
-                correctCount += 1
+                if (!isHomeworkMode) {
+                    correctCount += 1
+                }
             }
         }
     }
@@ -517,12 +539,15 @@ fun HardMultiplication2x2Game(
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
         } else {
+            attempts += 1
+            wrongAnswers += digit.toString()
             if (soundEnabled) fx.wrong()
         }
     }
 
     val hint = when {
         plan == null -> "Inserisci i numeri e premi Avvia."
+        !hintsEnabled && !done -> "Completa l'operazione."
         done && p != null -> {
             if (solutionUsed) {
                 "Risultato: ${p.result}"
@@ -534,7 +559,7 @@ fun HardMultiplication2x2Game(
     }
 
     fun isHL(row: HMHighlightRow, col: Int): Boolean =
-        !noHintsMode && current?.highlights?.contains(HMHighlight(row, col)) == true
+        hintsEnabled && !noHintsMode && current?.highlights?.contains(HMHighlight(row, col)) == true
 
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
@@ -559,7 +584,7 @@ fun HardMultiplication2x2Game(
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
-                if (startMode == StartMode.MANUAL) {
+                if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
                     val manualValid = manualAValue in 10..99 && manualBValue in 10..99
@@ -819,14 +844,27 @@ fun HardMultiplication2x2Game(
                             reset(p.a, p.b)
                         }
                     },
-                    rightText = "Nuovo",
+                    rightText = if (isHomeworkMode) "Avanti" else "Nuovo",
                     onRight = {
-                        if (startMode == StartMode.MANUAL) {
-                            resetManualInputs()
-                            plan = null
-                            clearInputsOnly()
+                        if (isHomeworkMode) {
+                            if (done) {
+                                onExerciseFinished?.invoke(
+                                    ExerciseResultPartial(
+                                        correct = true,
+                                        attempts = attempts,
+                                        wrongAnswers = wrongAnswers.toList(),
+                                        solutionUsed = solutionUsed
+                                    )
+                                )
+                            }
                         } else {
-                            reset(Random.nextInt(10, 100), Random.nextInt(10, 100))
+                            if (startMode == StartMode.MANUAL) {
+                                resetManualInputs()
+                                plan = null
+                                clearInputsOnly()
+                            } else {
+                                reset(Random.nextInt(10, 100), Random.nextInt(10, 100))
+                            }
                         }
                     },
                     center = {
@@ -846,6 +884,7 @@ fun HardMultiplication2x2Game(
                                 setCell(HMRowKey.P2, 3, '-', false)
                                 step = activePlan.targets.size
                             },
+                            enabled = plan != null && (helps?.allowSolution != false),
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
@@ -866,28 +905,42 @@ fun HardMultiplication2x2Game(
             show = showSuccessDialog,
             onNew = {
                 showSuccessDialog = false
-                if (startMode == StartMode.MANUAL) {
-                    resetManualInputs()
-                    plan = null
+                if (isHomeworkMode) {
+                    onExerciseFinished?.invoke(
+                        ExerciseResultPartial(
+                            correct = true,
+                            attempts = attempts,
+                            wrongAnswers = wrongAnswers.toList(),
+                            solutionUsed = solutionUsed
+                        )
+                    )
                 } else {
-                    reset(Random.nextInt(10, 100), Random.nextInt(10, 100))
+                    if (startMode == StartMode.MANUAL) {
+                        resetManualInputs()
+                        plan = null
+                    } else {
+                        reset(Random.nextInt(10, 100), Random.nextInt(10, 100))
+                    }
                 }
             },
             onDismiss = { showSuccessDialog = false },
-            resultText = plan?.result?.toString().orEmpty()
+            resultText = plan?.result?.toString().orEmpty(),
+            confirmText = if (isHomeworkMode) "Avanti" else "Nuova operazione"
         )
 
-        BonusRewardHost(
-            correctCount = correctCount,
-            rewardsEarned = rewardsEarned,
-            rewardEvery = BONUS_TARGET_LONG_MULT_DIV,
-            soundEnabled = soundEnabled,
-            fx = fx,
-            onOpenLeaderboard = onOpenLeaderboardFromBonus,
-            onBonusPromptAction = { showSuccessDialog = false },
-            onRewardEarned = { rewardsEarned += 1 },
-            onRewardSkipped = { rewardsEarned += 1 }
-        )
+        if (!isHomeworkMode) {
+            BonusRewardHost(
+                correctCount = correctCount,
+                rewardsEarned = rewardsEarned,
+                rewardEvery = BONUS_TARGET_LONG_MULT_DIV,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onOpenLeaderboard = onOpenLeaderboardFromBonus,
+                onBonusPromptAction = { showSuccessDialog = false },
+                onRewardEarned = { rewardsEarned += 1 },
+                onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
     }
 }
 

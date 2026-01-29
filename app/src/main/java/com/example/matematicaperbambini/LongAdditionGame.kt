@@ -149,11 +149,15 @@ fun LongAdditionGame(
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
+    exercise: ExerciseInstance? = null,
+    helps: HelpSettings? = null,
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     val minValue = 10.0.pow((digits - 1).toDouble()).toInt()
     val maxValue = 10.0.pow(digits.toDouble()).toInt() - 1
+    val isHomeworkMode = exercise != null || onExerciseFinished != null
 
     var manualA by remember { mutableStateOf("") }
     var manualB by remember { mutableStateOf("") }
@@ -170,6 +174,9 @@ fun LongAdditionGame(
     var rewardsEarned by remember { mutableStateOf(0) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var solutionRevealed by remember { mutableStateOf(false) }
+    var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
+    val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
+    var solutionUsed by remember(exercise?.a, exercise?.b) { mutableStateOf(false) }
 
     // input
     val planDigits = plan?.digits ?: digits
@@ -190,6 +197,9 @@ fun LongAdditionGame(
         step = 0
         showSuccessDialog = false
         solutionRevealed = false
+        attempts = 0
+        wrongAnswers.clear()
+        solutionUsed = false
         clearInputs()
     }
 
@@ -223,6 +233,7 @@ fun LongAdditionGame(
     fun revealSolution() {
         val activePlan = plan ?: return
         solutionRevealed = true
+        solutionUsed = true
         showSuccessDialog = false
         step = activePlan.targets.size
         carryIn.value = CharArray(activePlan.digits) { idx ->
@@ -238,7 +249,19 @@ fun LongAdditionGame(
     LaunchedEffect(done) {
         if (done && p != null && !solutionRevealed) {
             showSuccessDialog = true
-            correctCount += 1
+            if (!isHomeworkMode) {
+                correctCount += 1
+            }
+        }
+    }
+
+    LaunchedEffect(exercise?.a, exercise?.b) {
+        val a = exercise?.a
+        val b = exercise?.b
+        if (a != null && b != null) {
+            manualNumbers = a to b
+            plan = computeAdditionPlan(digits, a, b)
+            resetSame()
         }
     }
 
@@ -274,8 +297,12 @@ fun LongAdditionGame(
             setCell(row, col, '\u0000', false)
             return
         }
+        attempts += 1
         val ok = digit == t.expected
         setCell(row, col, digit, !ok)
+        if (!ok) {
+            wrongAnswers += digit.toString()
+        }
         if (ok) {
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
@@ -284,6 +311,7 @@ fun LongAdditionGame(
 
     val hint = when {
         p == null -> "Inserisci i numeri e premi Avvia."
+        helps?.hintsEnabled == false && !done -> "Completa l'operazione."
         done && solutionRevealed -> "Soluzione: ${p.result}"
         done -> "Bravo! ✅ Risultato: ${p.result}"
         else -> current?.hint.orEmpty()
@@ -312,7 +340,7 @@ fun LongAdditionGame(
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
-                if (startMode == StartMode.MANUAL) {
+                if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
                     val manualValid = manualAValue in minValue..maxValue && manualBValue in minValue..maxValue
@@ -503,12 +531,27 @@ fun LongAdditionGame(
                             resetSame()
                         }
                     },
-                    rightText = "Nuovo",
-                    onRight = { resetNew() },
+                    rightText = if (isHomeworkMode) "Avanti" else "Nuovo",
+                    onRight = {
+                        if (isHomeworkMode) {
+                            if (done) {
+                                onExerciseFinished?.invoke(
+                                    ExerciseResultPartial(
+                                        correct = true,
+                                        attempts = attempts,
+                                        wrongAnswers = wrongAnswers.toList(),
+                                        solutionUsed = solutionUsed
+                                    )
+                                )
+                            }
+                        } else {
+                            resetNew()
+                        }
+                    },
                     center = {
                         Button(
                             onClick = { revealSolution() },
-                            enabled = p != null,
+                            enabled = p != null && (helps?.allowSolution != false),
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
@@ -529,22 +572,36 @@ fun LongAdditionGame(
             show = showSuccessDialog,
             onNew = {
                 showSuccessDialog = false
-                resetNew()
+                if (isHomeworkMode) {
+                    onExerciseFinished?.invoke(
+                        ExerciseResultPartial(
+                            correct = true,
+                            attempts = attempts,
+                            wrongAnswers = wrongAnswers.toList(),
+                            solutionUsed = solutionUsed
+                        )
+                    )
+                } else {
+                    resetNew()
+                }
             },
             onDismiss = { showSuccessDialog = false },
-            resultText = plan?.result?.toString().orEmpty()
+            resultText = plan?.result?.toString().orEmpty(),
+            confirmText = if (isHomeworkMode) "Avanti" else "Nuova operazione"
         )
 
-        BonusRewardHost(
-            correctCount = correctCount,
-            rewardsEarned = rewardsEarned,
-            rewardEvery = BONUS_TARGET_LONG_ADD_SUB,
-            soundEnabled = soundEnabled,
-            fx = fx,
-            onOpenLeaderboard = onOpenLeaderboardFromBonus,
-            onBonusPromptAction = { showSuccessDialog = false },
-            onRewardEarned = { rewardsEarned += 1 },
-            onRewardSkipped = { rewardsEarned += 1 }
-        )
+        if (!isHomeworkMode) {
+            BonusRewardHost(
+                correctCount = correctCount,
+                rewardsEarned = rewardsEarned,
+                rewardEvery = BONUS_TARGET_LONG_ADD_SUB,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onOpenLeaderboard = onOpenLeaderboardFromBonus,
+                onBonusPromptAction = { showSuccessDialog = false },
+                onRewardEarned = { rewardsEarned += 1 },
+                onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
     }
 }

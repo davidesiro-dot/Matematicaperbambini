@@ -272,7 +272,8 @@ fun SuccessDialog(
     show: Boolean,
     onNew: () -> Unit,
     onDismiss: () -> Unit,
-    resultText: String? = null
+    resultText: String? = null,
+    confirmText: String = "Nuova operazione"
 ) {
     if (!show) return
 
@@ -292,7 +293,7 @@ fun SuccessDialog(
                 onClick = onNew,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Nuova operazione")
+                Text(confirmText)
             }
         },
         dismissButton = {

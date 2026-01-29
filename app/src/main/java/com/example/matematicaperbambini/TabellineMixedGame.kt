@@ -40,7 +40,9 @@ fun TabellineMixedGame(
     onOpenLeaderboard: () -> Unit,
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
-    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    titleOverride: String? = null,
+    helps: HelpSettings? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     val isHomeworkMode = exercise != null || onExerciseFinished != null
@@ -73,6 +75,12 @@ fun TabellineMixedGame(
     }
 
     val correct = a * b
+    val hintText = if (helps?.hintsEnabled == false) {
+        "Inserisci la risposta."
+    } else {
+        "Scrivi il risultato e premi Controlla."
+    }
+    val titleText = titleOverride ?: "Tabelline miste"
 
     fun next() {
         if (exercise == null) {
@@ -88,13 +96,13 @@ fun TabellineMixedGame(
         val actionHeight = if (ui.isCompact) 44.dp else 52.dp
 
         GameScreenFrame(
-            title = "Tabelline miste",
+            title = titleText,
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = if (isHomeworkMode) 0 else correctCount,
-            hintText = "Scrivi il risultato e premi Controlla.",
+            hintText = hintText,
             ui = ui,
             message = msg,
             content = {
