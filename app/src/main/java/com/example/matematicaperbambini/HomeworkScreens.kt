@@ -116,7 +116,8 @@ fun HomeworkBuilderScreen(
     var divisionManualDivisorInput by remember { mutableStateOf("") }
 
     var hardEnabled by remember { mutableStateOf(false) }
-    var hardDigitsInput by remember { mutableStateOf("2") }
+    var hardMaxAInput by remember { mutableStateOf("99") }
+    var hardMaxBInput by remember { mutableStateOf("99") }
     var hardExercisesCountInput by remember { mutableStateOf("4") }
     var hardRepeatsInput by remember { mutableStateOf("1") }
     var hardHintsEnabled by remember { mutableStateOf(false) }
@@ -476,13 +477,22 @@ fun HomeworkBuilderScreen(
         if (hardEnabled) {
             SeaGlassPanel(title = "Configurazione moltiplicazioni difficili") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = hardDigitsInput,
-                        onValueChange = { hardDigitsInput = it.filter(Char::isDigit).take(2) },
-                        label = { Text("Difficoltà (cifre)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = hardMaxAInput,
+                            onValueChange = { hardMaxAInput = it.filter(Char::isDigit).take(3) },
+                            label = { Text("Numero A (10-999)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = hardMaxBInput,
+                            onValueChange = { hardMaxBInput = it.filter(Char::isDigit).take(2) },
+                            label = { Text("Numero B (1-99)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                     HelpConfigSection(
                         hintsEnabled = hardHintsEnabled,
                         highlightsEnabled = hardHighlightsEnabled,
@@ -503,10 +513,12 @@ fun HomeworkBuilderScreen(
                         onManualBChange = { hardManualBInput = it },
                         opLabel = "A",
                         opLabelB = "B",
+                        maxDigitsA = 3,
+                        maxDigitsB = 2,
                         onAddManual = {
                             val a = hardManualAInput.toIntOrNull()
                             val b = hardManualBInput.toIntOrNull()
-                            if (a != null && b != null) {
+                            if (a != null && b != null && a in 10..999 && b in 1..99) {
                                 hardManualOps += ManualOp.AB(a, b)
                                 hardManualAInput = ""
                                 hardManualBInput = ""
@@ -672,7 +684,8 @@ fun HomeworkBuilderScreen(
                         )
                     }
                     if (hardEnabled) {
-                        val digits = hardDigitsInput.toIntOrNull()
+                        val maxA = hardMaxAInput.toIntOrNull()
+                        val maxB = hardMaxBInput.toIntOrNull()
                         val exercisesCount = hardExercisesCountInput.toIntOrNull() ?: 4
                         val repeats = hardRepeatsInput.toIntOrNull() ?: 1
                         val helpSettings = HelpSettings(
@@ -688,7 +701,7 @@ fun HomeworkBuilderScreen(
                         add(
                             HomeworkTaskConfig(
                                 game = GameType.MULTIPLICATION_HARD,
-                                difficulty = DifficultyConfig(digits = digits),
+                                difficulty = DifficultyConfig(maxA = maxA, maxB = maxB),
                                 helps = helpSettings,
                                 source = sourceConfig,
                                 amount = AmountConfig(
@@ -783,6 +796,8 @@ private fun ExerciseSourceSection(
     onManualBChange: (String) -> Unit,
     opLabel: String,
     opLabelB: String,
+    maxDigitsA: Int = 3,
+    maxDigitsB: Int = 3,
     onAddManual: () -> Unit,
     onRemoveManual: (Int) -> Unit,
     manualItemText: (ManualOp.AB) -> String
@@ -809,14 +824,14 @@ private fun ExerciseSourceSection(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = manualAInput,
-                    onValueChange = { onManualAChange(it.filter { ch -> ch.isDigit() }.take(3)) },
+                    onValueChange = { onManualAChange(it.filter { ch -> ch.isDigit() }.take(maxDigitsA)) },
                     label = { Text(opLabel) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = manualBInput,
-                    onValueChange = { onManualBChange(it.filter { ch -> ch.isDigit() }.take(3)) },
+                    onValueChange = { onManualBChange(it.filter { ch -> ch.isDigit() }.take(maxDigitsB)) },
                     label = { Text(opLabelB) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
