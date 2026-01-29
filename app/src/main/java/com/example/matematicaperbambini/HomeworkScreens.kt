@@ -91,6 +91,7 @@ fun HomeworkBuilderScreen(
     var mixedManualBInput by remember { mutableStateOf("") }
 
     var tableEnabled by remember { mutableStateOf(false) }
+    var tableMode by remember { mutableStateOf(TabellineMode.CLASSIC) }
     var tableLevelInput by remember { mutableStateOf("2") }
     var tableExercisesCountInput by remember { mutableStateOf("5") }
     var tableRepeatsInput by remember { mutableStateOf("1") }
@@ -98,9 +99,6 @@ fun HomeworkBuilderScreen(
     var tableHighlightsEnabled by remember { mutableStateOf(false) }
     var tableAllowSolution by remember { mutableStateOf(false) }
     var tableAutoCheck by remember { mutableStateOf(false) }
-    var tableSource by remember { mutableStateOf<ExerciseSourceConfig>(ExerciseSourceConfig.Random) }
-    val tableManualOps = remember { mutableStateListOf<ManualOp.Table>() }
-    var tableManualInput by remember { mutableStateOf("") }
 
     var divisionEnabled by remember { mutableStateOf(false) }
     var divisionDigitsInput by remember { mutableStateOf("2") }
@@ -206,7 +204,7 @@ fun HomeworkBuilderScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = additionDigitsInput,
-                        onValueChange = { additionDigitsInput = it.filter(Char::isDigit).take(2) },
+                        onValueChange = { additionDigitsInput = it.filter(Char::isDigit).take(3) },
                         label = { Text("Difficoltà (cifre)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
@@ -262,7 +260,7 @@ fun HomeworkBuilderScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = subtractionDigitsInput,
-                        onValueChange = { subtractionDigitsInput = it.filter(Char::isDigit).take(2) },
+                        onValueChange = { subtractionDigitsInput = it.filter(Char::isDigit).take(3) },
                         label = { Text("Difficoltà (cifre)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
@@ -318,7 +316,7 @@ fun HomeworkBuilderScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = mixedDigitsInput,
-                        onValueChange = { mixedDigitsInput = it.filter(Char::isDigit).take(2) },
+                        onValueChange = { mixedDigitsInput = it.filter(Char::isDigit).take(3) },
                         label = { Text("Difficoltà (cifre)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
@@ -379,6 +377,33 @@ fun HomeworkBuilderScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Text("Modalità tabelline", fontWeight = FontWeight.Bold)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SourceChip(
+                                label = "Classica",
+                                selected = tableMode == TabellineMode.CLASSIC,
+                                onClick = { tableMode = TabellineMode.CLASSIC }
+                            )
+                            SourceChip(
+                                label = "Buchi",
+                                selected = tableMode == TabellineMode.GAPS,
+                                onClick = { tableMode = TabellineMode.GAPS }
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SourceChip(
+                                label = "Al contrario",
+                                selected = tableMode == TabellineMode.REVERSE,
+                                onClick = { tableMode = TabellineMode.REVERSE }
+                            )
+                            SourceChip(
+                                label = "Scelta multipla",
+                                selected = tableMode == TabellineMode.MULTIPLE_CHOICE,
+                                onClick = { tableMode = TabellineMode.MULTIPLE_CHOICE }
+                            )
+                        }
+                    }
                     HelpConfigSection(
                         hintsEnabled = tableHintsEnabled,
                         highlightsEnabled = tableHighlightsEnabled,
@@ -388,25 +413,6 @@ fun HomeworkBuilderScreen(
                         onHighlightsChange = { tableHighlightsEnabled = it },
                         onAllowSolutionChange = { tableAllowSolution = it },
                         onAutoCheckChange = { tableAutoCheck = it }
-                    )
-                    TableSourceSection(
-                        source = tableSource,
-                        onSourceChange = { tableSource = it },
-                        manualOps = tableManualOps,
-                        manualInput = tableManualInput,
-                        onManualChange = { tableManualInput = it },
-                        onAddManual = {
-                            val table = tableManualInput.toIntOrNull()
-                            if (table != null) {
-                                tableManualOps += ManualOp.Table(table)
-                                tableManualInput = ""
-                                tableSource = ExerciseSourceConfig.Manual(tableManualOps.toList())
-                            }
-                        },
-                        onRemoveManual = { index ->
-                            tableManualOps.removeAt(index)
-                            tableSource = ExerciseSourceConfig.Manual(tableManualOps.toList())
-                        }
                     )
                     AmountConfigRow(
                         exercisesCountInput = tableExercisesCountInput,
@@ -631,6 +637,13 @@ fun HomeworkBuilderScreen(
                     }
                     if (tableEnabled) {
                         val level = tableLevelInput.toIntOrNull()
+                        val tableGame = when (tableMode) {
+                            TabellineMode.CLASSIC -> GameType.MULTIPLICATION_TABLE
+                            TabellineMode.GAPS -> GameType.MULTIPLICATION_GAPS
+                            TabellineMode.REVERSE -> GameType.MULTIPLICATION_REVERSE
+                            TabellineMode.MULTIPLE_CHOICE -> GameType.MULTIPLICATION_MULTIPLE_CHOICE
+                            TabellineMode.MIXED -> GameType.MULTIPLICATION_MIXED
+                        }
                         val exercisesCount = tableExercisesCountInput.toIntOrNull() ?: 5
                         val repeats = tableRepeatsInput.toIntOrNull() ?: 1
                         val helpSettings = HelpSettings(
@@ -639,16 +652,12 @@ fun HomeworkBuilderScreen(
                             allowSolution = tableAllowSolution,
                             autoCheck = tableAutoCheck
                         )
-                        val sourceConfig = when (tableSource) {
-                            is ExerciseSourceConfig.Manual -> ExerciseSourceConfig.Manual(tableManualOps.toList())
-                            else -> ExerciseSourceConfig.Random
-                        }
                         add(
                             HomeworkTaskConfig(
-                                game = GameType.MULTIPLICATION_TABLE,
+                                game = tableGame,
                                 difficulty = DifficultyConfig(level = level),
                                 helps = helpSettings,
-                                source = sourceConfig,
+                                source = ExerciseSourceConfig.Random,
                                 amount = AmountConfig(
                                     exercisesCount = exercisesCount,
                                     repeatsPerExercise = repeats
@@ -863,67 +872,6 @@ private fun ExerciseSourceSection(
 }
 
 @Composable
-private fun TableSourceSection(
-    source: ExerciseSourceConfig,
-    onSourceChange: (ExerciseSourceConfig) -> Unit,
-    manualOps: List<ManualOp.Table>,
-    manualInput: String,
-    onManualChange: (String) -> Unit,
-    onAddManual: () -> Unit,
-    onRemoveManual: (Int) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Sorgente esercizi", fontWeight = FontWeight.Bold)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SourceChip(
-                label = "Random",
-                selected = source is ExerciseSourceConfig.Random,
-                onClick = { onSourceChange(ExerciseSourceConfig.Random) }
-            )
-            SourceChip(
-                label = "Manuale",
-                selected = source is ExerciseSourceConfig.Manual,
-                onClick = { onSourceChange(ExerciseSourceConfig.Manual(manualOps.toList())) }
-            )
-        }
-    }
-
-    if (source is ExerciseSourceConfig.Manual) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Tabelline manuali", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = manualInput,
-                onValueChange = { onManualChange(it.filter(Char::isDigit).take(2)) },
-                label = { Text("Tabellina") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Button(
-                onClick = onAddManual,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Aggiungi tabellina") }
-
-            if (manualOps.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    manualOps.forEachIndexed { index, op ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("• Tabellina del ${op.table}")
-                            TextButton(onClick = { onRemoveManual(index) }) {
-                                Text("Rimuovi")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun HelpToggleRow(
     label: String,
     checked: Boolean,
@@ -1078,22 +1026,53 @@ private fun HomeworkExerciseGame(
             onExerciseFinished = onExerciseFinished,
             helps = helps
         )
-        GameType.MULTIPLICATION_TABLE -> {
-            val tableLabel = instance.table ?: instance.a
-            val title = tableLabel?.let { "Tabellina del $it" } ?: "Tabellina"
-            TabellineMixedGame(
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                fx = fx,
-                onBack = onBack,
-                onOpenLeaderboard = onOpenLeaderboard,
-                onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
-                exercise = instance,
-                onExerciseFinished = onExerciseFinished,
-                titleOverride = title,
-                helps = helps
-            )
-        }
+        GameType.MULTIPLICATION_TABLE -> MultiplicationTableGame(
+            table = instance.table ?: 1,
+            startMode = StartMode.MANUAL,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            exercise = instance,
+            helps = helps,
+            onExerciseFinished = onExerciseFinished
+        )
+        GameType.MULTIPLICATION_GAPS -> TabellineGapsGame(
+            table = instance.table ?: 1,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            exercise = instance,
+            helps = helps,
+            onExerciseFinished = onExerciseFinished
+        )
+        GameType.MULTIPLICATION_REVERSE -> TabellinaReverseGame(
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            exercise = instance,
+            helps = helps,
+            onExerciseFinished = onExerciseFinished
+        )
+        GameType.MULTIPLICATION_MULTIPLE_CHOICE -> TabellineMultipleChoiceGame(
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            exercise = instance,
+            helps = helps,
+            onExerciseFinished = onExerciseFinished
+        )
         GameType.DIVISION_STEP -> DivisionStepGame(
             startMode = StartMode.MANUAL,
             soundEnabled = soundEnabled,
@@ -1295,7 +1274,10 @@ private fun exerciseLabel(instance: ExerciseInstance): String {
     return when (instance.game) {
         GameType.ADDITION -> "$a + $b"
         GameType.SUBTRACTION -> "$a - $b"
-        GameType.MULTIPLICATION_TABLE -> "${instance.table ?: a} × $b"
+        GameType.MULTIPLICATION_TABLE,
+        GameType.MULTIPLICATION_GAPS -> "Tabellina del ${instance.table ?: a}"
+        GameType.MULTIPLICATION_REVERSE,
+        GameType.MULTIPLICATION_MULTIPLE_CHOICE -> "${instance.table ?: a} × $b"
         GameType.DIVISION_STEP -> "$a ÷ $b"
         else -> "$a × $b"
     }

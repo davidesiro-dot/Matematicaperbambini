@@ -44,7 +44,18 @@ fun buildExerciseQueue(configs: List<HomeworkTaskConfig>): List<HomeworkExercise
 
 private fun generateRandomInstance(config: HomeworkTaskConfig): ExerciseInstance {
     return when (config.game) {
-        GameType.MULTIPLICATION_TABLE -> {
+        GameType.MULTIPLICATION_TABLE,
+        GameType.MULTIPLICATION_GAPS -> {
+            val table = config.difficulty.level ?: Random.nextInt(1, 11)
+            val factor = Random.nextInt(1, 11)
+            ExerciseInstance(game = config.game, a = table, b = factor, table = table)
+        }
+        GameType.MULTIPLICATION_REVERSE -> {
+            val table = config.difficulty.level ?: Random.nextInt(1, 11)
+            val factor = Random.nextInt(1, 11)
+            ExerciseInstance(game = config.game, a = factor, b = table, table = table)
+        }
+        GameType.MULTIPLICATION_MULTIPLE_CHOICE -> {
             val table = config.difficulty.level ?: Random.nextInt(1, 11)
             val factor = Random.nextInt(1, 11)
             ExerciseInstance(game = config.game, a = table, b = factor, table = table)
