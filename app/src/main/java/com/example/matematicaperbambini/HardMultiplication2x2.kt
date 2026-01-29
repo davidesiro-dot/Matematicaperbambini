@@ -83,7 +83,7 @@ private fun hmRowLabel(row: HMRowKey): String = when (row) {
 }
 
 private fun hmComputePlan(a: Int, b: Int): HMPlan {
-    require(a in 10..99 && b in 10..99)
+    require(a in 10..99 && b in 1..99)
 
     val aT = a / 10
     val aU = a % 10
@@ -386,7 +386,9 @@ fun HardMultiplication2x2Game(
     var errSUM by remember { mutableStateOf(BooleanArray(4) { false }) }
 
     fun reset(newA: Int, newB: Int) {
-        plan = hmComputePlan(newA, newB)
+        val safeA = newA.coerceIn(10, 99)
+        val safeB = newB.coerceIn(1, 99)
+        plan = hmComputePlan(safeA, safeB)
         step = 0
         showSuccessDialog = false
         solutionUsed = false
@@ -436,8 +438,16 @@ fun HardMultiplication2x2Game(
     }
 
     fun startManual(a: Int, b: Int) {
-        manualNumbers = a to b
-        reset(a, b)
+        val safeA = a.coerceIn(10, 99)
+        val safeB = b.coerceIn(1, 99)
+        if (a != safeA) {
+            manualA = safeA.toString()
+        }
+        if (b != safeB) {
+            manualB = safeB.toString()
+        }
+        manualNumbers = safeA to safeB
+        reset(safeA, safeB)
     }
 
     LaunchedEffect(Unit) {
@@ -450,8 +460,10 @@ fun HardMultiplication2x2Game(
         val a = exercise?.a
         val b = exercise?.b
         if (a != null && b != null) {
-            manualNumbers = a to b
-            reset(a, b)
+            val safeA = a.coerceIn(10, 99)
+            val safeB = b.coerceIn(1, 99)
+            manualNumbers = safeA to safeB
+            reset(safeA, safeB)
         }
     }
 
@@ -587,18 +599,18 @@ fun HardMultiplication2x2Game(
                 if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
-                    val manualValid = manualAValue in 10..99 && manualBValue in 10..99
+                    val manualValid = manualAValue in 10..999 && manualBValue in 1..99
                     val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
                         null
                     } else {
-                        "Inserisci due numeri da 10 a 99."
+                        "Inserisci A tra 10 e 999, B tra 1 e 99."
                     }
 
                     SeaGlassPanel(title = "Inserimento") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = manualA,
-                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(2) },
+                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(3) },
                                 label = { Text("Numero A") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
