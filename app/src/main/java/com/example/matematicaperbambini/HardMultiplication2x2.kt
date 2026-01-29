@@ -812,9 +812,9 @@ fun HardMultiplication2x2Game(
                         }
                     },
                     center = {
-                        OutlinedButton(
+                        Button(
                             onClick = {
-                                val activePlan = plan ?: return@OutlinedButton
+                                val activePlan = plan ?: return@Button
                                 solutionUsed = true
                                 for (c in 0..3) {
                                     val cp1 = activePlan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
@@ -827,14 +827,16 @@ fun HardMultiplication2x2Game(
                                 }
                                 setCell(HMRowKey.P2, 3, '-', false)
                                 step = activePlan.targets.size
-                            }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 "Soluzione",
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Clip,
-                                fontSize = 12.sp
+                                fontSize = 15.sp
                             )
                         }
                     }
