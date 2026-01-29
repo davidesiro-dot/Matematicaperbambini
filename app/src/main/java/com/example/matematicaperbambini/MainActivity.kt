@@ -200,7 +200,8 @@ private enum class Screen {
     DIV_STEP_GAME,     // ✅ Divisioni passo-passo con resto
     LEADERBOARD,
     HOMEWORK_BUILDER,
-    HOMEWORK_RUNNER
+    HOMEWORK_RUNNER,
+    HOMEWORK_REPORTS
 }
 
 private enum class NavAnim { SLIDE, EXPAND }
@@ -508,8 +509,9 @@ private fun AppShell() {
     // tabelline
     var selectedTable by remember { mutableStateOf(2) }
     var selectedGapsTable by remember { mutableStateOf(2) }
-    var homeworkQueue by remember { mutableStateOf<List<ExerciseInstance>>(emptyList()) }
+    var homeworkQueue by remember { mutableStateOf<List<HomeworkExerciseEntry>>(emptyList()) }
     var lastHomeworkResults by remember { mutableStateOf<List<ExerciseResult>>(emptyList()) }
+    var homeworkReports by remember { mutableStateOf<List<HomeworkReport>>(emptyList()) }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
         mode = m
@@ -556,6 +558,7 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
                 onOpenHomework = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
+                onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
                 onPickDigitsFor = { m ->
                     openStartMenu(m)
                 },
@@ -766,7 +769,17 @@ private fun AppShell() {
                     lastHomeworkResults = results
                     navAnim = NavAnim.SLIDE
                     screen = Screen.HOMEWORK_BUILDER
+                },
+                onSaveReport = { report ->
+                    homeworkReports = listOf(report) + homeworkReports
                 }
+            )
+
+            Screen.HOMEWORK_REPORTS -> HomeworkReportsScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                reports = homeworkReports
             )
         }
     }
@@ -781,6 +794,7 @@ private fun HomeMenuKids(
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onOpenHomework: () -> Unit,
+    onOpenReports: () -> Unit,
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
@@ -910,6 +924,7 @@ private fun HomeMenuKids(
                 ) {
                     SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
                     SmallCircleButton("📋") { onOpenHomework() }
+                    SmallCircleButton("🗂️") { onOpenReports() }
                     SmallCircleButton("🏆") { onOpenLeaderboard() }
                 }
             }
