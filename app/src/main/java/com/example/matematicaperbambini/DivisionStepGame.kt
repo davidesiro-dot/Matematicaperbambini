@@ -60,10 +60,14 @@ fun DivisionStepGame(
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
+    exercise: ExerciseInstance? = null,
+    helps: HelpSettings? = null,
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     var mode by remember { mutableStateOf(DivMode.ONE_DIGIT) }
+    val isHomeworkMode = exercise != null || onExerciseFinished != null
 
     fun newPlan(): DivisionPlan {
         val (dividend, divisor) = generateDivision(rng, mode)
@@ -88,6 +92,8 @@ fun DivisionStepGame(
     var message by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var solutionUsed by remember { mutableStateOf(false) }
+    var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
+    val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
 
     val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
@@ -114,6 +120,8 @@ fun DivisionStepGame(
         message = null
         showSuccessDialog = false
         solutionUsed = false
+        attempts = 0
+        wrongAnswers.clear()
         quotientInputs.forEachIndexed { idx, state ->
             state.value = ""
             quotientErrors[idx].value = false
@@ -156,7 +164,9 @@ fun DivisionStepGame(
         val pp = plan ?: return
         targetIndex++
         if (targetIndex >= pp.targets.size) {
-            correctCount++
+            if (!isHomeworkMode) {
+                correctCount++
+            }
             message = "✅ Finito! Quoziente ${pp.finalQuotient} resto ${pp.finalRemainder}"
         }
     }
@@ -190,6 +200,8 @@ fun DivisionStepGame(
             updateCellError(activeTarget, true)
             updateCellValue(activeTarget, "")
             message = "❌ Riprova"
+            attempts += 1
+            wrongAnswers += digit.toString()
             playWrong()
             return
         }
@@ -241,11 +253,23 @@ fun DivisionStepGame(
             }
         }
         p == null -> "Inserisci dividendo e divisore e premi Avvia."
+        helps?.hintsEnabled == false -> "Completa i passaggi della divisione."
         else -> currentTarget?.hint.orEmpty()
     }
 
     LaunchedEffect(done) {
         if (done && p != null && !solutionUsed) showSuccessDialog = true
+    }
+
+    LaunchedEffect(exercise?.a, exercise?.b) {
+        val dividend = exercise?.a
+        val divisor = exercise?.b
+        if (dividend != null && divisor != null && divisor != 0) {
+            mode = if (divisor >= 10) DivMode.TWO_DIGIT else DivMode.ONE_DIGIT
+            plan = generateDivisionPlan(dividend, divisor)
+            manualNumbers = dividend to divisor
+            resetSame()
+        }
     }
 
     val activeStepNumber = currentTarget?.stepIndex?.plus(1) ?: (p?.steps?.size ?: 0)
@@ -302,7 +326,7 @@ fun DivisionStepGame(
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
 
-                    if (startMode == StartMode.RANDOM) {
+                    if (startMode == StartMode.RANDOM && !isHomeworkMode) {
                         SeaGlassPanel(title = "Modalità") {
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 val oneDigitSelected = mode == DivMode.ONE_DIGIT
@@ -335,7 +359,7 @@ fun DivisionStepGame(
                         }
                     }
 
-                    if (startMode == StartMode.MANUAL) {
+                    if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                         val dividendValue = manualDividend.toIntOrNull()
                         val divisorValue = manualDivisor.toIntOrNull()
                         val manualValid = dividendValue in 2..999 &&
@@ -674,13 +698,28 @@ fun DivisionStepGame(
                             resetSame()
                         }
                     },
-                    rightText = "Nuovo",
-                    onRight = { resetNew() },
+                    rightText = if (isHomeworkMode) "Avanti" else "Nuovo",
+                    onRight = {
+                        if (isHomeworkMode) {
+                            if (done) {
+                                onExerciseFinished?.invoke(
+                                    ExerciseResultPartial(
+                                        correct = true,
+                                        attempts = attempts,
+                                        wrongAnswers = wrongAnswers.toList(),
+                                        solutionUsed = solutionUsed
+                                    )
+                                )
+                            }
+                        } else {
+                            resetNew()
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     center = {
                         Button(
                             onClick = { fillSolution() },
-                            enabled = p != null,
+                            enabled = p != null && (helps?.allowSolution != false),
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
@@ -697,23 +736,40 @@ fun DivisionStepGame(
             }
         )
 
-        BonusRewardHost(
-            correctCount = correctCount,
-            rewardsEarned = rewardsEarned,
-            rewardEvery = BONUS_TARGET_LONG_MULT_DIV,
-            soundEnabled = soundEnabled,
-            fx = fx,
-            onOpenLeaderboard = onOpenLeaderboardFromBonus,
-            onBonusPromptAction = { showSuccessDialog = false },
-            onRewardEarned = { rewardsEarned += 1 },
-            onRewardSkipped = { rewardsEarned += 1 }
-        )
+        if (!isHomeworkMode) {
+            BonusRewardHost(
+                correctCount = correctCount,
+                rewardsEarned = rewardsEarned,
+                rewardEvery = BONUS_TARGET_LONG_MULT_DIV,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onOpenLeaderboard = onOpenLeaderboardFromBonus,
+                onBonusPromptAction = { showSuccessDialog = false },
+                onRewardEarned = { rewardsEarned += 1 },
+                onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
 
         SuccessDialog(
             show = showSuccessDialog,
-            onNew = { showSuccessDialog = false; resetNew() },
+            onNew = {
+                showSuccessDialog = false
+                if (isHomeworkMode) {
+                    onExerciseFinished?.invoke(
+                        ExerciseResultPartial(
+                            correct = true,
+                            attempts = attempts,
+                            wrongAnswers = wrongAnswers.toList(),
+                            solutionUsed = solutionUsed
+                        )
+                    )
+                } else {
+                    resetNew()
+                }
+            },
             onDismiss = { showSuccessDialog = false },
-            resultText = p?.let { "${it.finalQuotient} r. ${it.finalRemainder}" }.orEmpty()
+            resultText = p?.let { "${it.finalQuotient} r. ${it.finalRemainder}" }.orEmpty(),
+            confirmText = if (isHomeworkMode) "Avanti" else "Nuova operazione"
         )
     }
 }
