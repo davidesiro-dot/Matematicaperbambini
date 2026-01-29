@@ -337,6 +337,7 @@ fun LongSubtractionGame(
     val currentStep = steps.getOrNull(stepIndex)
     val done = problem != null && currentStep == null
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var solutionRevealed by remember { mutableStateOf(false) }
 
     var message by remember { mutableStateOf<String?>(null) }
     var waitTapToContinue by remember { mutableStateOf(false) }
@@ -354,6 +355,7 @@ fun LongSubtractionGame(
         message = null
         waitTapToContinue = false
         showSuccessDialog = false
+        solutionRevealed = false
         for (i in topNewInputs.indices) topNewInputs[i] = ""
         for (i in resInputs.indices) resInputs[i] = ""
         for (i in topOk.indices) topOk[i] = null
@@ -370,6 +372,21 @@ fun LongSubtractionGame(
         } else {
             problem = generateSubtractionMixed(digits)
             resetSame()
+        }
+    }
+
+    fun revealSolution() {
+        val expectedValues = expected ?: return
+        solutionRevealed = true
+        showSuccessDialog = false
+        message = null
+        waitTapToContinue = false
+        stepIndex = steps.size
+        for (i in 0 until digits) {
+            topNewInputs[i] = expectedValues.topDigitsAfterBorrow[i].toString()
+            resInputs[i] = expectedValues.resultDigits[i].toString()
+            topOk[i] = true
+            resOk[i] = true
         }
     }
 
@@ -437,11 +454,12 @@ fun LongSubtractionGame(
     val hint = when {
         expected == null -> "Inserisci i numeri e premi Avvia."
         !done -> instructionSub(currentStep!!, digits, expected)
+        solutionRevealed -> "Soluzione: ${expected.resultDigits.joinToString("")}"
         else -> "Bravo! 🙂"
     }
 
     LaunchedEffect(done) {
-        if (done && expected != null) {
+        if (done && expected != null && !solutionRevealed) {
             showSuccessDialog = true
             correctCount += 1
         }
@@ -679,7 +697,23 @@ fun LongSubtractionGame(
                         }
                     },
                     rightText = "Nuovo",
-                    onRight = { resetForNew() }
+                    onRight = { resetForNew() },
+                    center = {
+                        Button(
+                            onClick = { revealSolution() },
+                            enabled = expected != null,
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                "Soluzione",
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Clip,
+                                fontSize = 15.sp
+                            )
+                        }
+                    }
                 )
             }
         )
