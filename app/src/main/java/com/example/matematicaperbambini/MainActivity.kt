@@ -468,13 +468,24 @@ private fun AppShell() {
     var soundEnabled by remember { mutableStateOf(true) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val fx = remember(context) { SoundFx(context) }
-    LaunchedEffect(Unit) {
-        if (soundEnabled) fx.playIntro()
+    val isGameScreen = when (screen) {
+        Screen.GAME,
+        Screen.MULT_GAME,
+        Screen.MULT_MIXED_GAME,
+        Screen.MULT_GAPS_GAME,
+        Screen.MULT_REVERSE_GAME,
+        Screen.MULT_CHOICE_GAME,
+        Screen.MULT_HARD_GAME,
+        Screen.DIV_STEP_GAME -> true
+        else -> false
     }
 
-    LaunchedEffect(soundEnabled) {
-        if (soundEnabled) fx.playIntro()
-        else fx.stopIntro()
+    LaunchedEffect(soundEnabled, screen) {
+        if (soundEnabled && !isGameScreen) {
+            fx.playIntro()
+        } else {
+            fx.stopIntro()
+        }
     }
     DisposableEffect(Unit) {
         onDispose {
