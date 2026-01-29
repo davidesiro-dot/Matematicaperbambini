@@ -74,11 +74,14 @@ private fun generateRandomInstance(config: HomeworkTaskConfig): ExerciseInstance
             ExerciseInstance(game = config.game, a = dividend, b = divisor)
         }
         GameType.MULTIPLICATION_HARD -> {
-            val range = digitsRange(config.difficulty.digits)
+            val maxA = (config.difficulty.maxA ?: 99).coerceIn(10, 99)
+            val maxB = (config.difficulty.maxB ?: 99).coerceIn(1, 99)
+            val rangeA = 10..maxA
+            val rangeB = 1..maxB
             ExerciseInstance(
                 game = config.game,
-                a = Random.nextInt(range.first, range.last + 1),
-                b = Random.nextInt(range.first, range.last + 1)
+                a = Random.nextInt(rangeA.first, rangeA.last + 1),
+                b = Random.nextInt(rangeB.first, rangeB.last + 1)
             )
         }
         GameType.MONEY_COUNT -> ExerciseInstance(game = config.game)
