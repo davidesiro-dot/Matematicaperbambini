@@ -159,6 +159,8 @@ private fun BasicColumnGame(
                     }
                 }
 
+                Spacer(Modifier.height(ui.spacing))
+
                 Button(
                     onClick = {
                         val user = input.toIntOrNull()
@@ -391,6 +393,8 @@ fun DivisionGame(
                 }
             }
 
+            Spacer(Modifier.height(ui.spacing))
+
             Button(
                 onClick = {
                     val u = input.toIntOrNull()
@@ -462,6 +466,8 @@ fun MoneyGame(
                         )
                     }
                 }
+
+                Spacer(Modifier.height(ui.spacing))
 
                 Button(
                     onClick = {
