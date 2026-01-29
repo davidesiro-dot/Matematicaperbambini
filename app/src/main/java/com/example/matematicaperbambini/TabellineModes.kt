@@ -144,15 +144,23 @@ fun TabellineGapsGame(
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
+    exercise: ExerciseInstance? = null,
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    helps: HelpSettings? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
+    val isHomeworkMode = exercise != null || onExerciseFinished != null
+    val resolvedTable = exercise?.table ?: table
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val ok = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
     var blanks by remember { mutableStateOf(setOf<Int>()) }
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var attempts by remember { mutableStateOf(0) }
+    val wrongAnswers = remember { mutableStateListOf<String>() }
+    var completed by remember { mutableStateOf(false) }
 
     fun resetRound() {
         blanks = (1..10).shuffled(rng).take(4).toSet()
@@ -160,9 +168,12 @@ fun TabellineGapsGame(
             inputs[i] = ""
             ok[i] = null
         }
+        attempts = 0
+        wrongAnswers.clear()
+        completed = false
     }
 
-    LaunchedEffect(Unit) { resetRound() }
+    LaunchedEffect(resolvedTable) { resetRound() }
 
     LaunchedEffect(msg) {
         if (!msg.isNullOrBlank()) {
@@ -184,16 +195,20 @@ fun TabellineGapsGame(
             onToggleSound = onToggleSound,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            correctCount = correctCount,
-            hintText = "Completa solo i risultati mancanti.",
+            correctCount = if (isHomeworkMode) 0 else correctCount,
+            hintText = if (helps?.hintsEnabled == false) {
+                "Inserisci i risultati mancanti."
+            } else {
+                "Completa solo i risultati mancanti."
+            },
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(title = "Tabellina del $table") {
+                SeaGlassPanel(title = "Tabellina del $resolvedTable") {
                     Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
                         for (i in 1..10) {
                             val index = i - 1
-                            val expected = table * i
+                            val expected = resolvedTable * i
                             val expectedLength = expected.toString().length
                             val isBlank = blanks.contains(i)
 
@@ -212,10 +227,12 @@ fun TabellineGapsGame(
                                     OutlinedTextField(
                                         value = inputs[index],
                                         onValueChange = {
+                                            if (completed) return@OutlinedTextField
                                             inputs[index] = it.filter { c -> c.isDigit() }.take(3)
                                             ok[index] = null
                                             if (inputs[index].length < expectedLength) return@OutlinedTextField
                                             val v = inputs[index].toIntOrNull()
+                                            attempts += 1
                                             if (v == expected) {
                                                 if (ok[index] != true) {
                                                     correctCount += 1
@@ -227,12 +244,27 @@ fun TabellineGapsGame(
                                                 }
                                                 if (allDone) {
                                                     msg = "✅ Tabellina completata!"
-                                                    resetRound()
+                                                    if (isHomeworkMode) {
+                                                        completed = true
+                                                        onExerciseFinished?.invoke(
+                                                            ExerciseResultPartial(
+                                                                correct = true,
+                                                                attempts = attempts,
+                                                                wrongAnswers = wrongAnswers.toList(),
+                                                                solutionUsed = false
+                                                            )
+                                                        )
+                                                    } else {
+                                                        resetRound()
+                                                    }
                                                 }
                                             } else {
                                                 ok[index] = false
                                                 inputs[index] = ""
                                                 if (soundEnabled) fx.wrong()
+                                                if (it.isNotBlank()) {
+                                                    wrongAnswers += it
+                                                }
                                             }
                                         },
                                         singleLine = true,
@@ -276,34 +308,38 @@ fun TabellineGapsGame(
                     }
                 }
             },
-            bottomBar = {
-                Button(
-                    onClick = {
-                        resetRound()
-                        msg = null
-                    },
-                    modifier = Modifier.fillMaxWidth().height(actionHeight),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFEF4444),
-                        contentColor = Color.White
-                    ),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
-                ) {
-                    Text("RESET", fontWeight = FontWeight.Black)
+            bottomBar = if (isHomeworkMode) null else {
+                {
+                    Button(
+                        onClick = {
+                            resetRound()
+                            msg = null
+                        },
+                        modifier = Modifier.fillMaxWidth().height(actionHeight),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFEF4444),
+                            contentColor = Color.White
+                        ),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+                    ) {
+                        Text("RESET", fontWeight = FontWeight.Black)
+                    }
                 }
             }
         )
 
-        BonusRewardHost(
-            correctCount = correctCount,
-            rewardsEarned = rewardsEarned,
-            rewardEvery = 10,
-            soundEnabled = soundEnabled,
-            fx = fx,
-            onOpenLeaderboard = onOpenLeaderboardFromBonus,
-            onRewardEarned = { rewardsEarned += 1 },
-            onRewardSkipped = { rewardsEarned += 1 }
-        )
+        if (!isHomeworkMode) {
+            BonusRewardHost(
+                correctCount = correctCount,
+                rewardsEarned = rewardsEarned,
+                rewardEvery = 10,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onOpenLeaderboard = onOpenLeaderboardFromBonus,
+                onRewardEarned = { rewardsEarned += 1 },
+                onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
     }
 }
 
@@ -314,16 +350,20 @@ fun TabellinaReverseGame(
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
+    exercise: ExerciseInstance? = null,
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    helps: HelpSettings? = null
 ) {
     data class ReverseQuestion(val a: Int, val b: Int)
 
     val rng = remember { Random(System.currentTimeMillis()) }
+    val isHomeworkMode = exercise != null || onExerciseFinished != null
     var question by remember {
         mutableStateOf(
             ReverseQuestion(
-                a = rng.nextInt(1, 11),
-                b = rng.nextInt(1, 11)
+                a = exercise?.a ?: rng.nextInt(1, 11),
+                b = exercise?.b ?: exercise?.table ?: rng.nextInt(1, 11)
             )
         )
     }
@@ -331,6 +371,9 @@ fun TabellinaReverseGame(
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var attempts by remember { mutableStateOf(0) }
+    val wrongAnswers = remember { mutableStateListOf<String>() }
+    var completed by remember { mutableStateOf(false) }
 
     fun newQuestion() {
         question = ReverseQuestion(
@@ -338,6 +381,20 @@ fun TabellinaReverseGame(
             b = rng.nextInt(1, 11)
         )
         input = ""
+    }
+
+    LaunchedEffect(exercise?.a, exercise?.b, exercise?.table) {
+        if (isHomeworkMode) {
+            question = ReverseQuestion(
+                a = exercise?.a ?: rng.nextInt(1, 11),
+                b = exercise?.b ?: exercise?.table ?: rng.nextInt(1, 11)
+            )
+            input = ""
+            msg = null
+            attempts = 0
+            wrongAnswers.clear()
+            completed = false
+        }
     }
 
     val product = question.a * question.b
@@ -356,8 +413,12 @@ fun TabellinaReverseGame(
             onToggleSound = onToggleSound,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            correctCount = correctCount,
-            hintText = "Inserisci il numero mancante per completare l’operazione.",
+            correctCount = if (isHomeworkMode) 0 else correctCount,
+            hintText = if (helps?.hintsEnabled == false) {
+                "Inserisci la risposta."
+            } else {
+                "Inserisci il numero mancante per completare l’operazione."
+            },
             ui = ui,
             message = msg,
             content = {
@@ -389,15 +450,32 @@ fun TabellinaReverseGame(
                 Spacer(Modifier.height(ui.spacing))
                 Button(
                     onClick = {
+                        if (completed) return@Button
+                        attempts += 1
                         val user = input.toIntOrNull()
                         if (user == question.a) {
                             msg = "✅ Corretto!"
-                            correctCount += 1
                             if (soundEnabled) fx.correct()
-                            newQuestion()
+                            if (isHomeworkMode) {
+                                completed = true
+                                onExerciseFinished?.invoke(
+                                    ExerciseResultPartial(
+                                        correct = true,
+                                        attempts = attempts,
+                                        wrongAnswers = wrongAnswers.toList(),
+                                        solutionUsed = false
+                                    )
+                                )
+                            } else {
+                                correctCount += 1
+                                newQuestion()
+                            }
                         } else {
                             msg = "❌ Riprova"
                             if (soundEnabled) fx.wrong()
+                            if (input.isNotBlank()) {
+                                wrongAnswers += input
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(actionHeight),
@@ -406,16 +484,18 @@ fun TabellinaReverseGame(
             }
         )
 
-        BonusRewardHost(
-            correctCount = correctCount,
-            rewardsEarned = rewardsEarned,
-            rewardEvery = 10,
-            soundEnabled = soundEnabled,
-            fx = fx,
-            onOpenLeaderboard = onOpenLeaderboardFromBonus,
-            onRewardEarned = { rewardsEarned += 1 },
-            onRewardSkipped = { rewardsEarned += 1 }
-        )
+        if (!isHomeworkMode) {
+            BonusRewardHost(
+                correctCount = correctCount,
+                rewardsEarned = rewardsEarned,
+                rewardEvery = 10,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onOpenLeaderboard = onOpenLeaderboardFromBonus,
+                onRewardEarned = { rewardsEarned += 1 },
+                onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
     }
 }
 
@@ -426,15 +506,22 @@ fun TabellineMultipleChoiceGame(
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
+    exercise: ExerciseInstance? = null,
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    helps: HelpSettings? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
-    var a by remember { mutableStateOf(rng.nextInt(1, 11)) }
-    var b by remember { mutableStateOf(rng.nextInt(1, 11)) }
+    val isHomeworkMode = exercise != null || onExerciseFinished != null
+    var a by remember { mutableStateOf(exercise?.a ?: rng.nextInt(1, 11)) }
+    var b by remember { mutableStateOf(exercise?.b ?: rng.nextInt(1, 11)) }
     var options by remember { mutableStateOf(listOf<Int>()) }
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var attempts by remember { mutableStateOf(0) }
+    val wrongAnswers = remember { mutableStateListOf<String>() }
+    var completed by remember { mutableStateOf(false) }
 
     fun newQuestion() {
         a = rng.nextInt(1, 11)
@@ -447,7 +534,28 @@ fun TabellineMultipleChoiceGame(
         options = optionSet.shuffled(rng)
     }
 
-    LaunchedEffect(Unit) { newQuestion() }
+    LaunchedEffect(isHomeworkMode) {
+        if (!isHomeworkMode) {
+            newQuestion()
+        }
+    }
+
+    LaunchedEffect(exercise?.a, exercise?.b, exercise?.table) {
+        if (isHomeworkMode) {
+            a = exercise?.a ?: rng.nextInt(1, 11)
+            b = exercise?.b ?: rng.nextInt(1, 11)
+            val correct = a * b
+            val optionSet = mutableSetOf(correct)
+            while (optionSet.size < 3) {
+                optionSet.add(rng.nextInt(2, 101))
+            }
+            options = optionSet.shuffled(rng)
+            msg = null
+            attempts = 0
+            wrongAnswers.clear()
+            completed = false
+        }
+    }
 
     val correctResult = a * b
 
@@ -462,8 +570,12 @@ fun TabellineMultipleChoiceGame(
             onToggleSound = onToggleSound,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            correctCount = correctCount,
-            hintText = "Scegli il risultato corretto.",
+            correctCount = if (isHomeworkMode) 0 else correctCount,
+            hintText = if (helps?.hintsEnabled == false) {
+                "Seleziona la risposta corretta."
+            } else {
+                "Scegli il risultato corretto."
+            },
             ui = ui,
             message = msg,
             content = {
@@ -482,14 +594,29 @@ fun TabellineMultipleChoiceGame(
                             options.forEach { option ->
                                 Button(
                                     onClick = {
+                                        if (completed) return@Button
+                                        attempts += 1
                                         if (option == correctResult) {
                                             msg = "✅ Corretto!"
-                                            correctCount += 1
                                             if (soundEnabled) fx.correct()
-                                            newQuestion()
+                                            if (isHomeworkMode) {
+                                                completed = true
+                                                onExerciseFinished?.invoke(
+                                                    ExerciseResultPartial(
+                                                        correct = true,
+                                                        attempts = attempts,
+                                                        wrongAnswers = wrongAnswers.toList(),
+                                                        solutionUsed = false
+                                                    )
+                                                )
+                                            } else {
+                                                correctCount += 1
+                                                newQuestion()
+                                            }
                                         } else {
                                             msg = "❌ Riprova"
                                             if (soundEnabled) fx.wrong()
+                                            wrongAnswers += option.toString()
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth().height(actionHeight),
@@ -509,15 +636,17 @@ fun TabellineMultipleChoiceGame(
             }
         )
 
-        BonusRewardHost(
-            correctCount = correctCount,
-            rewardsEarned = rewardsEarned,
-            rewardEvery = 10,
-            soundEnabled = soundEnabled,
-            fx = fx,
-            onOpenLeaderboard = onOpenLeaderboardFromBonus,
-            onRewardEarned = { rewardsEarned += 1 },
-            onRewardSkipped = { rewardsEarned += 1 }
-        )
+        if (!isHomeworkMode) {
+            BonusRewardHost(
+                correctCount = correctCount,
+                rewardsEarned = rewardsEarned,
+                rewardEvery = 10,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onOpenLeaderboard = onOpenLeaderboardFromBonus,
+                onRewardEarned = { rewardsEarned += 1 },
+                onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
     }
 }

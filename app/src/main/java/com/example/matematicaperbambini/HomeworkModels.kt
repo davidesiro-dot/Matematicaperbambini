@@ -5,6 +5,9 @@ enum class GameType(val title: String) {
     SUBTRACTION("Sottrazioni"),
     MULTIPLICATION_MIXED("Tabelline miste"),
     MULTIPLICATION_TABLE("Tabellina"),
+    MULTIPLICATION_GAPS("Buchi nella tabellina"),
+    MULTIPLICATION_REVERSE("Tabellina al contrario"),
+    MULTIPLICATION_MULTIPLE_CHOICE("Scelta multipla"),
     DIVISION_STEP("Divisioni passo-passo"),
     MONEY_COUNT("Conta i soldi"),
     MULTIPLICATION_HARD("Moltiplicazioni difficili")

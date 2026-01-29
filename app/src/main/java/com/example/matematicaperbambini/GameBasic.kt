@@ -222,13 +222,21 @@ fun MultiplicationTableGame(
     fx: SoundFx,
     onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
+    exercise: ExerciseInstance? = null,
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    helps: HelpSettings? = null
 ) {
+    val isHomeworkMode = exercise != null || onExerciseFinished != null
+    val resolvedTable = exercise?.table ?: table
     var step by remember { mutableStateOf(1) }
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val ok = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var attempts by remember { mutableStateOf(0) }
+    val wrongAnswers = remember { mutableStateListOf<String>() }
+    var completed by remember { mutableStateOf(false) }
 
     fun reset() {
         step = 1
@@ -236,6 +244,13 @@ fun MultiplicationTableGame(
             inputs[i] = ""
             ok[i] = null
         }
+        attempts = 0
+        wrongAnswers.clear()
+        completed = false
+    }
+
+    LaunchedEffect(resolvedTable) {
+        reset()
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -246,13 +261,17 @@ fun MultiplicationTableGame(
         val actionHeight = if (ui.isCompact) 44.dp else 52.dp
 
         GameScreenFrame(
-            title = "Tabellina del $table",
+            title = "Tabellina del $resolvedTable",
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            correctCount = correctCount,
-            hintText = "Completa la tabellina scrivendo tutti i risultati.",
+            correctCount = if (isHomeworkMode) 0 else correctCount,
+            hintText = if (helps?.hintsEnabled == false) {
+                "Inserisci tutti i risultati."
+            } else {
+                "Completa la tabellina scrivendo tutti i risultati."
+            },
             ui = ui,
             content = {
                 SeaGlassPanel(title = "Completa la tabellina") {
@@ -260,7 +279,7 @@ fun MultiplicationTableGame(
                         for (i in 1..10) {
                             val index = i - 1
                             val active = (i == step)
-                            val expected = table * i
+                            val expected = resolvedTable * i
                             val expectedLength = expected.toString().length
 
                             Row(
@@ -269,7 +288,7 @@ fun MultiplicationTableGame(
                                 horizontalArrangement = Arrangement.spacedBy(ui.spacing)
                             ) {
                                 Text(
-                                    "$table × $i",
+                                    "$resolvedTable × $i",
                                     modifier = Modifier.width(if (ui.isCompact) 70.dp else 80.dp),
                                     fontWeight = FontWeight.Bold
                                 )
@@ -277,20 +296,36 @@ fun MultiplicationTableGame(
                                 OutlinedTextField(
                                     value = inputs[index],
                                     onValueChange = {
+                                        if (completed) return@OutlinedTextField
                                         if (!active) return@OutlinedTextField
                                         inputs[index] = it.filter { c -> c.isDigit() }.take(3)
                                         ok[index] = null
                                         if (inputs[index].length < expectedLength) return@OutlinedTextField
                                         val v = inputs[index].toIntOrNull()
+                                        attempts += 1
                                         if (v == expected) {
                                             ok[index] = true
                                             if (soundEnabled) fx.correct()
                                             correctCount += 1
                                             step++
+                                            if (step > 10 && isHomeworkMode) {
+                                                completed = true
+                                                onExerciseFinished?.invoke(
+                                                    ExerciseResultPartial(
+                                                        correct = true,
+                                                        attempts = attempts,
+                                                        wrongAnswers = wrongAnswers.toList(),
+                                                        solutionUsed = false
+                                                    )
+                                                )
+                                            }
                                         } else {
                                             ok[index] = false
                                             inputs[index] = ""
                                             if (soundEnabled) fx.wrong()
+                                            if (it.isNotBlank()) {
+                                                wrongAnswers += it
+                                            }
                                         }
                                     },
                                     enabled = active,
@@ -318,31 +353,35 @@ fun MultiplicationTableGame(
                     }
                 }
             },
-            bottomBar = {
-                Button(
-                    onClick = { reset() },
-                    modifier = Modifier.fillMaxWidth().height(actionHeight),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFEF4444),
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("RESET", fontWeight = FontWeight.Black)
+            bottomBar = if (isHomeworkMode) null else {
+                {
+                    Button(
+                        onClick = { reset() },
+                        modifier = Modifier.fillMaxWidth().height(actionHeight),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFEF4444),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("RESET", fontWeight = FontWeight.Black)
+                    }
                 }
             }
         )
 
-        BonusRewardHost(
-            correctCount = correctCount,
-            rewardsEarned = rewardsEarned,
-            rewardEvery = 10,
-            soundEnabled = soundEnabled,
-            fx = fx,
-            onOpenLeaderboard = onOpenLeaderboardFromBonus,
-            onRewardEarned = { rewardsEarned += 1 },
-            onRewardSkipped = { rewardsEarned += 1 }
-        )
+        if (!isHomeworkMode) {
+            BonusRewardHost(
+                correctCount = correctCount,
+                rewardsEarned = rewardsEarned,
+                rewardEvery = 10,
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onOpenLeaderboard = onOpenLeaderboardFromBonus,
+                onRewardEarned = { rewardsEarned += 1 },
+                onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
     }
 }
 
