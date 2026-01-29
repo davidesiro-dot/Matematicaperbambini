@@ -133,51 +133,51 @@ private fun BasicColumnGame(
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(title = "Quanto fa?") {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(ui.spacing)
-                    ) {
-                        Text(
-                            "$a ${if (title == "Addizioni") "+" else "-"} $b",
-                            fontSize = questionSize,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
+                    SeaGlassPanel(title = "Quanto fa?") {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(ui.spacing)
+                        ) {
+                            Text(
+                                "$a ${if (title == "Addizioni") "+" else "-"} $b",
+                                fontSize = questionSize,
+                                fontWeight = FontWeight.ExtraBold
+                            )
 
-                        OutlinedTextField(
-                            value = input,
-                            onValueChange = { input = it.filter { c -> c.isDigit() || c == '-' }.take(5) },
-                            singleLine = true,
-                            textStyle = TextStyle(
-                                fontSize = inputFontSize,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.width(inputWidth)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(ui.spacing))
-
-                Button(
-                    onClick = {
-                        val user = input.toIntOrNull()
-                        if (user == correct) {
-                            val hitBonus = (correctCount + 1) % BONUS_TARGET == 0
-                            correctCount += 1
-                            msg = if (hitBonus) "🎉 Bonus sbloccato!" else "✅ Corretto! Tappa per continuare"
-                            if (soundEnabled) fx.correct()
-                            waitTap = !hitBonus
-                        } else {
-                            msg = "❌ Riprova"
-                            if (soundEnabled) fx.wrong()
+                            OutlinedTextField(
+                                value = input,
+                                onValueChange = { input = it.filter { c -> c.isDigit() || c == '-' }.take(5) },
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    fontSize = inputFontSize,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.width(inputWidth)
+                            )
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(actionHeight),
-                    shape = RoundedCornerShape(14.dp)
-                ) { Text("Controlla") }
+                    }
+
+                    Button(
+                        onClick = {
+                            val user = input.toIntOrNull()
+                            if (user == correct) {
+                                val hitBonus = (correctCount + 1) % BONUS_TARGET == 0
+                                correctCount += 1
+                                msg = if (hitBonus) "🎉 Bonus sbloccato!" else "✅ Corretto! Tappa per continuare"
+                                if (soundEnabled) fx.correct()
+                                waitTap = !hitBonus
+                            } else {
+                                msg = "❌ Riprova"
+                                if (soundEnabled) fx.wrong()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(actionHeight),
+                        shape = RoundedCornerShape(14.dp)
+                    ) { Text("Controlla") }
+                }
             }
         )
 
@@ -454,38 +454,38 @@ fun MoneyGame(
             ui = ui,
             message = msg,
             content = {
-                SeaGlassPanel(title = "Quanto fa?") {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("€ $a + € $b", fontSize = titleSize, fontWeight = FontWeight.ExtraBold)
+                Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
+                    SeaGlassPanel(title = "Quanto fa?") {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("€ $a + € $b", fontSize = titleSize, fontWeight = FontWeight.ExtraBold)
 
-                        OutlinedTextField(
-                            value = input,
-                            onValueChange = { input = it.filter { c -> c.isDigit() } },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(ui.spacing))
-
-                Button(
-                    onClick = {
-                        val u = input.toIntOrNull()
-                        if (u == a + b) {
-                            msg = "✅ Corretto"
-                            correctCount += 1
-                            if (soundEnabled) fx.correct()
-                            a = rng.nextInt(1, 10)
-                            b = rng.nextInt(1, 10)
-                            input = ""
-                        } else {
-                            msg = "❌ Riprova"
-                            if (soundEnabled) fx.wrong()
+                            OutlinedTextField(
+                                value = input,
+                                onValueChange = { input = it.filter { c -> c.isDigit() } },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(actionHeight)
-                ) { Text("Controlla") }
+                    }
+
+                    Button(
+                        onClick = {
+                            val u = input.toIntOrNull()
+                            if (u == a + b) {
+                                msg = "✅ Corretto"
+                                correctCount += 1
+                                if (soundEnabled) fx.correct()
+                                a = rng.nextInt(1, 10)
+                                b = rng.nextInt(1, 10)
+                                input = ""
+                            } else {
+                                msg = "❌ Riprova"
+                                if (soundEnabled) fx.wrong()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(actionHeight)
+                    ) { Text("Controlla") }
+                }
             }
         )
 
