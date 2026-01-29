@@ -139,7 +139,8 @@ fun TabellineMixedGame(
                                         ExerciseResultPartial(
                                             correct = true,
                                             attempts = attempts,
-                                            wrongAnswers = wrongAnswers.toList()
+                                            wrongAnswers = wrongAnswers.toList(),
+                                            solutionUsed = false
                                         )
                                     )
                                 } else {

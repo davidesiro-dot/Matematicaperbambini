@@ -18,6 +18,11 @@ data class HomeworkTaskConfig(
     val amount: AmountConfig
 )
 
+data class HomeworkExerciseEntry(
+    val instance: ExerciseInstance,
+    val helps: HelpSettings
+)
+
 data class DifficultyConfig(
     val digits: Int? = null,
     val level: Int? = null
@@ -58,6 +63,7 @@ data class ExerciseResult(
     val correct: Boolean,
     val attempts: Int,
     val wrongAnswers: List<String>,
+    val solutionUsed: Boolean,
     val startedAt: Long,
     val endedAt: Long
 )
@@ -65,5 +71,12 @@ data class ExerciseResult(
 data class ExerciseResultPartial(
     val correct: Boolean,
     val attempts: Int,
-    val wrongAnswers: List<String>
+    val wrongAnswers: List<String>,
+    val solutionUsed: Boolean
+)
+
+data class HomeworkReport(
+    val childName: String,
+    val createdAt: Long,
+    val results: List<ExerciseResult>
 )

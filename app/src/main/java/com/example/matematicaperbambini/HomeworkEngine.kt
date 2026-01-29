@@ -3,8 +3,8 @@ package com.example.matematicaperbambini
 import kotlin.math.pow
 import kotlin.random.Random
 
-fun buildExerciseQueue(configs: List<HomeworkTaskConfig>): List<ExerciseInstance> {
-    val queue = mutableListOf<ExerciseInstance>()
+fun buildExerciseQueue(configs: List<HomeworkTaskConfig>): List<HomeworkExerciseEntry> {
+    val queue = mutableListOf<HomeworkExerciseEntry>()
     configs.forEach { config ->
         val repeats = config.amount.repeatsPerExercise.coerceAtLeast(1)
         when (val source = config.source) {
@@ -13,7 +13,7 @@ fun buildExerciseQueue(configs: List<HomeworkTaskConfig>): List<ExerciseInstance
                 repeat(count) {
                     val instance = generateRandomInstance(config)
                     repeat(repeats) {
-                        queue += instance
+                        queue += HomeworkExerciseEntry(instance = instance, helps = config.helps)
                     }
                 }
             }
@@ -27,11 +27,13 @@ fun buildExerciseQueue(configs: List<HomeworkTaskConfig>): List<ExerciseInstance
                         )
                         is ManualOp.Table -> ExerciseInstance(
                             game = config.game,
+                            a = op.table,
+                            b = Random.nextInt(1, 11),
                             table = op.table
                         )
                     }
                     repeat(repeats) {
-                        queue += instance
+                        queue += HomeworkExerciseEntry(instance = instance, helps = config.helps)
                     }
                 }
             }
@@ -44,7 +46,8 @@ private fun generateRandomInstance(config: HomeworkTaskConfig): ExerciseInstance
     return when (config.game) {
         GameType.MULTIPLICATION_TABLE -> {
             val table = config.difficulty.level ?: Random.nextInt(1, 11)
-            ExerciseInstance(game = config.game, table = table)
+            val factor = Random.nextInt(1, 11)
+            ExerciseInstance(game = config.game, a = table, b = factor, table = table)
         }
         GameType.MULTIPLICATION_MIXED -> {
             val range = digitsRange(config.difficulty.digits)
@@ -63,9 +66,22 @@ private fun generateRandomInstance(config: HomeworkTaskConfig): ExerciseInstance
                 b = Random.nextInt(range.first, range.last + 1)
             )
         }
-        GameType.DIVISION_STEP,
-        GameType.MONEY_COUNT,
-        GameType.MULTIPLICATION_HARD -> ExerciseInstance(game = config.game)
+        GameType.DIVISION_STEP -> {
+            val range = digitsRange(config.difficulty.digits)
+            val divisorRange = digitsRange(1)
+            val dividend = Random.nextInt(range.first, range.last + 1)
+            val divisor = Random.nextInt(divisorRange.first, divisorRange.last + 1).coerceAtLeast(1)
+            ExerciseInstance(game = config.game, a = dividend, b = divisor)
+        }
+        GameType.MULTIPLICATION_HARD -> {
+            val range = digitsRange(config.difficulty.digits)
+            ExerciseInstance(
+                game = config.game,
+                a = Random.nextInt(range.first, range.last + 1),
+                b = Random.nextInt(range.first, range.last + 1)
+            )
+        }
+        GameType.MONEY_COUNT -> ExerciseInstance(game = config.game)
     }
 }
 
