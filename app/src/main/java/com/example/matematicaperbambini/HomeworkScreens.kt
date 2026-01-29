@@ -1017,235 +1017,99 @@ private fun HomeworkExerciseGame(
 ) {
     val instance = entry.instance
     val helps = entry.helps
-    val title = instance.game.title
-    val a = instance.a ?: 0
-    val b = instance.b ?: 0
-    val table = instance.table
-    val questionColor = if (helps.highlightsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
 
-    var input by remember(instance) { mutableStateOf("") }
-    var quotientInput by remember(instance) { mutableStateOf("") }
-    var remainderInput by remember(instance) { mutableStateOf("") }
-    var msg by remember(instance) { mutableStateOf<String?>(null) }
-    var attempts by remember(instance) { mutableStateOf(0) }
-    val wrongAnswers = remember(instance) { mutableStateListOf<String>() }
-    var completed by remember(instance) { mutableStateOf(false) }
-    var solutionUsed by remember(instance) { mutableStateOf(false) }
-
-    val correctValue = when (instance.game) {
-        GameType.ADDITION -> a + b
-        GameType.SUBTRACTION -> a - b
-        GameType.MULTIPLICATION_MIXED,
-        GameType.MULTIPLICATION_HARD,
-        GameType.MULTIPLICATION_TABLE -> {
-            val multiplier = if (instance.game == GameType.MULTIPLICATION_TABLE) {
-                b.takeIf { it > 0 } ?: 1
-            } else b
-            val base = if (instance.game == GameType.MULTIPLICATION_TABLE) {
-                table ?: a
-            } else a
-            base * multiplier
-        }
-        GameType.DIVISION_STEP -> if (b != 0) a / b else 0
-        GameType.MONEY_COUNT -> 0
-    }
-    val correctRemainder = if (instance.game == GameType.DIVISION_STEP && b != 0) a % b else 0
-
-    fun finish(correct: Boolean) {
-        completed = true
-        onExerciseFinished(
-            ExerciseResultPartial(
-                correct = correct,
-                attempts = attempts,
-                wrongAnswers = wrongAnswers.toList(),
-                solutionUsed = solutionUsed
+    when (instance.game) {
+        GameType.ADDITION -> LongAdditionGame(
+            digits = (instance.a?.toString()?.length ?: 2).coerceAtLeast(1),
+            startMode = StartMode.MANUAL,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            exercise = instance,
+            helps = helps,
+            onExerciseFinished = onExerciseFinished
+        )
+        GameType.SUBTRACTION -> {
+            val safeInstance = if (instance.a != null && instance.b != null && instance.a < instance.b) {
+                instance.copy(a = instance.b, b = instance.a)
+            } else {
+                instance
+            }
+            LongSubtractionGame(
+                digits = (safeInstance.a?.toString()?.length ?: 2).coerceAtLeast(1),
+                startMode = StartMode.MANUAL,
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                fx = fx,
+                onBack = onBack,
+                onOpenLeaderboard = onOpenLeaderboard,
+                onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+                exercise = safeInstance,
+                helps = helps,
+                onExerciseFinished = onExerciseFinished
             )
+        }
+        GameType.MULTIPLICATION_MIXED -> TabellineMixedGame(
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            exercise = instance,
+            onExerciseFinished = onExerciseFinished,
+            helps = helps
+        )
+        GameType.MULTIPLICATION_TABLE -> {
+            val tableLabel = instance.table ?: instance.a
+            val title = tableLabel?.let { "Tabellina del $it" } ?: "Tabellina"
+            TabellineMixedGame(
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                fx = fx,
+                onBack = onBack,
+                onOpenLeaderboard = onOpenLeaderboard,
+                onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+                exercise = instance,
+                onExerciseFinished = onExerciseFinished,
+                titleOverride = title,
+                helps = helps
+            )
+        }
+        GameType.DIVISION_STEP -> DivisionStepGame(
+            startMode = StartMode.MANUAL,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            exercise = instance,
+            helps = helps,
+            onExerciseFinished = onExerciseFinished
+        )
+        GameType.MULTIPLICATION_HARD -> HardMultiplication2x2Game(
+            startMode = StartMode.MANUAL,
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            exercise = instance,
+            helps = helps,
+            onExerciseFinished = onExerciseFinished
+        )
+        else -> HomeworkUnsupportedScreen(
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            message = "Questo esercizio non è ancora disponibile nella modalità compiti."
         )
     }
-
-    fun recordWrongAnswer(value: String) {
-        if (value.isNotBlank()) {
-            wrongAnswers += value
-        }
-    }
-
-    fun checkSingleAnswer() {
-        if (completed) return
-        attempts += 1
-        val user = input.toIntOrNull()
-        if (user == correctValue) {
-            msg = "✅ Corretto!"
-            if (soundEnabled) fx.correct()
-            finish(true)
-        } else {
-            msg = "❌ Riprova"
-            if (soundEnabled) fx.wrong()
-            recordWrongAnswer(input)
-        }
-    }
-
-    fun checkDivisionAnswer() {
-        if (completed) return
-        attempts += 1
-        val userQuotient = quotientInput.toIntOrNull()
-        val userRemainder = remainderInput.toIntOrNull()
-        if (userQuotient == correctValue && userRemainder == correctRemainder) {
-            msg = "✅ Corretto!"
-            if (soundEnabled) fx.correct()
-            finish(true)
-        } else {
-            msg = "❌ Riprova"
-            if (soundEnabled) fx.wrong()
-            recordWrongAnswer("${quotientInput.ifBlank { "?" }} r ${remainderInput.ifBlank { "?" }}")
-        }
-    }
-
-    fun applySolution() {
-        if (completed) return
-        solutionUsed = true
-        if (instance.game == GameType.DIVISION_STEP) {
-            quotientInput = correctValue.toString()
-            remainderInput = correctRemainder.toString()
-            checkDivisionAnswer()
-        } else {
-            input = correctValue.toString()
-            checkSingleAnswer()
-        }
-    }
-
-    val hintText = if (!helps.hintsEnabled) {
-        "Inserisci la risposta e premi Controlla."
-    } else {
-        when (instance.game) {
-            GameType.ADDITION -> "Suggerimento: somma $a e $b."
-            GameType.SUBTRACTION -> "Suggerimento: sottrai $b da $a."
-            GameType.MULTIPLICATION_TABLE -> "Suggerimento: tabellina del ${table ?: a}."
-            GameType.DIVISION_STEP -> "Suggerimento: pensa a quoziente e resto."
-            else -> "Suggerimento: moltiplica i due numeri."
-        }
-    }
-
-    val ui = rememberUiSizing()
-    val questionSize = if (ui.isCompact) 30.sp else 36.sp
-    val inputFontSize = if (ui.isCompact) 18.sp else 22.sp
-    val inputWidth = if (ui.isCompact) 150.dp else 180.dp
-    val actionHeight = if (ui.isCompact) 44.dp else 52.dp
-
-    LaunchedEffect(input, quotientInput, remainderInput, completed, helps.autoCheck) {
-        if (!helps.autoCheck || completed) return@LaunchedEffect
-        if (instance.game == GameType.DIVISION_STEP) {
-            if (quotientInput.isNotBlank() && remainderInput.isNotBlank()) {
-                checkDivisionAnswer()
-            }
-        } else {
-            val expectedLength = correctValue.toString().length
-            if (input.length >= expectedLength) {
-                checkSingleAnswer()
-            }
-        }
-    }
-
-    GameScreenFrame(
-        title = title,
-        soundEnabled = soundEnabled,
-        onToggleSound = onToggleSound,
-        onBack = onBack,
-        onOpenLeaderboard = onOpenLeaderboard,
-        correctCount = 0,
-        hintText = hintText,
-        ui = ui,
-        message = msg,
-        content = {
-            Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
-                SeaGlassPanel(title = "Quanto fa?") {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(ui.spacing)
-                    ) {
-                        val expression = when (instance.game) {
-                            GameType.ADDITION -> "$a + $b"
-                            GameType.SUBTRACTION -> "$a - $b"
-                            GameType.MULTIPLICATION_TABLE -> "${table ?: a} × ${b.takeIf { it > 0 } ?: 1}"
-                            GameType.DIVISION_STEP -> "$a ÷ $b"
-                            else -> "$a × $b"
-                        }
-                        Text(
-                            expression,
-                            fontSize = questionSize,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = questionColor
-                        )
-
-                        if (instance.game == GameType.DIVISION_STEP) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                OutlinedTextField(
-                                    value = quotientInput,
-                                    onValueChange = { quotientInput = it.filter { c -> c.isDigit() }.take(4) },
-                                    singleLine = true,
-                                    label = { Text("Quoziente") },
-                                    textStyle = TextStyle(
-                                        fontSize = inputFontSize,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    ),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlinedTextField(
-                                    value = remainderInput,
-                                    onValueChange = { remainderInput = it.filter { c -> c.isDigit() }.take(3) },
-                                    singleLine = true,
-                                    label = { Text("Resto") },
-                                    textStyle = TextStyle(
-                                        fontSize = inputFontSize,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    ),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        } else {
-                            OutlinedTextField(
-                                value = input,
-                                onValueChange = { input = it.filter { c -> c.isDigit() || c == '-' }.take(6) },
-                                singleLine = true,
-                                textStyle = TextStyle(
-                                    fontSize = inputFontSize,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center
-                                ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.width(inputWidth)
-                            )
-                        }
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = {
-                            if (instance.game == GameType.DIVISION_STEP) {
-                                checkDivisionAnswer()
-                            } else {
-                                checkSingleAnswer()
-                            }
-                        },
-                        enabled = !completed,
-                        modifier = Modifier.weight(1f).height(actionHeight)
-                    ) { Text("Controlla") }
-                    if (helps.allowSolution) {
-                        Button(
-                            onClick = { applySolution() },
-                            enabled = !completed,
-                            modifier = Modifier.weight(1f).height(actionHeight),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) { Text("Soluzione", color = MaterialTheme.colorScheme.onSurface) }
-                    }
-                }
-            }
-        }
-    )
 }
 
 @Composable
