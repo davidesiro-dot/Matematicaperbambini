@@ -167,6 +167,7 @@ fun LongAdditionGame(
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var solutionRevealed by remember { mutableStateOf(false) }
 
     // input
     val planDigits = plan?.digits ?: digits
@@ -186,6 +187,7 @@ fun LongAdditionGame(
     fun resetSame() {
         step = 0
         showSuccessDialog = false
+        solutionRevealed = false
         clearInputs()
     }
 
@@ -216,8 +218,23 @@ fun LongAdditionGame(
     val current = p?.targets?.getOrNull(step)
     val done = p != null && step >= p.targets.size
 
+    fun revealSolution() {
+        val activePlan = plan ?: return
+        solutionRevealed = true
+        showSuccessDialog = false
+        step = activePlan.targets.size
+        carryIn.value = CharArray(activePlan.digits) { idx ->
+            activePlan.carry[idx].takeIf { it != ' ' } ?: '\u0000'
+        }
+        sumIn.value = CharArray(activePlan.digits + 1) { idx ->
+            activePlan.res[idx].takeIf { it != ' ' } ?: '\u0000'
+        }
+        errCarry.value = BooleanArray(activePlan.digits) { false }
+        errSum.value = BooleanArray(activePlan.digits + 1) { false }
+    }
+
     LaunchedEffect(done) {
-        if (done && p != null) {
+        if (done && p != null && !solutionRevealed) {
             showSuccessDialog = true
             correctCount += 1
         }
@@ -265,6 +282,7 @@ fun LongAdditionGame(
 
     val hint = when {
         p == null -> "Inserisci i numeri e premi Avvia."
+        done && solutionRevealed -> "Soluzione: ${p.result}"
         done -> "Bravo! ✅ Risultato: ${p.result}"
         else -> current?.hint.orEmpty()
     }
@@ -466,7 +484,23 @@ fun LongAdditionGame(
                         }
                     },
                     rightText = "Nuovo",
-                    onRight = { resetNew() }
+                    onRight = { resetNew() },
+                    center = {
+                        Button(
+                            onClick = { revealSolution() },
+                            enabled = p != null,
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                "Soluzione",
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Clip,
+                                fontSize = 15.sp
+                            )
+                        }
+                    }
                 )
             }
         )

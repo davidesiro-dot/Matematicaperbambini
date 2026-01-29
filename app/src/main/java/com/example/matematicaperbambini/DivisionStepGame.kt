@@ -677,13 +677,18 @@ fun DivisionStepGame(
                     onRight = { resetNew() },
                     modifier = Modifier.fillMaxWidth(),
                     center = {
-                        OutlinedButton(onClick = { fillSolution() }, enabled = p != null) {
+                        Button(
+                            onClick = { fillSolution() },
+                            enabled = p != null,
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
                             Text(
                                 "Soluzione",
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Clip,
-                                fontSize = 12.sp
+                                fontSize = 15.sp
                             )
                         }
                     }
