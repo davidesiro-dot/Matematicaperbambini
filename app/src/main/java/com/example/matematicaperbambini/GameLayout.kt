@@ -50,6 +50,8 @@ fun GameScreenFrame(
     val iconSize = if (isCompact) 18.dp else 22.dp
     val buttonFont = if (isCompact) 16.sp else 18.sp
 
+    val contentSpacing = maxOf(ui.spacing, 10.dp)
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -58,7 +60,7 @@ fun GameScreenFrame(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing),
             contentPadding = PaddingValues(ui.pad),
-            verticalArrangement = Arrangement.spacedBy(ui.spacing)
+            verticalArrangement = Arrangement.spacedBy(contentSpacing)
         ) {
             item {
                 SeaGlassPanel {
@@ -110,7 +112,7 @@ fun GameScreenFrame(
                 }
             }
 
-            item { Spacer(Modifier.height(ui.spacing)) }
+            item { Spacer(Modifier.height(contentSpacing)) }
         }
 
         Box(
