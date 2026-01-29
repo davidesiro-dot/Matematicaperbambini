@@ -614,72 +614,90 @@ fun HardMultiplication2x2Game(
                         )
                         Spacer(Modifier.height(if (ui.isCompact) 6.dp else 8.dp))
 
+                        val rowGap = if (ui.isCompact) 4.dp else 6.dp
+
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(rowGap),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            HMGridRowRight(signW, gap) {
-                                HMFixedDigit(
-                                    activePlan.a4[0],
-                                    digitW,
-                                    digitH,
-                                    digitFont,
-                                    highlight = isHL(HMHighlightRow.TOP_A, 0)
-                                )
-                                HMFixedDigit(
-                                    activePlan.a4[1],
-                                    digitW,
-                                    digitH,
-                                    digitFont,
-                                    highlight = isHL(HMHighlightRow.TOP_A, 1)
-                                )
-                                HMFixedDigit(
-                                    activePlan.a4[2],
-                                    digitW,
-                                    digitH,
-                                    digitFont,
-                                    highlight = isHL(HMHighlightRow.TOP_A, 2)
-                                )
-                                HMFixedDigit(
-                                    activePlan.a4[3],
-                                    digitW,
-                                    digitH,
-                                    digitFont,
-                                    highlight = isHL(HMHighlightRow.TOP_A, 3)
-                                )
-                                HMSignCell("", signW)
-                            }
+                            Row(verticalAlignment = Alignment.Top) {
+                                Column(verticalArrangement = Arrangement.spacedBy(rowGap)) {
+                                    HMGridRowRight(signW, gap) {
+                                        HMFixedDigit(
+                                            activePlan.a4[0],
+                                            digitW,
+                                            digitH,
+                                            digitFont,
+                                            highlight = isHL(HMHighlightRow.TOP_A, 0)
+                                        )
+                                        HMFixedDigit(
+                                            activePlan.a4[1],
+                                            digitW,
+                                            digitH,
+                                            digitFont,
+                                            highlight = isHL(HMHighlightRow.TOP_A, 1)
+                                        )
+                                        HMFixedDigit(
+                                            activePlan.a4[2],
+                                            digitW,
+                                            digitH,
+                                            digitFont,
+                                            highlight = isHL(HMHighlightRow.TOP_A, 2)
+                                        )
+                                        HMFixedDigit(
+                                            activePlan.a4[3],
+                                            digitW,
+                                            digitH,
+                                            digitFont,
+                                            highlight = isHL(HMHighlightRow.TOP_A, 3)
+                                        )
+                                    }
 
-                            HMGridRowRight(signW, gap) {
-                                HMFixedDigit(
-                                    activePlan.b4[0],
-                                    digitW,
-                                    digitH,
-                                    digitFont,
-                                    highlight = isHL(HMHighlightRow.TOP_B, 0)
-                                )
-                                HMFixedDigit(
-                                    activePlan.b4[1],
-                                    digitW,
-                                    digitH,
-                                    digitFont,
-                                    highlight = isHL(HMHighlightRow.TOP_B, 1)
-                                )
-                                HMFixedDigit(
-                                    activePlan.b4[2],
-                                    digitW,
-                                    digitH,
-                                    digitFont,
-                                    highlight = isHL(HMHighlightRow.TOP_B, 2)
-                                )
-                                HMFixedDigit(
-                                    activePlan.b4[3],
-                                    digitW,
-                                    digitH,
-                                    digitFont,
-                                    highlight = isHL(HMHighlightRow.TOP_B, 3)
-                                )
-                                HMSignCell("×", signW)
+                                    HMGridRowRight(signW, gap) {
+                                        HMFixedDigit(
+                                            activePlan.b4[0],
+                                            digitW,
+                                            digitH,
+                                            digitFont,
+                                            highlight = isHL(HMHighlightRow.TOP_B, 0)
+                                        )
+                                        HMFixedDigit(
+                                            activePlan.b4[1],
+                                            digitW,
+                                            digitH,
+                                            digitFont,
+                                            highlight = isHL(HMHighlightRow.TOP_B, 1)
+                                        )
+                                        HMFixedDigit(
+                                            activePlan.b4[2],
+                                            digitW,
+                                            digitH,
+                                            digitFont,
+                                            highlight = isHL(HMHighlightRow.TOP_B, 2)
+                                        )
+                                        HMFixedDigit(
+                                            activePlan.b4[3],
+                                            digitW,
+                                            digitH,
+                                            digitFont,
+                                            highlight = isHL(HMHighlightRow.TOP_B, 3)
+                                        )
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(signW)
+                                        .height(digitH + rowGap + digitH),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "×",
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
 
                             Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
