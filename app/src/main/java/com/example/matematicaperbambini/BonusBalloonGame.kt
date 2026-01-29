@@ -80,7 +80,8 @@ fun BonusRewardHost(
     fx: SoundFx,
     onOpenLeaderboard: (LeaderboardTab) -> Unit,
     onRewardEarned: () -> Unit,
-    onRewardSkipped: () -> Unit
+    onRewardSkipped: () -> Unit,
+    onBonusPromptAction: () -> Unit = {}
 ) {
     val normalizedRewardEvery = rewardEvery.coerceAtLeast(1)
     val nextRewardAt = (rewardsEarned + 1) * normalizedRewardEvery
@@ -112,6 +113,7 @@ fun BonusRewardHost(
             confirmButton = {
                 Button(
                     onClick = {
+                        onBonusPromptAction()
                         showPrompt = false
                         showGame = true
                         if (soundEnabled) fx.bonus()
@@ -121,6 +123,7 @@ fun BonusRewardHost(
             dismissButton = {
                 TextButton(
                     onClick = {
+                        onBonusPromptAction()
                         showPrompt = false
                         pickedGame = null
                         onRewardSkipped()
