@@ -584,9 +584,13 @@ private fun AppShell() {
                         startMode = chosenMode
                         when (startMenuMode) {
                             GameMode.ADD, GameMode.SUB -> {
-                                pendingDigitsMode = startMenuMode
-                                navAnim = NavAnim.SLIDE
-                                screen = Screen.DIGITS_PICKER
+                                if (chosenMode == StartMode.MANUAL) {
+                                    openGame(startMenuMode, digits, startMode)
+                                } else {
+                                    pendingDigitsMode = startMenuMode
+                                    navAnim = NavAnim.SLIDE
+                                    screen = Screen.DIGITS_PICKER
+                                }
                             }
                             GameMode.MULT -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_PICKER }
                             GameMode.MULT_HARD -> { navAnim = NavAnim.SLIDE; screen = Screen.MULT_HARD_GAME }
