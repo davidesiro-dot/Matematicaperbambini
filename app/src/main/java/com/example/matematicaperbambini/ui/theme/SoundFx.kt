@@ -11,6 +11,7 @@ class SoundFx(private val context: Context) {
         if (introPlayer == null) {
             introPlayer = MediaPlayer.create(context, R.raw.intro_music).apply {
                 isLooping = true
+                setVolume(0.5f, 0.5f)
             }
         }
 
