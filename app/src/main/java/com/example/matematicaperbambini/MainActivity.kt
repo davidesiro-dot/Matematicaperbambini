@@ -164,7 +164,7 @@ enum class GameMode(val title: String) {
     MULT("Tabelline"),
     DIV("Divisioni"),
     MONEY("Conta i soldi"),
-    MULT_HARD("Moltiplicazioni difficili")
+    MULT_HARD("Moltiplicazioni")
 }
 
 enum class TabellineMode(val title: String) {
@@ -807,13 +807,7 @@ private fun HomeMenuKids(
                 onClick = { onPickDigitsFor(GameMode.SUB) }
             ),
             MenuButtonData(
-                title = "Tabelline",
-                baseColor = Color(0xFFF39C12),
-                iconText = "×",
-                onClick = { onPlayDirect(GameMode.MULT) }
-            ),
-            MenuButtonData(
-                title = "Moltiplicazioni difficili",
+                title = "Moltiplicazioni",
                 baseColor = Color(0xFF8B5CF6),
                 iconText = "××",
                 onClick = { onPlayDirect(GameMode.MULT_HARD) }
@@ -825,7 +819,13 @@ private fun HomeMenuKids(
                 onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
             ),
             MenuButtonData(
-                title = "Conta i soldi (Euro)",
+                title = "Tabelline",
+                baseColor = Color(0xFFF39C12),
+                iconText = "×",
+                onClick = { onPlayDirect(GameMode.MULT) }
+            ),
+            MenuButtonData(
+                title = "Conta i soldi",
                 baseColor = Color(0xFFF1C40F),
                 iconText = "€",
                 onClick = { onPlayDirect(GameMode.MONEY) }
