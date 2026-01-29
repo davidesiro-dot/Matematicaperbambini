@@ -523,6 +523,7 @@ fun LongAdditionGame(
             soundEnabled = soundEnabled,
             fx = fx,
             onOpenLeaderboard = onOpenLeaderboardFromBonus,
+            onBonusPromptAction = { showSuccessDialog = false },
             onRewardEarned = { rewardsEarned += 1 },
             onRewardSkipped = { rewardsEarned += 1 }
         )
