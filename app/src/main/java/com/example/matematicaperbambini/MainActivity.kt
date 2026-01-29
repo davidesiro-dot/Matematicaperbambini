@@ -198,7 +198,9 @@ private enum class Screen {
     MULT_CHOICE_GAME,
     MULT_HARD_GAME,    // moltiplicazioni difficili (2 cifre in colonna)
     DIV_STEP_GAME,     // ✅ Divisioni passo-passo con resto
-    LEADERBOARD
+    LEADERBOARD,
+    HOMEWORK_BUILDER,
+    HOMEWORK_RUNNER
 }
 
 private enum class NavAnim { SLIDE, EXPAND }
@@ -476,7 +478,8 @@ private fun AppShell() {
         Screen.MULT_REVERSE_GAME,
         Screen.MULT_CHOICE_GAME,
         Screen.MULT_HARD_GAME,
-        Screen.DIV_STEP_GAME -> true
+        Screen.DIV_STEP_GAME,
+        Screen.HOMEWORK_RUNNER -> true
         else -> false
     }
 
@@ -505,6 +508,8 @@ private fun AppShell() {
     // tabelline
     var selectedTable by remember { mutableStateOf(2) }
     var selectedGapsTable by remember { mutableStateOf(2) }
+    var homeworkQueue by remember { mutableStateOf<List<ExerciseInstance>>(emptyList()) }
+    var lastHomeworkResults by remember { mutableStateOf<List<ExerciseResult>>(emptyList()) }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
         mode = m
@@ -550,6 +555,7 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
+                onOpenHomework = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onPickDigitsFor = { m ->
                     openStartMenu(m)
                 },
@@ -735,6 +741,33 @@ private fun AppShell() {
                     returnScreenAfterLeaderboard = null
                 }
             )
+
+            Screen.HOMEWORK_BUILDER -> HomeworkBuilderScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                lastResults = lastHomeworkResults,
+                onStartHomework = { configs ->
+                    homeworkQueue = buildExerciseQueue(configs)
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.HOMEWORK_RUNNER
+                }
+            )
+
+            Screen.HOMEWORK_RUNNER -> HomeworkRunnerScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                fx = fx,
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
+                onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
+                queue = homeworkQueue,
+                onExit = { results ->
+                    lastHomeworkResults = results
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.HOMEWORK_BUILDER
+                }
+            )
         }
     }
 }
@@ -747,6 +780,7 @@ private fun HomeMenuKids(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
+    onOpenHomework: () -> Unit,
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
@@ -875,6 +909,7 @@ private fun HomeMenuKids(
                         .padding(top = 6.dp)
                 ) {
                     SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+                    SmallCircleButton("📋") { onOpenHomework() }
                     SmallCircleButton("🏆") { onOpenLeaderboard() }
                 }
             }
