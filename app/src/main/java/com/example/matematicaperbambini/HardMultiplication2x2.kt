@@ -599,18 +599,18 @@ fun HardMultiplication2x2Game(
                 if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
-                    val manualValid = manualAValue in 10..999 && manualBValue in 1..99
+                    val manualValid = manualAValue in 10..99 && manualBValue in 1..99
                     val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
                         null
                     } else {
-                        "Inserisci A tra 10 e 999, B tra 1 e 99."
+                        "Inserisci A tra 10 e 99, B tra 1 e 99."
                     }
 
                     SeaGlassPanel(title = "Inserimento") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = manualA,
-                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(3) },
+                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(2) },
                                 label = { Text("Numero A") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()

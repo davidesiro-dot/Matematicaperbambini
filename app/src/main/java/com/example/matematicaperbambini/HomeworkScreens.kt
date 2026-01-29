@@ -290,7 +290,7 @@ fun HomeworkBuilderScreen(
                         onAddManual = {
                             val a = subtractionManualAInput.toIntOrNull()
                             val b = subtractionManualBInput.toIntOrNull()
-                            if (a != null && b != null) {
+                            if (a != null && b != null && a in 1..999 && b in 1..999 && b < a) {
                                 subtractionManualOps += ManualOp.AB(a, b)
                                 subtractionManualAInput = ""
                                 subtractionManualBInput = ""
@@ -480,8 +480,8 @@ fun HomeworkBuilderScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
                             value = hardMaxAInput,
-                            onValueChange = { hardMaxAInput = it.filter(Char::isDigit).take(3) },
-                            label = { Text("Numero A (10-999)") },
+                            onValueChange = { hardMaxAInput = it.filter(Char::isDigit).take(2) },
+                            label = { Text("Numero A (10-99)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
@@ -513,12 +513,12 @@ fun HomeworkBuilderScreen(
                         onManualBChange = { hardManualBInput = it },
                         opLabel = "A",
                         opLabelB = "B",
-                        maxDigitsA = 3,
+                        maxDigitsA = 2,
                         maxDigitsB = 2,
                         onAddManual = {
                             val a = hardManualAInput.toIntOrNull()
                             val b = hardManualBInput.toIntOrNull()
-                            if (a != null && b != null && a in 10..999 && b in 1..99) {
+                            if (a != null && b != null && a in 10..99 && b in 1..99) {
                                 hardManualOps += ManualOp.AB(a, b)
                                 hardManualAInput = ""
                                 hardManualBInput = ""

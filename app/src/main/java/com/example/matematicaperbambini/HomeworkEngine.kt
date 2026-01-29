@@ -74,7 +74,7 @@ private fun generateRandomInstance(config: HomeworkTaskConfig): ExerciseInstance
             ExerciseInstance(game = config.game, a = dividend, b = divisor)
         }
         GameType.MULTIPLICATION_HARD -> {
-            val maxA = (config.difficulty.maxA ?: 99).coerceIn(10, 999)
+            val maxA = (config.difficulty.maxA ?: 99).coerceIn(10, 99)
             val maxB = (config.difficulty.maxB ?: 99).coerceIn(1, 99)
             val rangeA = 10..maxA
             val rangeB = 1..maxB

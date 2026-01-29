@@ -524,13 +524,13 @@ fun LongSubtractionGame(
                 if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
-                    val manualValid = manualAValue in minValue..maxValue &&
-                        manualBValue in minValue..maxValue &&
-                        (manualAValue ?: 0) >= (manualBValue ?: 0)
+                    val manualValid = manualAValue in 1..999 &&
+                        manualBValue in 1..999 &&
+                        (manualAValue ?: 0) > (manualBValue ?: 0)
                     val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
                         null
                     } else {
-                        "Inserisci due numeri da $minValue a $maxValue (A ≥ B)."
+                        "Inserisci A e B tra 1 e 999 (B < A)."
                     }
 
                     SeaGlassPanel(title = "Inserimento") {
