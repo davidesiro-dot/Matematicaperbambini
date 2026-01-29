@@ -362,6 +362,7 @@ fun HardMultiplication2x2Game(
     var rewardsEarned by remember { mutableStateOf(0) }
     var noHintsMode by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var solutionUsed by remember { mutableStateOf(false) }
 
     var inCarryP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
     var inP1 by remember { mutableStateOf(CharArray(4) { '\u0000' }) }
@@ -381,6 +382,7 @@ fun HardMultiplication2x2Game(
         plan = hmComputePlan(newA, newB)
         step = 0
         showSuccessDialog = false
+        solutionUsed = false
         inCarryP1 = CharArray(4) { '\u0000' }
         inP1 = CharArray(4) { '\u0000' }
         inCarryP2 = CharArray(4) { '\u0000' }
@@ -399,6 +401,7 @@ fun HardMultiplication2x2Game(
     fun clearInputsOnly() {
         step = 0
         showSuccessDialog = false
+        solutionUsed = false
         inCarryP1 = CharArray(4) { '\u0000' }
         inP1 = CharArray(4) { '\u0000' }
         inCarryP2 = CharArray(4) { '\u0000' }
@@ -418,6 +421,7 @@ fun HardMultiplication2x2Game(
         manualA = ""
         manualB = ""
         manualNumbers = null
+        solutionUsed = false
     }
 
     fun startManual(a: Int, b: Int) {
@@ -437,8 +441,10 @@ fun HardMultiplication2x2Game(
 
     LaunchedEffect(done) {
         if (done && p != null) {
-            showSuccessDialog = true
-            correctCount += 1
+            if (!solutionUsed) {
+                showSuccessDialog = true
+                correctCount += 1
+            }
         }
     }
 
@@ -517,7 +523,13 @@ fun HardMultiplication2x2Game(
 
     val hint = when {
         plan == null -> "Inserisci i numeri e premi Avvia."
-        done && p != null -> "Bravo! ✅ Risultato: ${p.result}"
+        done && p != null -> {
+            if (solutionUsed) {
+                "Risultato: ${p.result}"
+            } else {
+                "Bravo! ✅ Risultato: ${p.result}"
+            }
+        }
         else -> current?.hint.orEmpty()
     }
 
@@ -803,6 +815,7 @@ fun HardMultiplication2x2Game(
                         OutlinedButton(
                             onClick = {
                                 val activePlan = plan ?: return@OutlinedButton
+                                solutionUsed = true
                                 for (c in 0..3) {
                                     val cp1 = activePlan.carryP1[c]; if (cp1 != ' ') setCell(HMRowKey.CARRY_P1, c, cp1, false)
                                     val cp2 = activePlan.carryP2[c]; if (cp2 != ' ') setCell(HMRowKey.CARRY_P2, c, cp2, false)

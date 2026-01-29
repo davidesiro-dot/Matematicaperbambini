@@ -86,6 +86,7 @@ fun DivisionStepGame(
     var rewardsEarned by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var solutionUsed by remember { mutableStateOf(false) }
 
     val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
@@ -111,6 +112,7 @@ fun DivisionStepGame(
         targetIndex = 0
         message = null
         showSuccessDialog = false
+        solutionUsed = false
         quotientInputs.forEachIndexed { idx, state ->
             state.value = ""
             quotientErrors[idx].value = false
@@ -142,6 +144,7 @@ fun DivisionStepGame(
             targetIndex = 0
             message = null
             showSuccessDialog = false
+            solutionUsed = false
         }
     }
 
@@ -207,6 +210,7 @@ fun DivisionStepGame(
 
     fun fillSolution() {
         val activePlan = plan ?: return
+        solutionUsed = true
         activePlan.steps.forEachIndexed { si, step ->
             val quotientCol = step.endPos
             quotientInputs[quotientCol].value = step.qDigit.toString()
@@ -223,18 +227,24 @@ fun DivisionStepGame(
             if (step.bringDownDigit != null) bringDownDone[si].value = true
         }
         targetIndex = activePlan.targets.size
-        message = "✅ Soluzione completata! Quoziente ${activePlan.finalQuotient} resto ${activePlan.finalRemainder}"
-        showSuccessDialog = true
+        message = null
+        showSuccessDialog = false
     }
 
     val hint = when {
-        done && p != null -> "Bravo! Quoziente ${p.finalQuotient} con resto ${p.finalRemainder}."
+        done && p != null -> {
+            if (solutionUsed) {
+                "Quoziente ${p.finalQuotient} con resto ${p.finalRemainder}."
+            } else {
+                "Bravo! Quoziente ${p.finalQuotient} con resto ${p.finalRemainder}."
+            }
+        }
         p == null -> "Inserisci dividendo e divisore e premi Avvia."
         else -> currentTarget?.hint.orEmpty()
     }
 
     LaunchedEffect(done) {
-        if (done && p != null) showSuccessDialog = true
+        if (done && p != null && !solutionUsed) showSuccessDialog = true
     }
 
     val activeStepNumber = currentTarget?.stepIndex?.plus(1) ?: (p?.steps?.size ?: 0)
