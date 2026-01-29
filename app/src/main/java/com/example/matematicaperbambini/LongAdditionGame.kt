@@ -368,8 +368,10 @@ fun LongAdditionGame(
 
                         val totalCols = activePlan.digits + 1
 
+                        val rowGap = if (ui.isCompact) 4.dp else 6.dp
+
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(if (ui.isCompact) 4.dp else 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(rowGap),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Riga carry (caselline piccole) allineate alle cifre A/B
@@ -402,22 +404,38 @@ fun LongAdditionGame(
                                 SignCell("", signW)
                             }
 
-                            // Riga A
-                            GridRowRight(signW, gap) {
-                                for (displayCol in 0 until totalCols) {
-                                    val ch = if (displayCol == 0) ' ' else activePlan.aStr[displayCol - 1]
-                                    FixedDigit(ch, digitW, digitH)
-                                }
-                                SignCell("", signW)
-                            }
+                            Row(verticalAlignment = Alignment.Top) {
+                                Column(verticalArrangement = Arrangement.spacedBy(rowGap)) {
+                                    // Riga A
+                                    GridRowRight(signW, gap) {
+                                        for (displayCol in 0 until totalCols) {
+                                            val ch = if (displayCol == 0) ' ' else activePlan.aStr[displayCol - 1]
+                                            FixedDigit(ch, digitW, digitH)
+                                        }
+                                    }
 
-                            // Riga B con segno +
-                            GridRowRight(signW, gap) {
-                                for (displayCol in 0 until totalCols) {
-                                    val ch = if (displayCol == 0) ' ' else activePlan.bStr[displayCol - 1]
-                                    FixedDigit(ch, digitW, digitH)
+                                    // Riga B
+                                    GridRowRight(signW, gap) {
+                                        for (displayCol in 0 until totalCols) {
+                                            val ch = if (displayCol == 0) ' ' else activePlan.bStr[displayCol - 1]
+                                            FixedDigit(ch, digitW, digitH)
+                                        }
+                                    }
                                 }
-                                SignCell("+", signW)
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(signW)
+                                        .height(digitH + rowGap + digitH),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "+",
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
 
                             Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
