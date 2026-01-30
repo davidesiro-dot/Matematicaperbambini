@@ -405,6 +405,7 @@ fun TabellinaReverseGame(
             b = rng.nextInt(1, 11)
         )
         input = ""
+        msg = null
     }
 
     LaunchedEffect(exercise?.a, exercise?.b, exercise?.table, exerciseKey) {
@@ -561,6 +562,7 @@ fun TabellineMultipleChoiceGame(
             optionSet.add(rng.nextInt(2, 101))
         }
         options = optionSet.shuffled(rng)
+        msg = null
     }
 
     LaunchedEffect(isHomeworkMode) {

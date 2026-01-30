@@ -524,27 +524,27 @@ fun LongSubtractionGame(
                 if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
-                    val manualValid = manualAValue in 1..999 &&
-                        manualBValue in 1..999 &&
+                    val manualValid = manualAValue in minValue..maxValue &&
+                        manualBValue in minValue..maxValue &&
                         (manualAValue ?: 0) > (manualBValue ?: 0)
                     val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
                         null
                     } else {
-                        "Inserisci A e B tra 1 e 999 (B < A)."
+                        "Inserisci A e B tra $minValue e $maxValue (B < A)."
                     }
 
                     SeaGlassPanel(title = "Inserimento") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = manualA,
-                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(3) },
+                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(digits) },
                                 label = { Text("Numero A") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             OutlinedTextField(
                                 value = manualB,
-                                onValueChange = { manualB = it.filter { c -> c.isDigit() }.take(3) },
+                                onValueChange = { manualB = it.filter { c -> c.isDigit() }.take(digits) },
                                 label = { Text("Numero B") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
