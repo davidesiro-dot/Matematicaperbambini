@@ -147,7 +147,10 @@ fun TabellineGapsGame(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
     onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
-    helps: HelpSettings? = null
+    helps: HelpSettings? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null,
+    exerciseKey: Int? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     val isHomeworkMode = exercise != null || onExerciseFinished != null
@@ -173,7 +176,7 @@ fun TabellineGapsGame(
         completed = false
     }
 
-    LaunchedEffect(resolvedTable) { resetRound() }
+    LaunchedEffect(resolvedTable, exerciseKey) { resetRound() }
 
     LaunchedEffect(msg) {
         if (!msg.isNullOrBlank()) {
@@ -202,6 +205,8 @@ fun TabellineGapsGame(
                 "Completa solo i risultati mancanti."
             },
             ui = ui,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             message = msg,
             content = {
                 SeaGlassPanel(title = "Tabellina del $resolvedTable") {
@@ -369,7 +374,10 @@ fun TabellinaReverseGame(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
     onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
-    helps: HelpSettings? = null
+    helps: HelpSettings? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null,
+    exerciseKey: Int? = null
 ) {
     data class ReverseQuestion(val a: Int, val b: Int)
 
@@ -399,7 +407,7 @@ fun TabellinaReverseGame(
         input = ""
     }
 
-    LaunchedEffect(exercise?.a, exercise?.b, exercise?.table) {
+    LaunchedEffect(exercise?.a, exercise?.b, exercise?.table, exerciseKey) {
         if (isHomeworkMode) {
             question = ReverseQuestion(
                 a = exercise?.a ?: rng.nextInt(1, 11),
@@ -436,6 +444,8 @@ fun TabellinaReverseGame(
                 "Inserisci il numero mancante per completare l’operazione."
             },
             ui = ui,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             message = msg,
             content = {
                 SeaGlassPanel(title = "Completa l’operazione") {
@@ -525,7 +535,10 @@ fun TabellineMultipleChoiceGame(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
     onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
-    helps: HelpSettings? = null
+    helps: HelpSettings? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null,
+    exerciseKey: Int? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     val isHomeworkMode = exercise != null || onExerciseFinished != null
@@ -556,7 +569,7 @@ fun TabellineMultipleChoiceGame(
         }
     }
 
-    LaunchedEffect(exercise?.a, exercise?.b, exercise?.table) {
+    LaunchedEffect(exercise?.a, exercise?.b, exercise?.table, exerciseKey) {
         if (isHomeworkMode) {
             a = exercise?.a ?: rng.nextInt(1, 11)
             b = exercise?.b ?: rng.nextInt(1, 11)
@@ -593,6 +606,8 @@ fun TabellineMultipleChoiceGame(
                 "Scegli il risultato corretto."
             },
             ui = ui,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             message = msg,
             content = {
                 SeaGlassPanel(title = "Quanto fa?") {

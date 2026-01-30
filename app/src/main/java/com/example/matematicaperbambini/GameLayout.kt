@@ -41,6 +41,8 @@ fun GameScreenFrame(
     hintText: String,
     ui: UiSizing,
     modifier: Modifier = Modifier,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null,
     content: @Composable () -> Unit,
     bottomBar: (@Composable () -> Unit)? = null,
     message: String? = null
@@ -83,7 +85,9 @@ fun GameScreenFrame(
                         correctCount = correctCount,
                         bonusTarget = bonusTarget,
                         hintText = hintText,
-                        ui = ui
+                        ui = ui,
+                        bonusLabelOverride = bonusLabelOverride,
+                        bonusProgressOverride = bonusProgressOverride
                     )
                 }
             }
@@ -137,16 +141,20 @@ private fun CompactHud(
     correctCount: Int,
     bonusTarget: Int,
     hintText: String,
-    ui: UiSizing
+    ui: UiSizing,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null
 ) {
     val safeTarget = bonusTarget.coerceAtLeast(1)
     val rewardProgress = correctCount % safeTarget
-    val label = if (rewardProgress == 0) {
+    val defaultLabel = if (rewardProgress == 0) {
         "Bonus: $safeTarget/$safeTarget 🎈"
     } else {
         "Bonus: $rewardProgress/$safeTarget 🎈"
     }
-    val progress = (rewardProgress / safeTarget.toFloat()).coerceIn(0f, 1f)
+    val label = bonusLabelOverride ?: defaultLabel
+    val progress = bonusProgressOverride?.coerceIn(0f, 1f)
+        ?: (rewardProgress / safeTarget.toFloat()).coerceIn(0f, 1f)
     val isCompact = ui.isCompact
     val fontSize = if (isCompact) 12.sp else 14.sp
     val progressHeight = if (isCompact) 6.dp else 8.dp
