@@ -120,7 +120,12 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
 
     val a4 = hmPad4From2(a)
     val b4 = hmPad4From2(b)
-    val p1_4 = hmPad4(p1)
+    val p1Chars = CharArray(4) { ' ' }.also {
+        it[3] = w11.toString()[0]
+        it[2] = w12.toString()[0]
+        if (c12 > 0) it[1] = c12.toString()[0]
+    }
+    val p1_4 = p1Chars.concatToString()
     val p2_4 = if (hasTens) hmPad4(p2) else "    "
     val res_4 = hmPad4(res)
 
@@ -308,19 +313,34 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
         }
     }
 
+    val sumStartCol = res_4.indexOfFirst { it != ' ' }.let { if (it == -1) 3 else it }
     var cin = 0
     run { val s = p1d[3] + p2d[3] + cin; addSum(3, cin, s / 10, s % 10); cin = s / 10 }
-    run { val s = p1d[2] + p2d[2] + cin; addSum(2, cin, s / 10, s % 10); cin = s / 10 }
-    run { val s = p1d[1] + p2d[1] + cin; addSum(1, cin, s / 10, s % 10); cin = s / 10 }
     run {
-        val s = p1d[0] + p2d[0] + cin
-        addDigit(
-            HMRowKey.SUM,
-            0,
-            (s % 10).toString()[0],
-            "Ultima colonna a sinistra: ${p1d[0]} + ${p2d[0]}${if (cin > 0) " + riporto $cin" else ""} → scrivi ${s % 10}",
-            highlightsForSum(0, HMHighlightRow.SUM, 0)
-        )
+        if (sumStartCol <= 2) {
+            val s = p1d[2] + p2d[2] + cin
+            addSum(2, cin, s / 10, s % 10)
+            cin = s / 10
+        }
+    }
+    run {
+        if (sumStartCol <= 1) {
+            val s = p1d[1] + p2d[1] + cin
+            addSum(1, cin, s / 10, s % 10)
+            cin = s / 10
+        }
+    }
+    run {
+        if (sumStartCol <= 0) {
+            val s = p1d[0] + p2d[0] + cin
+            addDigit(
+                HMRowKey.SUM,
+                0,
+                (s % 10).toString()[0],
+                "Ultima colonna a sinistra: ${p1d[0]} + ${p2d[0]}${if (cin > 0) " + riporto $cin" else ""} → scrivi ${s % 10}",
+                highlightsForSum(0, HMHighlightRow.SUM, 0)
+            )
+        }
     }
 
     return HMPlan(
