@@ -225,7 +225,10 @@ fun MultiplicationTableGame(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
     onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
-    helps: HelpSettings? = null
+    helps: HelpSettings? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null,
+    exerciseKey: Int? = null
 ) {
     val isHomeworkMode = exercise != null || onExerciseFinished != null
     val resolvedTable = exercise?.table ?: table
@@ -251,7 +254,7 @@ fun MultiplicationTableGame(
         msg = null
     }
 
-    LaunchedEffect(resolvedTable) {
+    LaunchedEffect(resolvedTable, exerciseKey) {
         reset()
     }
 
@@ -275,6 +278,8 @@ fun MultiplicationTableGame(
                 "Completa la tabellina scrivendo tutti i risultati."
             },
             ui = ui,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             message = msg,
             content = {
                 SeaGlassPanel(title = "Completa la tabellina") {

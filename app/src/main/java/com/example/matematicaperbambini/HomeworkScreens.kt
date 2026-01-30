@@ -895,6 +895,9 @@ fun HomeworkRunnerScreen(
             onOpenLeaderboard = onOpenLeaderboard,
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             entry = current,
+            remainingExercises = remainingExercises,
+            totalExercises = queue.size,
+            exerciseIndex = index,
             onExerciseFinished = { partial ->
                 val endAt = System.currentTimeMillis()
                 results += ExerciseResult(
@@ -909,20 +912,6 @@ fun HomeworkRunnerScreen(
                 index += 1
             }
         )
-        Surface(
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-            shape = MaterialTheme.shapes.large,
-            shadowElevation = 4.dp,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 12.dp, end = 12.dp)
-        ) {
-            Text(
-                text = "Esercizi rimanenti: $remainingExercises",
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-            )
-        }
     }
 }
 
@@ -935,10 +924,20 @@ private fun HomeworkExerciseGame(
     onOpenLeaderboard: () -> Unit,
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     entry: HomeworkExerciseEntry,
+    remainingExercises: Int,
+    totalExercises: Int,
+    exerciseIndex: Int,
     onExerciseFinished: (ExerciseResultPartial) -> Unit
 ) {
     val instance = entry.instance
     val helps = entry.helps
+    val homeworkBonusLabel = "Esercizi rimanenti: $remainingExercises"
+    val homeworkBonusProgress = if (totalExercises > 0) {
+        ((totalExercises - remainingExercises).toFloat() / totalExercises.toFloat())
+            .coerceIn(0f, 1f)
+    } else {
+        null
+    }
 
     when (instance.game) {
         GameType.ADDITION -> LongAdditionGame(
@@ -983,7 +982,10 @@ private fun HomeworkExerciseGame(
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             exercise = instance,
             onExerciseFinished = onExerciseFinished,
-            helps = helps
+            helps = helps,
+            bonusLabelOverride = homeworkBonusLabel,
+            bonusProgressOverride = homeworkBonusProgress,
+            exerciseKey = exerciseIndex
         )
         GameType.MULTIPLICATION_TABLE -> MultiplicationTableGame(
             table = instance.table ?: 1,
@@ -996,7 +998,10 @@ private fun HomeworkExerciseGame(
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             exercise = instance,
             helps = helps,
-            onExerciseFinished = onExerciseFinished
+            onExerciseFinished = onExerciseFinished,
+            bonusLabelOverride = homeworkBonusLabel,
+            bonusProgressOverride = homeworkBonusProgress,
+            exerciseKey = exerciseIndex
         )
         GameType.MULTIPLICATION_GAPS -> TabellineGapsGame(
             table = instance.table ?: 1,
@@ -1008,7 +1013,10 @@ private fun HomeworkExerciseGame(
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             exercise = instance,
             helps = helps,
-            onExerciseFinished = onExerciseFinished
+            onExerciseFinished = onExerciseFinished,
+            bonusLabelOverride = homeworkBonusLabel,
+            bonusProgressOverride = homeworkBonusProgress,
+            exerciseKey = exerciseIndex
         )
         GameType.MULTIPLICATION_REVERSE -> TabellinaReverseGame(
             soundEnabled = soundEnabled,
@@ -1019,7 +1027,10 @@ private fun HomeworkExerciseGame(
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             exercise = instance,
             helps = helps,
-            onExerciseFinished = onExerciseFinished
+            onExerciseFinished = onExerciseFinished,
+            bonusLabelOverride = homeworkBonusLabel,
+            bonusProgressOverride = homeworkBonusProgress,
+            exerciseKey = exerciseIndex
         )
         GameType.MULTIPLICATION_MULTIPLE_CHOICE -> TabellineMultipleChoiceGame(
             soundEnabled = soundEnabled,
@@ -1030,7 +1041,10 @@ private fun HomeworkExerciseGame(
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             exercise = instance,
             helps = helps,
-            onExerciseFinished = onExerciseFinished
+            onExerciseFinished = onExerciseFinished,
+            bonusLabelOverride = homeworkBonusLabel,
+            bonusProgressOverride = homeworkBonusProgress,
+            exerciseKey = exerciseIndex
         )
         GameType.DIVISION_STEP -> DivisionStepGame(
             startMode = StartMode.MANUAL,

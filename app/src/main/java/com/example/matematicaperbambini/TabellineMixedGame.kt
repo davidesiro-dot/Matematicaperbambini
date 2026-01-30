@@ -42,7 +42,10 @@ fun TabellineMixedGame(
     exercise: ExerciseInstance? = null,
     onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
     titleOverride: String? = null,
-    helps: HelpSettings? = null
+    helps: HelpSettings? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null,
+    exerciseKey: Int? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     val isHomeworkMode = exercise != null || onExerciseFinished != null
@@ -70,7 +73,7 @@ fun TabellineMixedGame(
         completed = false
     }
 
-    LaunchedEffect(exercise?.a, exercise?.b) {
+    LaunchedEffect(exercise?.a, exercise?.b, exerciseKey) {
         loadExercise()
     }
 
@@ -104,6 +107,8 @@ fun TabellineMixedGame(
             correctCount = if (isHomeworkMode) 0 else correctCount,
             hintText = hintText,
             ui = ui,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             message = msg,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
