@@ -447,6 +447,32 @@ fun HomeworkBuilderScreen(
                         opLabelB = "Divisore",
                         maxDigitsA = divisionManualDividendRange.last.toString().length,
                         maxDigitsB = divisionManualDivisorRange.last.toString().length,
+                        isAddEnabled = run {
+                            val dividend = divisionManualDividendInput.toIntOrNull()
+                            val divisor = divisionManualDivisorInput.toIntOrNull()
+                            dividend in divisionManualDividendRange &&
+                                divisor in divisionManualDivisorRange &&
+                                (dividend ?: 0) > (divisor ?: 0)
+                        },
+                        manualError = run {
+                            val dividend = divisionManualDividendInput.toIntOrNull()
+                            val divisor = divisionManualDivisorInput.toIntOrNull()
+                            val dividendBlank = divisionManualDividendInput.isBlank()
+                            val divisorBlank = divisionManualDivisorInput.isBlank()
+                            when {
+                                dividendBlank && divisorBlank -> null
+                                dividend == null || dividend !in divisionManualDividendRange -> {
+                                    "Dividendo valido: ${divisionManualDividendRange.first}-${divisionManualDividendRange.last}."
+                                }
+                                divisor == null || divisor !in divisionManualDivisorRange -> {
+                                    "Divisore valido: ${divisionManualDivisorRange.first}-${divisionManualDivisorRange.last}."
+                                }
+                                (dividend ?: 0) <= (divisor ?: 0) -> {
+                                    "Il dividendo deve essere maggiore del divisore."
+                                }
+                                else -> null
+                            }
+                        },
                         onAddManual = {
                             val a = divisionManualDividendInput.toIntOrNull()
                             val b = divisionManualDivisorInput.toIntOrNull()
@@ -802,6 +828,8 @@ private fun ManualExerciseSection(
     opLabelB: String,
     maxDigitsA: Int = 3,
     maxDigitsB: Int = 3,
+    isAddEnabled: Boolean = true,
+    manualError: String? = null,
     onAddManual: () -> Unit,
     onRemoveManual: (Int) -> Unit,
     manualItemText: (ManualOp.AB) -> String
@@ -837,8 +865,13 @@ private fun ManualExerciseSection(
             }
             Button(
                 onClick = onAddManual,
+                enabled = isAddEnabled,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Aggiungi operazione") }
+
+            if (manualError != null) {
+                Text(manualError, color = MaterialTheme.colorScheme.error)
+            }
 
             if (manualOps.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
