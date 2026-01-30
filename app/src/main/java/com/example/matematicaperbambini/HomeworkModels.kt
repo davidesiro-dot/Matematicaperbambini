@@ -28,6 +28,7 @@ data class HomeworkExerciseEntry(
 
 data class DifficultyConfig(
     val digits: Int? = null,
+    val divisorDigits: Int? = null,
     val level: Int? = null,
     val tables: List<Int>? = null,
     val maxA: Int? = null,
