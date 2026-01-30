@@ -4,9 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-
+import androidx.compose.foundation.layout.align
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -62,10 +60,15 @@ fun HomeworkBuilderScreen(
     var additionHighlightsEnabled by remember { mutableStateOf(false) }
     var additionAllowSolution by remember { mutableStateOf(false) }
     var additionAutoCheck by remember { mutableStateOf(false) }
-    var additionSource by remember { mutableStateOf<ExerciseSourceConfig>(ExerciseSourceConfig.Random) }
     val additionManualOps = remember { mutableStateListOf<ManualOp.AB>() }
+    var additionManualSelected by remember { mutableStateOf(false) }
     var additionManualAInput by remember { mutableStateOf("") }
     var additionManualBInput by remember { mutableStateOf("") }
+    val additionSource = if (additionManualSelected) {
+        ExerciseSourceConfig.Manual(additionManualOps.toList())
+    } else {
+        ExerciseSourceConfig.Random
+    }
 
     var subtractionEnabled by remember { mutableStateOf(false) }
     var subtractionDigitsInput by remember { mutableStateOf("2") }
@@ -75,10 +78,15 @@ fun HomeworkBuilderScreen(
     var subtractionHighlightsEnabled by remember { mutableStateOf(false) }
     var subtractionAllowSolution by remember { mutableStateOf(false) }
     var subtractionAutoCheck by remember { mutableStateOf(false) }
-    var subtractionSource by remember { mutableStateOf<ExerciseSourceConfig>(ExerciseSourceConfig.Random) }
     val subtractionManualOps = remember { mutableStateListOf<ManualOp.AB>() }
+    var subtractionManualSelected by remember { mutableStateOf(false) }
     var subtractionManualAInput by remember { mutableStateOf("") }
     var subtractionManualBInput by remember { mutableStateOf("") }
+    val subtractionSource = if (subtractionManualSelected) {
+        ExerciseSourceConfig.Manual(subtractionManualOps.toList())
+    } else {
+        ExerciseSourceConfig.Random
+    }
 
     var tableEnabled by remember { mutableStateOf(false) }
     var tableMode by remember { mutableStateOf(TabellineMode.CLASSIC) }
@@ -98,12 +106,17 @@ fun HomeworkBuilderScreen(
     var divisionHighlightsEnabled by remember { mutableStateOf(false) }
     var divisionAllowSolution by remember { mutableStateOf(false) }
     var divisionAutoCheck by remember { mutableStateOf(false) }
-    var divisionSource by remember { mutableStateOf<ExerciseSourceConfig>(ExerciseSourceConfig.Random) }
     val divisionManualOps = remember { mutableStateListOf<ManualOp.AB>() }
+    var divisionManualSelected by remember { mutableStateOf(false) }
     var divisionManualDividendInput by remember { mutableStateOf("") }
     var divisionManualDivisorInput by remember { mutableStateOf("") }
     val divisionManualDividendRange = 2..999
     val divisionManualDivisorRange = 2..99
+    val divisionSource = if (divisionManualSelected) {
+        ExerciseSourceConfig.Manual(divisionManualOps.toList())
+    } else {
+        ExerciseSourceConfig.Random
+    }
 
     var hardEnabled by remember { mutableStateOf(false) }
     var hardMaxAInput by remember { mutableStateOf("99") }
@@ -114,625 +127,642 @@ fun HomeworkBuilderScreen(
     var hardHighlightsEnabled by remember { mutableStateOf(false) }
     var hardAllowSolution by remember { mutableStateOf(false) }
     var hardAutoCheck by remember { mutableStateOf(false) }
-    var hardSource by remember { mutableStateOf<ExerciseSourceConfig>(ExerciseSourceConfig.Random) }
     val hardManualOps = remember { mutableStateListOf<ManualOp.AB>() }
+    var hardManualSelected by remember { mutableStateOf(false) }
     var hardManualAInput by remember { mutableStateOf("") }
     var hardManualBInput by remember { mutableStateOf("") }
     val hardManualARange = 10..99
     val hardManualBRange = 1..99
+    val hardSource = if (hardManualSelected) {
+        ExerciseSourceConfig.Manual(hardManualOps.toList())
+    } else {
+        ExerciseSourceConfig.Random
+    }
 
-    Column(
+    LazyColumn(
         Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            .fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        GameHeader(
-            title = "Compiti (genitore)",
-            soundEnabled = soundEnabled,
-            onToggleSound = onToggleSound,
-            onBack = onBack,
-            onLeaderboard = {}
-        )
+        item {
+            GameHeader(
+                title = "Compiti (genitore)",
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onBack = onBack,
+                onLeaderboard = {}
+            )
+        }
 
         if (lastResults.isNotEmpty()) {
-            val correctCount = lastResults.count { it.correct }
-            SeaGlassPanel(title = "Ultimo report") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
-                    Text("Corretti: $correctCount")
-                    Text("Sbagliati: ${lastResults.size - correctCount}")
+            item {
+                val correctCount = lastResults.count { it.correct }
+                SeaGlassPanel(title = "Ultimo report") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
+                        Text("Corretti: $correctCount")
+                        Text("Sbagliati: ${lastResults.size - correctCount}")
+                    }
                 }
             }
         }
 
-        SeaGlassPanel(title = "Seleziona giochi") {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                GameToggleRow(
-                    title = "Addizioni",
-                    subtitle = "Somme con numeri configurabili",
-                    checked = additionEnabled,
-                    onCheckedChange = { additionEnabled = it }
-                )
-                GameToggleRow(
-                    title = "Sottrazioni",
-                    subtitle = "Differenze con numeri configurabili",
-                    checked = subtractionEnabled,
-                    onCheckedChange = { subtractionEnabled = it }
-                )
-                GameToggleRow(
-                    title = "Tabellina",
-                    subtitle = "Esercizi su una tabellina specifica",
-                    checked = tableEnabled,
-                    onCheckedChange = { tableEnabled = it }
-                )
-                GameToggleRow(
-                    title = "Divisioni passo-passo",
-                    subtitle = "Divisioni con resto",
-                    checked = divisionEnabled,
-                    onCheckedChange = { divisionEnabled = it }
-                )
-                GameToggleRow(
-                    title = "Moltiplicazioni difficili",
-                    subtitle = "Moltiplicazioni a due cifre",
-                    checked = hardEnabled,
-                    onCheckedChange = { hardEnabled = it }
-                )
+        item {
+            SeaGlassPanel(title = "Seleziona giochi") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    GameToggleRow(
+                        title = "Addizioni",
+                        subtitle = "Somme con numeri configurabili",
+                        checked = additionEnabled,
+                        onCheckedChange = { additionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Sottrazioni",
+                        subtitle = "Differenze con numeri configurabili",
+                        checked = subtractionEnabled,
+                        onCheckedChange = { subtractionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Tabellina",
+                        subtitle = "Esercizi su una tabellina specifica",
+                        checked = tableEnabled,
+                        onCheckedChange = { tableEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Divisioni passo-passo",
+                        subtitle = "Divisioni con resto",
+                        checked = divisionEnabled,
+                        onCheckedChange = { divisionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Moltiplicazioni difficili",
+                        subtitle = "Moltiplicazioni a due cifre",
+                        checked = hardEnabled,
+                        onCheckedChange = { hardEnabled = it }
+                    )
+                }
             }
         }
 
         if (additionEnabled) {
-            SeaGlassPanel(title = "Configurazione addizioni") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RandomSourceRow(
-                        source = additionSource,
-                        onSourceChange = { additionSource = it }
-                    )
-                    OutlinedTextField(
-                        value = additionDigitsInput,
-                        onValueChange = {
-                            additionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
-                        },
-                        label = { Text("Difficoltà (cifre)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    AmountConfigRow(
-                        exercisesCountInput = additionExercisesCountInput,
-                        repeatsInput = additionRepeatsInput,
-                        onExercisesCountChange = { additionExercisesCountInput = it },
-                        onRepeatsChange = { additionRepeatsInput = it }
-                    )
-                    ManualExerciseSection(
-                        source = additionSource,
-                        onSourceChange = { additionSource = it },
-                        manualOps = additionManualOps,
-                        manualAInput = additionManualAInput,
-                        manualBInput = additionManualBInput,
-                        onManualAChange = { additionManualAInput = it },
-                        onManualBChange = { additionManualBInput = it },
-                        opLabel = "A",
-                        opLabelB = "B",
-                        onAddManual = {
-                            val a = additionManualAInput.toIntOrNull()
-                            val b = additionManualBInput.toIntOrNull()
-                            if (a != null && b != null) {
-                                additionManualOps += ManualOp.AB(a, b)
-                                additionManualAInput = ""
-                                additionManualBInput = ""
-                                additionSource = ExerciseSourceConfig.Manual(additionManualOps.toList())
-                            }
-                        },
-                        onRemoveManual = { index ->
-                            additionManualOps.removeAt(index)
-                            additionSource = ExerciseSourceConfig.Manual(additionManualOps.toList())
-                        },
-                        manualItemText = { op -> "• ${op.a} + ${op.b}" }
-                    )
-                    HelpConfigSection(
-                        hintsEnabled = additionHintsEnabled,
-                        highlightsEnabled = additionHighlightsEnabled,
-                        allowSolution = additionAllowSolution,
-                        autoCheck = additionAutoCheck,
-                        onHintsChange = { additionHintsEnabled = it },
-                        onHighlightsChange = { additionHighlightsEnabled = it },
-                        onAllowSolutionChange = { additionAllowSolution = it },
-                        onAutoCheckChange = { additionAutoCheck = it }
-                    )
+            item {
+                SeaGlassPanel(title = "Configurazione addizioni") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RandomSourceRow(
+                            source = additionSource,
+                            onSourceChange = { additionManualSelected = false }
+                        )
+                        OutlinedTextField(
+                            value = additionDigitsInput,
+                            onValueChange = {
+                                additionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                            },
+                            label = { Text("Difficoltà (cifre)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        AmountConfigRow(
+                            exercisesCountInput = additionExercisesCountInput,
+                            repeatsInput = additionRepeatsInput,
+                            onExercisesCountChange = { additionExercisesCountInput = it },
+                            onRepeatsChange = { additionRepeatsInput = it }
+                        )
+                        ManualExerciseSection(
+                            source = additionSource,
+                            onSourceChange = { additionManualSelected = it is ExerciseSourceConfig.Manual },
+                            manualOps = additionManualOps,
+                            manualAInput = additionManualAInput,
+                            manualBInput = additionManualBInput,
+                            onManualAChange = { additionManualAInput = it },
+                            onManualBChange = { additionManualBInput = it },
+                            opLabel = "A",
+                            opLabelB = "B",
+                            onAddManual = {
+                                val a = additionManualAInput.toIntOrNull()
+                                val b = additionManualBInput.toIntOrNull()
+                                if (a != null && b != null) {
+                                    additionManualOps += ManualOp.AB(a, b)
+                                    additionManualAInput = ""
+                                    additionManualBInput = ""
+                                }
+                            },
+                            onRemoveManual = { index ->
+                                additionManualOps.removeAt(index)
+                            },
+                            manualItemText = { op -> "• ${op.a} + ${op.b}" }
+                        )
+                        HelpConfigSection(
+                            hintsEnabled = additionHintsEnabled,
+                            highlightsEnabled = additionHighlightsEnabled,
+                            allowSolution = additionAllowSolution,
+                            autoCheck = additionAutoCheck,
+                            onHintsChange = { additionHintsEnabled = it },
+                            onHighlightsChange = { additionHighlightsEnabled = it },
+                            onAllowSolutionChange = { additionAllowSolution = it },
+                            onAutoCheckChange = { additionAutoCheck = it }
+                        )
+                    }
                 }
             }
         }
 
         if (subtractionEnabled) {
-            SeaGlassPanel(title = "Configurazione sottrazioni") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RandomSourceRow(
-                        source = subtractionSource,
-                        onSourceChange = { subtractionSource = it }
-                    )
-                    OutlinedTextField(
-                        value = subtractionDigitsInput,
-                        onValueChange = {
-                            subtractionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
-                        },
-                        label = { Text("Difficoltà (cifre)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    AmountConfigRow(
-                        exercisesCountInput = subtractionExercisesCountInput,
-                        repeatsInput = subtractionRepeatsInput,
-                        onExercisesCountChange = { subtractionExercisesCountInput = it },
-                        onRepeatsChange = { subtractionRepeatsInput = it }
-                    )
-                    ManualExerciseSection(
-                        source = subtractionSource,
-                        onSourceChange = { subtractionSource = it },
-                        manualOps = subtractionManualOps,
-                        manualAInput = subtractionManualAInput,
-                        manualBInput = subtractionManualBInput,
-                        onManualAChange = { subtractionManualAInput = it },
-                        onManualBChange = { subtractionManualBInput = it },
-                        opLabel = "A",
-                        opLabelB = "B",
-                        onAddManual = {
-                            val a = subtractionManualAInput.toIntOrNull()
-                            val b = subtractionManualBInput.toIntOrNull()
-                            if (a != null && b != null && a in 1..999 && b in 1..999 && b < a) {
-                                subtractionManualOps += ManualOp.AB(a, b)
-                                subtractionManualAInput = ""
-                                subtractionManualBInput = ""
-                                subtractionSource = ExerciseSourceConfig.Manual(subtractionManualOps.toList())
-                            }
-                        },
-                        onRemoveManual = { index ->
-                            subtractionManualOps.removeAt(index)
-                            subtractionSource = ExerciseSourceConfig.Manual(subtractionManualOps.toList())
-                        },
-                        manualItemText = { op -> "• ${op.a} - ${op.b}" }
-                    )
-                    HelpConfigSection(
-                        hintsEnabled = subtractionHintsEnabled,
-                        highlightsEnabled = subtractionHighlightsEnabled,
-                        allowSolution = subtractionAllowSolution,
-                        autoCheck = subtractionAutoCheck,
-                        onHintsChange = { subtractionHintsEnabled = it },
-                        onHighlightsChange = { subtractionHighlightsEnabled = it },
-                        onAllowSolutionChange = { subtractionAllowSolution = it },
-                        onAutoCheckChange = { subtractionAutoCheck = it }
-                    )
+            item {
+                SeaGlassPanel(title = "Configurazione sottrazioni") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RandomSourceRow(
+                            source = subtractionSource,
+                            onSourceChange = { subtractionManualSelected = false }
+                        )
+                        OutlinedTextField(
+                            value = subtractionDigitsInput,
+                            onValueChange = {
+                                subtractionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                            },
+                            label = { Text("Difficoltà (cifre)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        AmountConfigRow(
+                            exercisesCountInput = subtractionExercisesCountInput,
+                            repeatsInput = subtractionRepeatsInput,
+                            onExercisesCountChange = { subtractionExercisesCountInput = it },
+                            onRepeatsChange = { subtractionRepeatsInput = it }
+                        )
+                        ManualExerciseSection(
+                            source = subtractionSource,
+                            onSourceChange = { subtractionManualSelected = it is ExerciseSourceConfig.Manual },
+                            manualOps = subtractionManualOps,
+                            manualAInput = subtractionManualAInput,
+                            manualBInput = subtractionManualBInput,
+                            onManualAChange = { subtractionManualAInput = it },
+                            onManualBChange = { subtractionManualBInput = it },
+                            opLabel = "A",
+                            opLabelB = "B",
+                            onAddManual = {
+                                val a = subtractionManualAInput.toIntOrNull()
+                                val b = subtractionManualBInput.toIntOrNull()
+                                if (a != null && b != null && a in 1..999 && b in 1..999 && b < a) {
+                                    subtractionManualOps += ManualOp.AB(a, b)
+                                    subtractionManualAInput = ""
+                                    subtractionManualBInput = ""
+                                }
+                            },
+                            onRemoveManual = { index ->
+                                subtractionManualOps.removeAt(index)
+                            },
+                            manualItemText = { op -> "• ${op.a} - ${op.b}" }
+                        )
+                        HelpConfigSection(
+                            hintsEnabled = subtractionHintsEnabled,
+                            highlightsEnabled = subtractionHighlightsEnabled,
+                            allowSolution = subtractionAllowSolution,
+                            autoCheck = subtractionAutoCheck,
+                            onHintsChange = { subtractionHintsEnabled = it },
+                            onHighlightsChange = { subtractionHighlightsEnabled = it },
+                            onAllowSolutionChange = { subtractionAllowSolution = it },
+                            onAutoCheckChange = { subtractionAutoCheck = it }
+                        )
+                    }
                 }
             }
         }
 
         if (tableEnabled) {
-            SeaGlassPanel(title = "Configurazione tabellina") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Seleziona la/le tabellina/e", fontWeight = FontWeight.Bold)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            (1..5).forEach { table ->
-                                val selected = tableSelectedTables.contains(table)
-                                SourceChip(
-                                    label = table.toString(),
-                                    selected = selected,
-                                    onClick = {
-                                        if (selected) {
-                                            tableSelectedTables.remove(table)
-                                        } else {
-                                            tableSelectedTables.add(table)
+            item {
+                SeaGlassPanel(title = "Configurazione tabellina") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Seleziona la/le tabellina/e", fontWeight = FontWeight.Bold)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                (1..5).forEach { table ->
+                                    val selected = tableSelectedTables.contains(table)
+                                    SourceChip(
+                                        label = table.toString(),
+                                        selected = selected,
+                                        onClick = {
+                                            if (selected) {
+                                                tableSelectedTables.remove(table)
+                                            } else {
+                                                tableSelectedTables.add(table)
+                                            }
                                         }
-                                    }
+                                    )
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                (6..10).forEach { table ->
+                                    val selected = tableSelectedTables.contains(table)
+                                    SourceChip(
+                                        label = table.toString(),
+                                        selected = selected,
+                                        onClick = {
+                                            if (selected) {
+                                                tableSelectedTables.remove(table)
+                                            } else {
+                                                tableSelectedTables.add(table)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                            if (tableSelectedTables.isNotEmpty()) {
+                                Text(
+                                    "Tabelline scelte: ${tableSelectedTables.sorted().joinToString()}",
+                                    fontSize = 12.sp
+                                )
+                            } else {
+                                Text(
+                                    "Nessuna selezionata.",
+                                    fontSize = 12.sp
                                 )
                             }
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            (6..10).forEach { table ->
-                                val selected = tableSelectedTables.contains(table)
+                        Text("Modalità tabelline", fontWeight = FontWeight.Bold)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 SourceChip(
-                                    label = table.toString(),
-                                    selected = selected,
-                                    onClick = {
-                                        if (selected) {
-                                            tableSelectedTables.remove(table)
-                                        } else {
-                                            tableSelectedTables.add(table)
-                                        }
-                                    }
+                                    label = "Classica",
+                                    selected = tableMode == TabellineMode.CLASSIC,
+                                    onClick = { tableMode = TabellineMode.CLASSIC }
+                                )
+                                SourceChip(
+                                    label = "Buchi",
+                                    selected = tableMode == TabellineMode.GAPS,
+                                    onClick = { tableMode = TabellineMode.GAPS }
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SourceChip(
+                                    label = "Scelta multipla",
+                                    selected = tableMode == TabellineMode.MULTIPLE_CHOICE,
+                                    onClick = { tableMode = TabellineMode.MULTIPLE_CHOICE }
                                 )
                             }
                         }
-                        if (tableSelectedTables.isNotEmpty()) {
-                            Text(
-                                "Tabelline scelte: ${tableSelectedTables.sorted().joinToString()}",
-                                fontSize = 12.sp
-                            )
-                        } else {
-                            Text(
-                                "Nessuna selezionata.",
-                                fontSize = 12.sp
-                            )
-                        }
+                        HelpConfigSection(
+                            hintsEnabled = tableHintsEnabled,
+                            highlightsEnabled = tableHighlightsEnabled,
+                            allowSolution = tableAllowSolution,
+                            autoCheck = tableAutoCheck,
+                            onHintsChange = { tableHintsEnabled = it },
+                            onHighlightsChange = { tableHighlightsEnabled = it },
+                            onAllowSolutionChange = { tableAllowSolution = it },
+                            onAutoCheckChange = { tableAutoCheck = it }
+                        )
+                        OutlinedTextField(
+                            value = tableRepeatsInput,
+                            onValueChange = { value ->
+                                val digits = value.filter(Char::isDigit).take(2)
+                                val parsed = digits.toIntOrNull()
+                                tableRepeatsInput = when {
+                                    parsed == null -> ""
+                                    parsed > 20 -> "20"
+                                    else -> digits
+                                }
+                            },
+                            label = { Text("Ripetizioni tabelline (max 20)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                    Text("Modalità tabelline", fontWeight = FontWeight.Bold)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SourceChip(
-                                label = "Classica",
-                                selected = tableMode == TabellineMode.CLASSIC,
-                                onClick = { tableMode = TabellineMode.CLASSIC }
-                            )
-                            SourceChip(
-                                label = "Buchi",
-                                selected = tableMode == TabellineMode.GAPS,
-                                onClick = { tableMode = TabellineMode.GAPS }
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SourceChip(
-                                label = "Scelta multipla",
-                                selected = tableMode == TabellineMode.MULTIPLE_CHOICE,
-                                onClick = { tableMode = TabellineMode.MULTIPLE_CHOICE }
-                            )
-                        }
-                    }
-                    HelpConfigSection(
-                        hintsEnabled = tableHintsEnabled,
-                        highlightsEnabled = tableHighlightsEnabled,
-                        allowSolution = tableAllowSolution,
-                        autoCheck = tableAutoCheck,
-                        onHintsChange = { tableHintsEnabled = it },
-                        onHighlightsChange = { tableHighlightsEnabled = it },
-                        onAllowSolutionChange = { tableAllowSolution = it },
-                        onAutoCheckChange = { tableAutoCheck = it }
-                    )
-                    OutlinedTextField(
-                        value = tableRepeatsInput,
-                        onValueChange = { value ->
-                            val digits = value.filter(Char::isDigit).take(2)
-                            val parsed = digits.toIntOrNull()
-                            tableRepeatsInput = when {
-                                parsed == null -> ""
-                                parsed > 20 -> "20"
-                                else -> digits
-                            }
-                        },
-                        label = { Text("Ripetizioni tabelline (max 20)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             }
         }
 
         if (divisionEnabled) {
-            SeaGlassPanel(title = "Configurazione divisioni") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RandomSourceRow(
-                        source = divisionSource,
-                        onSourceChange = { divisionSource = it }
-                    )
-                    OutlinedTextField(
-                        value = divisionDigitsInput,
-                        onValueChange = { divisionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1) },
-                        label = { Text("Cifre dividendo") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = divisionDivisorDigitsInput,
-                        onValueChange = {
-                            divisionDivisorDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
-                        },
-                        label = { Text("Cifre divisore") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    AmountConfigRow(
-                        exercisesCountInput = divisionExercisesCountInput,
-                        repeatsInput = divisionRepeatsInput,
-                        onExercisesCountChange = { divisionExercisesCountInput = it },
-                        onRepeatsChange = { divisionRepeatsInput = it }
-                    )
-                    ManualExerciseSection(
-                        source = divisionSource,
-                        onSourceChange = { divisionSource = it },
-                        manualOps = divisionManualOps,
-                        manualAInput = divisionManualDividendInput,
-                        manualBInput = divisionManualDivisorInput,
-                        onManualAChange = { divisionManualDividendInput = it },
-                        onManualBChange = { divisionManualDivisorInput = it },
-                        opLabel = "Dividendo",
-                        opLabelB = "Divisore",
-                        maxDigitsA = divisionManualDividendRange.last.toString().length,
-                        maxDigitsB = divisionManualDivisorRange.last.toString().length,
-                        isAddEnabled = run {
-                            val dividend = divisionManualDividendInput.toIntOrNull()
-                            val divisor = divisionManualDivisorInput.toIntOrNull()
-                            dividend in divisionManualDividendRange &&
-                                divisor in divisionManualDivisorRange &&
-                                (dividend ?: 0) > (divisor ?: 0)
-                        },
-                        manualError = run {
-                            val dividend = divisionManualDividendInput.toIntOrNull()
-                            val divisor = divisionManualDivisorInput.toIntOrNull()
-                            val dividendBlank = divisionManualDividendInput.isBlank()
-                            val divisorBlank = divisionManualDivisorInput.isBlank()
-                            when {
-                                dividendBlank && divisorBlank -> null
-                                dividend == null || dividend !in divisionManualDividendRange -> {
-                                    "Dividendo valido: ${divisionManualDividendRange.first}-${divisionManualDividendRange.last}."
+            item {
+                SeaGlassPanel(title = "Configurazione divisioni") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RandomSourceRow(
+                            source = divisionSource,
+                            onSourceChange = { divisionManualSelected = false }
+                        )
+                        OutlinedTextField(
+                            value = divisionDigitsInput,
+                            onValueChange = { divisionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1) },
+                            label = { Text("Cifre dividendo") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = divisionDivisorDigitsInput,
+                            onValueChange = {
+                                divisionDivisorDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                            },
+                            label = { Text("Cifre divisore") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        AmountConfigRow(
+                            exercisesCountInput = divisionExercisesCountInput,
+                            repeatsInput = divisionRepeatsInput,
+                            onExercisesCountChange = { divisionExercisesCountInput = it },
+                            onRepeatsChange = { divisionRepeatsInput = it }
+                        )
+                        ManualExerciseSection(
+                            source = divisionSource,
+                            onSourceChange = { divisionManualSelected = it is ExerciseSourceConfig.Manual },
+                            manualOps = divisionManualOps,
+                            manualAInput = divisionManualDividendInput,
+                            manualBInput = divisionManualDivisorInput,
+                            onManualAChange = { divisionManualDividendInput = it },
+                            onManualBChange = { divisionManualDivisorInput = it },
+                            opLabel = "Dividendo",
+                            opLabelB = "Divisore",
+                            maxDigitsA = divisionManualDividendRange.last.toString().length,
+                            maxDigitsB = divisionManualDivisorRange.last.toString().length,
+                            isAddEnabled = run {
+                                val dividend = divisionManualDividendInput.toIntOrNull()
+                                val divisor = divisionManualDivisorInput.toIntOrNull()
+                                dividend in divisionManualDividendRange &&
+                                    divisor in divisionManualDivisorRange &&
+                                    (dividend ?: 0) > (divisor ?: 0)
+                            },
+                            manualError = run {
+                                val dividend = divisionManualDividendInput.toIntOrNull()
+                                val divisor = divisionManualDivisorInput.toIntOrNull()
+                                val dividendBlank = divisionManualDividendInput.isBlank()
+                                val divisorBlank = divisionManualDivisorInput.isBlank()
+                                when {
+                                    dividendBlank && divisorBlank -> null
+                                    dividend == null || dividend !in divisionManualDividendRange -> {
+                                        "Dividendo valido: ${divisionManualDividendRange.first}-${divisionManualDividendRange.last}."
+                                    }
+                                    divisor == null || divisor !in divisionManualDivisorRange -> {
+                                        "Divisore valido: ${divisionManualDivisorRange.first}-${divisionManualDivisorRange.last}."
+                                    }
+                                    (dividend ?: 0) <= (divisor ?: 0) -> {
+                                        "Il dividendo deve essere maggiore del divisore."
+                                    }
+                                    else -> null
                                 }
-                                divisor == null || divisor !in divisionManualDivisorRange -> {
-                                    "Divisore valido: ${divisionManualDivisorRange.first}-${divisionManualDivisorRange.last}."
+                            },
+                            onAddManual = {
+                                val a = divisionManualDividendInput.toIntOrNull()
+                                val b = divisionManualDivisorInput.toIntOrNull()
+                                if (a != null && b != null && a in divisionManualDividendRange &&
+                                    b in divisionManualDivisorRange && a > b
+                                ) {
+                                    divisionManualOps += ManualOp.AB(a, b)
+                                    divisionManualDividendInput = ""
+                                    divisionManualDivisorInput = ""
                                 }
-                                (dividend ?: 0) <= (divisor ?: 0) -> {
-                                    "Il dividendo deve essere maggiore del divisore."
-                                }
-                                else -> null
-                            }
-                        },
-                        onAddManual = {
-                            val a = divisionManualDividendInput.toIntOrNull()
-                            val b = divisionManualDivisorInput.toIntOrNull()
-                            if (a != null && b != null && a in divisionManualDividendRange &&
-                                b in divisionManualDivisorRange && a > b
-                            ) {
-                                divisionManualOps += ManualOp.AB(a, b)
-                                divisionManualDividendInput = ""
-                                divisionManualDivisorInput = ""
-                                divisionSource = ExerciseSourceConfig.Manual(divisionManualOps.toList())
-                            }
-                        },
-                        onRemoveManual = { index ->
-                            divisionManualOps.removeAt(index)
-                            divisionSource = ExerciseSourceConfig.Manual(divisionManualOps.toList())
-                        },
-                        manualItemText = { op -> "• ${op.a} ÷ ${op.b}" }
-                    )
-                    HelpConfigSection(
-                        hintsEnabled = divisionHintsEnabled,
-                        highlightsEnabled = divisionHighlightsEnabled,
-                        allowSolution = divisionAllowSolution,
-                        autoCheck = divisionAutoCheck,
-                        onHintsChange = { divisionHintsEnabled = it },
-                        onHighlightsChange = { divisionHighlightsEnabled = it },
-                        onAllowSolutionChange = { divisionAllowSolution = it },
-                        onAutoCheckChange = { divisionAutoCheck = it }
-                    )
+                            },
+                            onRemoveManual = { index ->
+                                divisionManualOps.removeAt(index)
+                            },
+                            manualItemText = { op -> "• ${op.a} ÷ ${op.b}" }
+                        )
+                        HelpConfigSection(
+                            hintsEnabled = divisionHintsEnabled,
+                            highlightsEnabled = divisionHighlightsEnabled,
+                            allowSolution = divisionAllowSolution,
+                            autoCheck = divisionAutoCheck,
+                            onHintsChange = { divisionHintsEnabled = it },
+                            onHighlightsChange = { divisionHighlightsEnabled = it },
+                            onAllowSolutionChange = { divisionAllowSolution = it },
+                            onAutoCheckChange = { divisionAutoCheck = it }
+                        )
+                    }
                 }
             }
         }
 
         if (hardEnabled) {
-            SeaGlassPanel(title = "Configurazione moltiplicazioni difficili") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RandomSourceRow(
-                        source = hardSource,
-                        onSourceChange = { hardSource = it }
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
-                            value = hardMaxAInput,
-                            onValueChange = { hardMaxAInput = it.filter(Char::isDigit).take(2) },
-                            label = { Text("Numero A (10-99)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
+            item {
+                SeaGlassPanel(title = "Configurazione moltiplicazioni difficili") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RandomSourceRow(
+                            source = hardSource,
+                            onSourceChange = { hardManualSelected = false }
                         )
-                        OutlinedTextField(
-                            value = hardMaxBInput,
-                            onValueChange = { hardMaxBInput = it.filter(Char::isDigit).take(2) },
-                            label = { Text("Numero B (1-99)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = hardMaxAInput,
+                                onValueChange = { hardMaxAInput = it.filter(Char::isDigit).take(2) },
+                                label = { Text("Numero A (10-99)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = hardMaxBInput,
+                                onValueChange = { hardMaxBInput = it.filter(Char::isDigit).take(2) },
+                                label = { Text("Numero B (1-99)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        AmountConfigRow(
+                            exercisesCountInput = hardExercisesCountInput,
+                            repeatsInput = hardRepeatsInput,
+                            onExercisesCountChange = { hardExercisesCountInput = it },
+                            onRepeatsChange = { hardRepeatsInput = it }
+                        )
+                        ManualExerciseSection(
+                            source = hardSource,
+                            onSourceChange = { hardManualSelected = it is ExerciseSourceConfig.Manual },
+                            manualOps = hardManualOps,
+                            manualAInput = hardManualAInput,
+                            manualBInput = hardManualBInput,
+                            onManualAChange = { hardManualAInput = it },
+                            onManualBChange = { hardManualBInput = it },
+                            opLabel = "A",
+                            opLabelB = "B",
+                            maxDigitsA = hardManualARange.last.toString().length,
+                            maxDigitsB = hardManualBRange.last.toString().length,
+                            onAddManual = {
+                                val a = hardManualAInput.toIntOrNull()
+                                val b = hardManualBInput.toIntOrNull()
+                                if (a != null && b != null && a in hardManualARange && b in hardManualBRange) {
+                                    hardManualOps += ManualOp.AB(a, b)
+                                    hardManualAInput = ""
+                                    hardManualBInput = ""
+                                }
+                            },
+                            onRemoveManual = { index ->
+                                hardManualOps.removeAt(index)
+                            },
+                            manualItemText = { op -> "• ${op.a} × ${op.b}" }
+                        )
+                        HelpConfigSection(
+                            hintsEnabled = hardHintsEnabled,
+                            highlightsEnabled = hardHighlightsEnabled,
+                            allowSolution = hardAllowSolution,
+                            autoCheck = hardAutoCheck,
+                            onHintsChange = { hardHintsEnabled = it },
+                            onHighlightsChange = { hardHighlightsEnabled = it },
+                            onAllowSolutionChange = { hardAllowSolution = it },
+                            onAutoCheckChange = { hardAutoCheck = it }
                         )
                     }
-                    AmountConfigRow(
-                        exercisesCountInput = hardExercisesCountInput,
-                        repeatsInput = hardRepeatsInput,
-                        onExercisesCountChange = { hardExercisesCountInput = it },
-                        onRepeatsChange = { hardRepeatsInput = it }
-                    )
-                    ManualExerciseSection(
-                        source = hardSource,
-                        onSourceChange = { hardSource = it },
-                        manualOps = hardManualOps,
-                        manualAInput = hardManualAInput,
-                        manualBInput = hardManualBInput,
-                        onManualAChange = { hardManualAInput = it },
-                        onManualBChange = { hardManualBInput = it },
-                        opLabel = "A",
-                        opLabelB = "B",
-                        maxDigitsA = hardManualARange.last.toString().length,
-                        maxDigitsB = hardManualBRange.last.toString().length,
-                        onAddManual = {
-                            val a = hardManualAInput.toIntOrNull()
-                            val b = hardManualBInput.toIntOrNull()
-                            if (a != null && b != null && a in hardManualARange && b in hardManualBRange) {
-                                hardManualOps += ManualOp.AB(a, b)
-                                hardManualAInput = ""
-                                hardManualBInput = ""
-                                hardSource = ExerciseSourceConfig.Manual(hardManualOps.toList())
-                            }
-                        },
-                        onRemoveManual = { index ->
-                            hardManualOps.removeAt(index)
-                            hardSource = ExerciseSourceConfig.Manual(hardManualOps.toList())
-                        },
-                        manualItemText = { op -> "• ${op.a} × ${op.b}" }
-                    )
-                    HelpConfigSection(
-                        hintsEnabled = hardHintsEnabled,
-                        highlightsEnabled = hardHighlightsEnabled,
-                        allowSolution = hardAllowSolution,
-                        autoCheck = hardAutoCheck,
-                        onHintsChange = { hardHintsEnabled = it },
-                        onHighlightsChange = { hardHighlightsEnabled = it },
-                        onAllowSolutionChange = { hardAllowSolution = it },
-                        onAutoCheckChange = { hardAutoCheck = it }
-                    )
                 }
             }
         }
 
-        Spacer(Modifier.weight(1f))
-
         val anyEnabled = additionEnabled || subtractionEnabled || tableEnabled || divisionEnabled || hardEnabled
 
-        Button(
-            onClick = {
-                val configs = buildList {
-                    if (additionEnabled) {
-                        val digits = additionDigitsInput.toIntOrNull()
-                        val exercisesCount = additionExercisesCountInput.toIntOrNull() ?: 5
-                        val repeats = additionRepeatsInput.toIntOrNull() ?: 1
-                        val helpSettings = HelpSettings(
-                            hintsEnabled = additionHintsEnabled,
-                            highlightsEnabled = additionHighlightsEnabled,
-                            allowSolution = additionAllowSolution,
-                            autoCheck = additionAutoCheck
-                        )
-                        val sourceConfig = when (additionSource) {
-                            is ExerciseSourceConfig.Manual -> ExerciseSourceConfig.Manual(additionManualOps.toList())
-                            else -> ExerciseSourceConfig.Random
-                        }
-                        add(
-                            HomeworkTaskConfig(
-                                game = GameType.ADDITION,
-                                difficulty = DifficultyConfig(digits = digits),
-                                helps = helpSettings,
-                                source = sourceConfig,
-                                amount = AmountConfig(
-                                    exercisesCount = exercisesCount,
-                                    repeatsPerExercise = repeats
+        item {
+            Button(
+                onClick = {
+                    val configs = buildList {
+                        if (additionEnabled) {
+                            val digits = additionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
+                            val exercisesCount = additionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 5
+                            val repeats = additionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                            val helpSettings = HelpSettings(
+                                hintsEnabled = additionHintsEnabled,
+                                highlightsEnabled = additionHighlightsEnabled,
+                                allowSolution = additionAllowSolution,
+                                autoCheck = additionAutoCheck
+                            )
+                            // why: manualOps is the single source of truth for manual exercises.
+                            val sourceConfig = if (additionManualOps.isNotEmpty()) {
+                                ExerciseSourceConfig.Manual(additionManualOps.toList())
+                            } else {
+                                ExerciseSourceConfig.Random
+                            }
+                            add(
+                                HomeworkTaskConfig(
+                                    game = GameType.ADDITION,
+                                    difficulty = DifficultyConfig(digits = digits),
+                                    helps = helpSettings,
+                                    source = sourceConfig,
+                                    amount = AmountConfig(
+                                        exercisesCount = exercisesCount,
+                                        repeatsPerExercise = repeats
+                                    )
                                 )
                             )
-                        )
-                    }
-                    if (subtractionEnabled) {
-                        val digits = subtractionDigitsInput.toIntOrNull()
-                        val exercisesCount = subtractionExercisesCountInput.toIntOrNull() ?: 5
-                        val repeats = subtractionRepeatsInput.toIntOrNull() ?: 1
-                        val helpSettings = HelpSettings(
-                            hintsEnabled = subtractionHintsEnabled,
-                            highlightsEnabled = subtractionHighlightsEnabled,
-                            allowSolution = subtractionAllowSolution,
-                            autoCheck = subtractionAutoCheck
-                        )
-                        val sourceConfig = when (subtractionSource) {
-                            is ExerciseSourceConfig.Manual -> ExerciseSourceConfig.Manual(subtractionManualOps.toList())
-                            else -> ExerciseSourceConfig.Random
                         }
-                        add(
-                            HomeworkTaskConfig(
-                                game = GameType.SUBTRACTION,
-                                difficulty = DifficultyConfig(digits = digits),
-                                helps = helpSettings,
-                                source = sourceConfig,
-                                amount = AmountConfig(
-                                    exercisesCount = exercisesCount,
-                                    repeatsPerExercise = repeats
+                        if (subtractionEnabled) {
+                            val digits = subtractionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
+                            val exercisesCount = subtractionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 5
+                            val repeats = subtractionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                            val helpSettings = HelpSettings(
+                                hintsEnabled = subtractionHintsEnabled,
+                                highlightsEnabled = subtractionHighlightsEnabled,
+                                allowSolution = subtractionAllowSolution,
+                                autoCheck = subtractionAutoCheck
+                            )
+                            val sourceConfig = if (subtractionManualOps.isNotEmpty()) {
+                                ExerciseSourceConfig.Manual(subtractionManualOps.toList())
+                            } else {
+                                ExerciseSourceConfig.Random
+                            }
+                            add(
+                                HomeworkTaskConfig(
+                                    game = GameType.SUBTRACTION,
+                                    difficulty = DifficultyConfig(digits = digits),
+                                    helps = helpSettings,
+                                    source = sourceConfig,
+                                    amount = AmountConfig(
+                                        exercisesCount = exercisesCount,
+                                        repeatsPerExercise = repeats
+                                    )
                                 )
                             )
-                        )
-                    }
-                    if (tableEnabled) {
-                        val tables = tableSelectedTables.sorted()
-                        val tableGame = when (tableMode) {
-                            TabellineMode.CLASSIC -> GameType.MULTIPLICATION_TABLE
-                            TabellineMode.GAPS -> GameType.MULTIPLICATION_GAPS
-                            TabellineMode.REVERSE -> GameType.MULTIPLICATION_REVERSE
-                            TabellineMode.MULTIPLE_CHOICE -> GameType.MULTIPLICATION_MULTIPLE_CHOICE
-                            TabellineMode.MIXED -> GameType.MULTIPLICATION_MIXED
                         }
-                        val repeats = tableRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
-                        val sourceConfig = if (tables.isEmpty()) {
-                            ExerciseSourceConfig.Random
-                        } else {
-                            ExerciseSourceConfig.Manual(tables.map { ManualOp.Table(it) })
-                        }
-                        val helpSettings = HelpSettings(
-                            hintsEnabled = tableHintsEnabled,
-                            highlightsEnabled = tableHighlightsEnabled,
-                            allowSolution = tableAllowSolution,
-                            autoCheck = tableAutoCheck
-                        )
-                        add(
-                            HomeworkTaskConfig(
-                                game = tableGame,
-                                difficulty = DifficultyConfig(tables = tables.takeIf { it.isNotEmpty() }),
-                                helps = helpSettings,
-                                source = sourceConfig,
-                                amount = AmountConfig(
-                                    exercisesCount = tables.size.coerceAtLeast(1),
-                                    repeatsPerExercise = repeats
+                        if (tableEnabled) {
+                            val tables = tableSelectedTables.sorted()
+                            val tableGame = when (tableMode) {
+                                TabellineMode.CLASSIC -> GameType.MULTIPLICATION_TABLE
+                                TabellineMode.GAPS -> GameType.MULTIPLICATION_GAPS
+                                TabellineMode.REVERSE -> GameType.MULTIPLICATION_REVERSE
+                                TabellineMode.MULTIPLE_CHOICE -> GameType.MULTIPLICATION_MULTIPLE_CHOICE
+                                TabellineMode.MIXED -> GameType.MULTIPLICATION_MIXED
+                            }
+                            val repeats = tableRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                            val sourceConfig = if (tables.isEmpty()) {
+                                ExerciseSourceConfig.Random
+                            } else {
+                                ExerciseSourceConfig.Manual(tables.map { ManualOp.Table(it) })
+                            }
+                            val helpSettings = HelpSettings(
+                                hintsEnabled = tableHintsEnabled,
+                                highlightsEnabled = tableHighlightsEnabled,
+                                allowSolution = tableAllowSolution,
+                                autoCheck = tableAutoCheck
+                            )
+                            add(
+                                HomeworkTaskConfig(
+                                    game = tableGame,
+                                    difficulty = DifficultyConfig(tables = tables.takeIf { it.isNotEmpty() }),
+                                    helps = helpSettings,
+                                    source = sourceConfig,
+                                    amount = AmountConfig(
+                                        exercisesCount = tables.size.coerceAtLeast(1),
+                                        repeatsPerExercise = repeats
+                                    )
                                 )
                             )
-                        )
-                    }
-                    if (divisionEnabled) {
-                        val digits = divisionDigitsInput.toIntOrNull()
-                        val divisorDigits = divisionDivisorDigitsInput.toIntOrNull()
-                        val exercisesCount = divisionExercisesCountInput.toIntOrNull() ?: 4
-                        val repeats = divisionRepeatsInput.toIntOrNull() ?: 1
-                        val helpSettings = HelpSettings(
-                            hintsEnabled = divisionHintsEnabled,
-                            highlightsEnabled = divisionHighlightsEnabled,
-                            allowSolution = divisionAllowSolution,
-                            autoCheck = divisionAutoCheck
-                        )
-                        val sourceConfig = when (divisionSource) {
-                            is ExerciseSourceConfig.Manual -> ExerciseSourceConfig.Manual(divisionManualOps.toList())
-                            else -> ExerciseSourceConfig.Random
                         }
-                        add(
-                            HomeworkTaskConfig(
-                                game = GameType.DIVISION_STEP,
-                                difficulty = DifficultyConfig(digits = digits, divisorDigits = divisorDigits),
-                                helps = helpSettings,
-                                source = sourceConfig,
-                                amount = AmountConfig(
-                                    exercisesCount = exercisesCount,
-                                    repeatsPerExercise = repeats
+                        if (divisionEnabled) {
+                            val digits = divisionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
+                            val divisorDigits = divisionDivisorDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 1
+                            val exercisesCount = divisionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 4
+                            val repeats = divisionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                            val helpSettings = HelpSettings(
+                                hintsEnabled = divisionHintsEnabled,
+                                highlightsEnabled = divisionHighlightsEnabled,
+                                allowSolution = divisionAllowSolution,
+                                autoCheck = divisionAutoCheck
+                            )
+                            val sourceConfig = if (divisionManualOps.isNotEmpty()) {
+                                ExerciseSourceConfig.Manual(divisionManualOps.toList())
+                            } else {
+                                ExerciseSourceConfig.Random
+                            }
+                            add(
+                                HomeworkTaskConfig(
+                                    game = GameType.DIVISION_STEP,
+                                    difficulty = DifficultyConfig(digits = digits, divisorDigits = divisorDigits),
+                                    helps = helpSettings,
+                                    source = sourceConfig,
+                                    amount = AmountConfig(
+                                        exercisesCount = exercisesCount,
+                                        repeatsPerExercise = repeats
+                                    )
                                 )
                             )
-                        )
-                    }
-                    if (hardEnabled) {
-                        val maxA = hardMaxAInput.toIntOrNull()
-                        val maxB = hardMaxBInput.toIntOrNull()
-                        val exercisesCount = hardExercisesCountInput.toIntOrNull() ?: 4
-                        val repeats = hardRepeatsInput.toIntOrNull() ?: 1
-                        val helpSettings = HelpSettings(
-                            hintsEnabled = hardHintsEnabled,
-                            highlightsEnabled = hardHighlightsEnabled,
-                            allowSolution = hardAllowSolution,
-                            autoCheck = hardAutoCheck
-                        )
-                        val sourceConfig = when (hardSource) {
-                            is ExerciseSourceConfig.Manual -> ExerciseSourceConfig.Manual(hardManualOps.toList())
-                            else -> ExerciseSourceConfig.Random
                         }
-                        add(
-                            HomeworkTaskConfig(
-                                game = GameType.MULTIPLICATION_HARD,
-                                difficulty = DifficultyConfig(maxA = maxA, maxB = maxB),
-                                helps = helpSettings,
-                                source = sourceConfig,
-                                amount = AmountConfig(
-                                    exercisesCount = exercisesCount,
-                                    repeatsPerExercise = repeats
+                        if (hardEnabled) {
+                            val maxA = hardMaxAInput.toIntOrNull()?.coerceIn(10, 99) ?: 99
+                            val maxB = hardMaxBInput.toIntOrNull()?.coerceIn(1, 99) ?: 99
+                            val exercisesCount = hardExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 4
+                            val repeats = hardRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                            val helpSettings = HelpSettings(
+                                hintsEnabled = hardHintsEnabled,
+                                highlightsEnabled = hardHighlightsEnabled,
+                                allowSolution = hardAllowSolution,
+                                autoCheck = hardAutoCheck
+                            )
+                            val sourceConfig = if (hardManualOps.isNotEmpty()) {
+                                ExerciseSourceConfig.Manual(hardManualOps.toList())
+                            } else {
+                                ExerciseSourceConfig.Random
+                            }
+                            add(
+                                HomeworkTaskConfig(
+                                    game = GameType.MULTIPLICATION_HARD,
+                                    difficulty = DifficultyConfig(maxA = maxA, maxB = maxB),
+                                    helps = helpSettings,
+                                    source = sourceConfig,
+                                    amount = AmountConfig(
+                                        exercisesCount = exercisesCount,
+                                        repeatsPerExercise = repeats
+                                    )
                                 )
                             )
-                        )
+                        }
                     }
-                }
-                onStartHomework(configs)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = anyEnabled
-        ) { Text("Avvia Compito") }
+                    onStartHomework(configs)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = anyEnabled
+            ) { Text("Avvia Compito") }
+        }
     }
 }
 
