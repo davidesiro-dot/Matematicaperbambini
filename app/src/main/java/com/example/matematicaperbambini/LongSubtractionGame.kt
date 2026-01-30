@@ -322,8 +322,9 @@ fun LongSubtractionGame(
     helps: HelpSettings? = null,
     onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
 ) {
-    val minValue = (1..digits - 1).fold(1) { acc, _ -> acc * 10 }
-    val maxValue = (1..digits).fold(1) { acc, _ -> acc * 10 } - 1
+    val manualMinValue = 1
+    val manualMaxValue = 999
+    val manualMaxDigits = 3
 
     var manualA by remember { mutableStateOf("") }
     var manualB by remember { mutableStateOf("") }
@@ -335,10 +336,17 @@ fun LongSubtractionGame(
             if (startMode == StartMode.RANDOM) generateSubtractionMixed(digits) else null
         )
     }
-    val expected = remember(problem, digits) { problem?.let { computeExpectedSub(it, digits) } }
+
+    fun manualDigitsFor(a: Int, b: Int): Int {
+        return maxOf(a.toString().length, b.toString().length).coerceIn(1, manualMaxDigits)
+    }
+
+    val activeDigits = problem?.let { manualDigitsFor(it.a, it.b) } ?: digits
+
+    val expected = remember(problem, activeDigits) { problem?.let { computeExpectedSub(it, activeDigits) } }
     val steps = remember(expected) { expected?.let { buildStepsSub(it) } ?: emptyList() }
 
-    var stepIndex by remember(problem, digits) { mutableStateOf(0) }
+    var stepIndex by remember(problem, activeDigits) { mutableStateOf(0) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
     val currentStep = steps.getOrNull(stepIndex)
@@ -353,12 +361,20 @@ fun LongSubtractionGame(
     var waitTapToContinue by remember { mutableStateOf(false) }
 
     // input: riga “nuovi numeri sopra” + riga risultato
-    val topNewInputs = remember(problem, digits) { mutableStateListOf<String>().apply { repeat(digits) { add("") } } }
-    val resInputs = remember(problem, digits) { mutableStateListOf<String>().apply { repeat(digits) { add("") } } }
+    val topNewInputs = remember(problem, activeDigits) {
+        mutableStateListOf<String>().apply { repeat(activeDigits) { add("") } }
+    }
+    val resInputs = remember(problem, activeDigits) {
+        mutableStateListOf<String>().apply { repeat(activeDigits) { add("") } }
+    }
 
     // status: null/true/false
-    val topOk = remember(problem, digits) { mutableStateListOf<Boolean?>().apply { repeat(digits) { add(null) } } }
-    val resOk = remember(problem, digits) { mutableStateListOf<Boolean?>().apply { repeat(digits) { add(null) } } }
+    val topOk = remember(problem, activeDigits) {
+        mutableStateListOf<Boolean?>().apply { repeat(activeDigits) { add(null) } }
+    }
+    val resOk = remember(problem, activeDigits) {
+        mutableStateListOf<Boolean?>().apply { repeat(activeDigits) { add(null) } }
+    }
 
     fun resetSame() {
         stepIndex = 0
@@ -396,7 +412,7 @@ fun LongSubtractionGame(
         message = null
         waitTapToContinue = false
         stepIndex = steps.size
-        for (i in 0 until digits) {
+        for (i in 0 until activeDigits) {
             topNewInputs[i] = expectedValues.topDigitsAfterBorrow[i].toString()
             resInputs[i] = expectedValues.resultDigits[i].toString()
             topOk[i] = true
@@ -476,7 +492,7 @@ fun LongSubtractionGame(
     val hint = when {
         expected == null -> "Inserisci i numeri e premi Avvia."
         helps?.hintsEnabled == false && !done -> "Completa l'operazione."
-        !done -> instructionSub(currentStep!!, digits, expected)
+        !done -> instructionSub(currentStep!!, activeDigits, expected)
         solutionRevealed -> "Soluzione: ${expected.resultDigits.joinToString("")}"
         else -> "Bravo! 🙂"
     }
@@ -524,30 +540,35 @@ fun LongSubtractionGame(
                 if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
-                    val manualValid = manualAValue in minValue..maxValue &&
-                        manualBValue in minValue..maxValue &&
+                    val manualValid = manualAValue in manualMinValue..manualMaxValue &&
+                        manualBValue in manualMinValue..manualMaxValue &&
                         (manualAValue ?: 0) > (manualBValue ?: 0)
                     val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
                         null
                     } else {
-                        "Inserisci A e B tra $minValue e $maxValue (B < A)."
+                        "Inserisci A e B tra $manualMinValue e $manualMaxValue (B < A)."
                     }
 
                     SeaGlassPanel(title = "Inserimento") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = manualA,
-                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(digits) },
+                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(manualMaxDigits) },
                                 label = { Text("Numero A") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             OutlinedTextField(
                                 value = manualB,
-                                onValueChange = { manualB = it.filter { c -> c.isDigit() }.take(digits) },
+                                onValueChange = { manualB = it.filter { c -> c.isDigit() }.take(manualMaxDigits) },
                                 label = { Text("Numero B") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                "Limiti inserimento: $manualMinValue - $manualMaxValue (A > B)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF6B7280)
                             )
                             androidx.compose.material3.Button(
                                 onClick = {
@@ -580,7 +601,7 @@ fun LongSubtractionGame(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             BlankBox()
                             Spacer(Modifier.width(gap))
-                            for (col in 0 until digits) {
+                            for (col in 0 until activeDigits) {
                                 val enabled = topEnabled(col)
                                 val show = borrowColumns.contains(col) || enabled
                                 if (show) {
@@ -616,7 +637,7 @@ fun LongSubtractionGame(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     BlankBox()
                                     Spacer(Modifier.width(gap))
-                                    for (col in 0 until digits) {
+                                    for (col in 0 until activeDigits) {
                                         val active =
                                             (currentStep?.colIndexFromLeft == col) &&
                                                 (currentStep?.type == SubStepType.RESULT_DIGIT ||
@@ -635,7 +656,7 @@ fun LongSubtractionGame(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     BlankBox()
                                     Spacer(Modifier.width(gap))
-                                    for (col in 0 until digits) {
+                                    for (col in 0 until activeDigits) {
                                         val active =
                                             (currentStep?.colIndexFromLeft == col) &&
                                                 (currentStep?.type == SubStepType.RESULT_DIGIT)
@@ -672,7 +693,7 @@ fun LongSubtractionGame(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             BlankBox()
                             Spacer(Modifier.width(gap))
-                            for (col in 0 until digits) {
+                            for (col in 0 until activeDigits) {
                                 val enabled = resEnabled(col)
                                 SubDigitInput(
                                     value = resInputs[col],
