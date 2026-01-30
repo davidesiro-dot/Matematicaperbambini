@@ -87,24 +87,31 @@ private fun generateRandomInstance(config: HomeworkTaskConfig): ExerciseInstance
             val range = digitsRange(config.difficulty.digits)
             val divisorRange = digitsRange(config.difficulty.divisorDigits ?: 1)
             var dividend = range.first
-            var divisor = divisorRange.first.coerceAtLeast(1)
+            var divisor = divisorRange.first.coerceAtLeast(2)
             var found = false
+            val divisorMin = maxOf(divisorRange.first, 2)
+            val divisorMax = maxOf(divisorRange.last, divisorMin)
             repeat(100) {
                 val candidateDividend = Random.nextInt(range.first, range.last + 1)
-                val maxDivisor = minOf(divisorRange.last, candidateDividend - 1)
-                if (maxDivisor >= divisorRange.first) {
+                val maxDivisor = minOf(divisorMax, candidateDividend / 2)
+                if (maxDivisor >= divisorMin) {
                     dividend = candidateDividend
-                    divisor = Random.nextInt(divisorRange.first, maxDivisor + 1).coerceAtLeast(1)
+                    divisor = Random.nextInt(divisorMin, maxDivisor + 1)
                     found = true
                     return@repeat
                 }
             }
-            if (!found || dividend <= divisor) {
-                val minDividend = maxOf(range.first, divisorRange.first + 1)
-                dividend = minOf(range.last, minDividend)
-                val maxDivisor = minOf(divisorRange.last, dividend - 1)
-                divisor = maxDivisor.coerceAtLeast(1)
+            if (!found) {
+                val safeDividend = maxOf(range.first, divisorMin * 2)
+                dividend = safeDividend.coerceAtMost(range.last).coerceAtLeast(range.first)
+                val maxDivisor = minOf(divisorMax, dividend / 2)
+                divisor = maxDivisor.coerceAtLeast(divisorMin)
             }
+            // why: random divisions must never yield b <= 0 or a < b * 2.
+            val safeDivisor = divisor.coerceAtLeast(2)
+            val safeDividend = maxOf(dividend, safeDivisor * 2)
+            dividend = safeDividend
+            divisor = safeDivisor
             ExerciseInstance(game = config.game, a = dividend, b = divisor)
         }
         GameType.MULTIPLICATION_HARD -> {
