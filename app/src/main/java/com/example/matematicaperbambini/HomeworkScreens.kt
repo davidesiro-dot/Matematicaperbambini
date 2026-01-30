@@ -182,7 +182,9 @@ fun HomeworkBuilderScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = additionDigitsInput,
-                        onValueChange = { additionDigitsInput = it.filter(Char::isDigit).take(3) },
+                        onValueChange = {
+                            additionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                        },
                         label = { Text("Difficoltà (cifre)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
@@ -238,7 +240,9 @@ fun HomeworkBuilderScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = subtractionDigitsInput,
-                        onValueChange = { subtractionDigitsInput = it.filter(Char::isDigit).take(3) },
+                        onValueChange = {
+                            subtractionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                        },
                         label = { Text("Difficoltà (cifre)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
@@ -394,7 +398,7 @@ fun HomeworkBuilderScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = divisionDigitsInput,
-                        onValueChange = { divisionDigitsInput = it.filter(Char::isDigit).take(3) },
+                        onValueChange = { divisionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1) },
                         label = { Text("Cifre dividendo") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
