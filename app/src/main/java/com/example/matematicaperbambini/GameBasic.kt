@@ -232,6 +232,7 @@ fun MultiplicationTableGame(
     var step by remember { mutableStateOf(1) }
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val ok = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
+    var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
     var attempts by remember { mutableStateOf(0) }
@@ -247,6 +248,7 @@ fun MultiplicationTableGame(
         attempts = 0
         wrongAnswers.clear()
         completed = false
+        msg = null
     }
 
     LaunchedEffect(resolvedTable) {
@@ -273,6 +275,7 @@ fun MultiplicationTableGame(
                 "Completa la tabellina scrivendo tutti i risultati."
             },
             ui = ui,
+            message = msg,
             content = {
                 SeaGlassPanel(title = "Completa la tabellina") {
                     Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
@@ -310,14 +313,7 @@ fun MultiplicationTableGame(
                                             step++
                                             if (step > 10 && isHomeworkMode) {
                                                 completed = true
-                                                onExerciseFinished?.invoke(
-                                                    ExerciseResultPartial(
-                                                        correct = true,
-                                                        attempts = attempts,
-                                                        wrongAnswers = wrongAnswers.toList(),
-                                                        solutionUsed = false
-                                                    )
-                                                )
+                                                msg = "✅ Tabellina completata!"
                                             }
                                         } else {
                                             ok[index] = false
@@ -353,8 +349,32 @@ fun MultiplicationTableGame(
                     }
                 }
             },
-            bottomBar = if (isHomeworkMode) null else {
-                {
+            bottomBar = {
+                if (isHomeworkMode) {
+                    Button(
+                        onClick = {
+                            if (completed) {
+                                onExerciseFinished?.invoke(
+                                    ExerciseResultPartial(
+                                        correct = true,
+                                        attempts = attempts,
+                                        wrongAnswers = wrongAnswers.toList(),
+                                        solutionUsed = false
+                                    )
+                                )
+                            }
+                        },
+                        enabled = completed,
+                        modifier = Modifier.fillMaxWidth().height(actionHeight),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                            contentColor = if (completed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                        ),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Avanti", fontWeight = FontWeight.Black)
+                    }
+                } else {
                     Button(
                         onClick = { reset() },
                         modifier = Modifier.fillMaxWidth().height(actionHeight),
