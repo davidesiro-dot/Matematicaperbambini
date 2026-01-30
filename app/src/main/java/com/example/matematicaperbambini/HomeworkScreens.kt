@@ -91,6 +91,7 @@ fun HomeworkBuilderScreen(
 
     var divisionEnabled by remember { mutableStateOf(false) }
     var divisionDigitsInput by remember { mutableStateOf("2") }
+    var divisionDivisorDigitsInput by remember { mutableStateOf("1") }
     var divisionExercisesCountInput by remember { mutableStateOf("4") }
     var divisionRepeatsInput by remember { mutableStateOf("1") }
     var divisionHintsEnabled by remember { mutableStateOf(false) }
@@ -403,6 +404,15 @@ fun HomeworkBuilderScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    OutlinedTextField(
+                        value = divisionDivisorDigitsInput,
+                        onValueChange = {
+                            divisionDivisorDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                        },
+                        label = { Text("Cifre divisore") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     HelpConfigSection(
                         hintsEnabled = divisionHintsEnabled,
                         highlightsEnabled = divisionHighlightsEnabled,
@@ -613,6 +623,7 @@ fun HomeworkBuilderScreen(
                     }
                     if (divisionEnabled) {
                         val digits = divisionDigitsInput.toIntOrNull()
+                        val divisorDigits = divisionDivisorDigitsInput.toIntOrNull()
                         val exercisesCount = divisionExercisesCountInput.toIntOrNull() ?: 4
                         val repeats = divisionRepeatsInput.toIntOrNull() ?: 1
                         val helpSettings = HelpSettings(
@@ -628,7 +639,7 @@ fun HomeworkBuilderScreen(
                         add(
                             HomeworkTaskConfig(
                                 game = GameType.DIVISION_STEP,
-                                difficulty = DifficultyConfig(digits = digits),
+                                difficulty = DifficultyConfig(digits = digits, divisorDigits = divisorDigits),
                                 helps = helpSettings,
                                 source = sourceConfig,
                                 amount = AmountConfig(

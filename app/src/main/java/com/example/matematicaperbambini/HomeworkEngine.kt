@@ -85,9 +85,26 @@ private fun generateRandomInstance(config: HomeworkTaskConfig): ExerciseInstance
         }
         GameType.DIVISION_STEP -> {
             val range = digitsRange(config.difficulty.digits)
-            val divisorRange = digitsRange(1)
-            val dividend = Random.nextInt(range.first, range.last + 1)
-            val divisor = Random.nextInt(divisorRange.first, divisorRange.last + 1).coerceAtLeast(1)
+            val divisorRange = digitsRange(config.difficulty.divisorDigits ?: 1)
+            var dividend = range.first
+            var divisor = divisorRange.first.coerceAtLeast(1)
+            var found = false
+            repeat(100) {
+                val candidateDividend = Random.nextInt(range.first, range.last + 1)
+                val maxDivisor = minOf(divisorRange.last, candidateDividend - 1)
+                if (maxDivisor >= divisorRange.first) {
+                    dividend = candidateDividend
+                    divisor = Random.nextInt(divisorRange.first, maxDivisor + 1).coerceAtLeast(1)
+                    found = true
+                    return@repeat
+                }
+            }
+            if (!found || dividend <= divisor) {
+                val minDividend = maxOf(range.first, divisorRange.first + 1)
+                dividend = minOf(range.last, minDividend)
+                val maxDivisor = minOf(divisorRange.last, dividend - 1)
+                divisor = maxDivisor.coerceAtLeast(1)
+            }
             ExerciseInstance(game = config.game, a = dividend, b = divisor)
         }
         GameType.MULTIPLICATION_HARD -> {
