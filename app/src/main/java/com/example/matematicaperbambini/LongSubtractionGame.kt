@@ -355,6 +355,7 @@ fun LongSubtractionGame(
     var solutionRevealed by remember { mutableStateOf(false) }
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
+    val stepErrors = remember(exercise?.a, exercise?.b) { mutableStateListOf<StepError>() }
     var solutionUsed by remember(exercise?.a, exercise?.b) { mutableStateOf(false) }
 
     var message by remember { mutableStateOf<String?>(null) }
@@ -384,6 +385,7 @@ fun LongSubtractionGame(
         solutionRevealed = false
         attempts = 0
         wrongAnswers.clear()
+        stepErrors.clear()
         solutionUsed = false
         for (i in topNewInputs.indices) topNewInputs[i] = ""
         for (i in resInputs.indices) resInputs[i] = ""
@@ -451,6 +453,13 @@ fun LongSubtractionGame(
                     attempts += 1
                     if (topNewInputs[col].isNotBlank()) {
                         wrongAnswers += topNewInputs[col]
+                        val posFromRight = (activeDigits - 1) - col
+                        val colName = colNameFromRight(posFromRight)
+                        stepErrors += StepError(
+                            stepLabel = "Prestito nelle $colName",
+                            expected = exp.toString(),
+                            actual = topNewInputs[col]
+                        )
                     }
                     topNewInputs[col] = "" // cancella
                     message = "❌ Riprova"
@@ -471,6 +480,13 @@ fun LongSubtractionGame(
                     attempts += 1
                     if (resInputs[col].isNotBlank()) {
                         wrongAnswers += resInputs[col]
+                        val posFromRight = (activeDigits - 1) - col
+                        val colName = colNameFromRight(posFromRight)
+                        stepErrors += StepError(
+                            stepLabel = "Risultato nelle $colName",
+                            expected = exp.toString(),
+                            actual = resInputs[col]
+                        )
                     }
                     resInputs[col] = "" // cancella
                     message = "❌ Riprova"
@@ -767,6 +783,7 @@ fun LongSubtractionGame(
                                         correct = true,
                                         attempts = attempts,
                                         wrongAnswers = wrongAnswers.toList(),
+                                        stepErrors = stepErrors.toList(),
                                         solutionUsed = solutionUsed
                                     )
                                 )
@@ -805,6 +822,7 @@ fun LongSubtractionGame(
                             correct = true,
                             attempts = attempts,
                             wrongAnswers = wrongAnswers.toList(),
+                            stepErrors = stepErrors.toList(),
                             solutionUsed = solutionUsed
                         )
                     )

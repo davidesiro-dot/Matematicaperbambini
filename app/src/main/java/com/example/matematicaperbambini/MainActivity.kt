@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.foundation.BorderStroke
+import kotlinx.coroutines.launch
 
 
 
@@ -512,6 +513,12 @@ private fun AppShell() {
     var homeworkQueue by remember { mutableStateOf<List<HomeworkExerciseEntry>>(emptyList()) }
     var lastHomeworkResults by remember { mutableStateOf<List<ExerciseResult>>(emptyList()) }
     var homeworkReports by remember { mutableStateOf<List<HomeworkReport>>(emptyList()) }
+    val reportStorage = remember(context) { HomeworkReportStorage(context) }
+    val reportScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        homeworkReports = reportStorage.loadReports()
+    }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
         mode = m
@@ -775,7 +782,10 @@ private fun AppShell() {
                     screen = Screen.HOMEWORK_BUILDER
                 },
                 onSaveReport = { report ->
-                    homeworkReports = listOf(report) + homeworkReports
+                    reportScope.launch {
+                        reportStorage.saveReport(report)
+                        homeworkReports = listOf(report) + homeworkReports
+                    }
                 }
             )
 
