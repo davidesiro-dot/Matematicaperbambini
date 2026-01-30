@@ -181,6 +181,10 @@ fun HomeworkBuilderScreen(
         if (additionEnabled) {
             SeaGlassPanel(title = "Configurazione addizioni") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    RandomSourceRow(
+                        source = additionSource,
+                        onSourceChange = { additionSource = it }
+                    )
                     OutlinedTextField(
                         value = additionDigitsInput,
                         onValueChange = {
@@ -190,17 +194,13 @@ fun HomeworkBuilderScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    HelpConfigSection(
-                        hintsEnabled = additionHintsEnabled,
-                        highlightsEnabled = additionHighlightsEnabled,
-                        allowSolution = additionAllowSolution,
-                        autoCheck = additionAutoCheck,
-                        onHintsChange = { additionHintsEnabled = it },
-                        onHighlightsChange = { additionHighlightsEnabled = it },
-                        onAllowSolutionChange = { additionAllowSolution = it },
-                        onAutoCheckChange = { additionAutoCheck = it }
+                    AmountConfigRow(
+                        exercisesCountInput = additionExercisesCountInput,
+                        repeatsInput = additionRepeatsInput,
+                        onExercisesCountChange = { additionExercisesCountInput = it },
+                        onRepeatsChange = { additionRepeatsInput = it }
                     )
-                    ExerciseSourceSection(
+                    ManualExerciseSection(
                         source = additionSource,
                         onSourceChange = { additionSource = it },
                         manualOps = additionManualOps,
@@ -226,11 +226,15 @@ fun HomeworkBuilderScreen(
                         },
                         manualItemText = { op -> "• ${op.a} + ${op.b}" }
                     )
-                    AmountConfigRow(
-                        exercisesCountInput = additionExercisesCountInput,
-                        repeatsInput = additionRepeatsInput,
-                        onExercisesCountChange = { additionExercisesCountInput = it },
-                        onRepeatsChange = { additionRepeatsInput = it }
+                    HelpConfigSection(
+                        hintsEnabled = additionHintsEnabled,
+                        highlightsEnabled = additionHighlightsEnabled,
+                        allowSolution = additionAllowSolution,
+                        autoCheck = additionAutoCheck,
+                        onHintsChange = { additionHintsEnabled = it },
+                        onHighlightsChange = { additionHighlightsEnabled = it },
+                        onAllowSolutionChange = { additionAllowSolution = it },
+                        onAutoCheckChange = { additionAutoCheck = it }
                     )
                 }
             }
@@ -239,6 +243,10 @@ fun HomeworkBuilderScreen(
         if (subtractionEnabled) {
             SeaGlassPanel(title = "Configurazione sottrazioni") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    RandomSourceRow(
+                        source = subtractionSource,
+                        onSourceChange = { subtractionSource = it }
+                    )
                     OutlinedTextField(
                         value = subtractionDigitsInput,
                         onValueChange = {
@@ -248,17 +256,13 @@ fun HomeworkBuilderScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    HelpConfigSection(
-                        hintsEnabled = subtractionHintsEnabled,
-                        highlightsEnabled = subtractionHighlightsEnabled,
-                        allowSolution = subtractionAllowSolution,
-                        autoCheck = subtractionAutoCheck,
-                        onHintsChange = { subtractionHintsEnabled = it },
-                        onHighlightsChange = { subtractionHighlightsEnabled = it },
-                        onAllowSolutionChange = { subtractionAllowSolution = it },
-                        onAutoCheckChange = { subtractionAutoCheck = it }
+                    AmountConfigRow(
+                        exercisesCountInput = subtractionExercisesCountInput,
+                        repeatsInput = subtractionRepeatsInput,
+                        onExercisesCountChange = { subtractionExercisesCountInput = it },
+                        onRepeatsChange = { subtractionRepeatsInput = it }
                     )
-                    ExerciseSourceSection(
+                    ManualExerciseSection(
                         source = subtractionSource,
                         onSourceChange = { subtractionSource = it },
                         manualOps = subtractionManualOps,
@@ -284,11 +288,15 @@ fun HomeworkBuilderScreen(
                         },
                         manualItemText = { op -> "• ${op.a} - ${op.b}" }
                     )
-                    AmountConfigRow(
-                        exercisesCountInput = subtractionExercisesCountInput,
-                        repeatsInput = subtractionRepeatsInput,
-                        onExercisesCountChange = { subtractionExercisesCountInput = it },
-                        onRepeatsChange = { subtractionRepeatsInput = it }
+                    HelpConfigSection(
+                        hintsEnabled = subtractionHintsEnabled,
+                        highlightsEnabled = subtractionHighlightsEnabled,
+                        allowSolution = subtractionAllowSolution,
+                        autoCheck = subtractionAutoCheck,
+                        onHintsChange = { subtractionHintsEnabled = it },
+                        onHighlightsChange = { subtractionHighlightsEnabled = it },
+                        onAllowSolutionChange = { subtractionAllowSolution = it },
+                        onAutoCheckChange = { subtractionAutoCheck = it }
                     )
                 }
             }
@@ -397,6 +405,10 @@ fun HomeworkBuilderScreen(
         if (divisionEnabled) {
             SeaGlassPanel(title = "Configurazione divisioni") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    RandomSourceRow(
+                        source = divisionSource,
+                        onSourceChange = { divisionSource = it }
+                    )
                     OutlinedTextField(
                         value = divisionDigitsInput,
                         onValueChange = { divisionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1) },
@@ -413,17 +425,13 @@ fun HomeworkBuilderScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    HelpConfigSection(
-                        hintsEnabled = divisionHintsEnabled,
-                        highlightsEnabled = divisionHighlightsEnabled,
-                        allowSolution = divisionAllowSolution,
-                        autoCheck = divisionAutoCheck,
-                        onHintsChange = { divisionHintsEnabled = it },
-                        onHighlightsChange = { divisionHighlightsEnabled = it },
-                        onAllowSolutionChange = { divisionAllowSolution = it },
-                        onAutoCheckChange = { divisionAutoCheck = it }
+                    AmountConfigRow(
+                        exercisesCountInput = divisionExercisesCountInput,
+                        repeatsInput = divisionRepeatsInput,
+                        onExercisesCountChange = { divisionExercisesCountInput = it },
+                        onRepeatsChange = { divisionRepeatsInput = it }
                     )
-                    ExerciseSourceSection(
+                    ManualExerciseSection(
                         source = divisionSource,
                         onSourceChange = { divisionSource = it },
                         manualOps = divisionManualOps,
@@ -449,11 +457,15 @@ fun HomeworkBuilderScreen(
                         },
                         manualItemText = { op -> "• ${op.a} ÷ ${op.b}" }
                     )
-                    AmountConfigRow(
-                        exercisesCountInput = divisionExercisesCountInput,
-                        repeatsInput = divisionRepeatsInput,
-                        onExercisesCountChange = { divisionExercisesCountInput = it },
-                        onRepeatsChange = { divisionRepeatsInput = it }
+                    HelpConfigSection(
+                        hintsEnabled = divisionHintsEnabled,
+                        highlightsEnabled = divisionHighlightsEnabled,
+                        allowSolution = divisionAllowSolution,
+                        autoCheck = divisionAutoCheck,
+                        onHintsChange = { divisionHintsEnabled = it },
+                        onHighlightsChange = { divisionHighlightsEnabled = it },
+                        onAllowSolutionChange = { divisionAllowSolution = it },
+                        onAutoCheckChange = { divisionAutoCheck = it }
                     )
                 }
             }
@@ -462,6 +474,10 @@ fun HomeworkBuilderScreen(
         if (hardEnabled) {
             SeaGlassPanel(title = "Configurazione moltiplicazioni difficili") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    RandomSourceRow(
+                        source = hardSource,
+                        onSourceChange = { hardSource = it }
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
                             value = hardMaxAInput,
@@ -478,17 +494,13 @@ fun HomeworkBuilderScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    HelpConfigSection(
-                        hintsEnabled = hardHintsEnabled,
-                        highlightsEnabled = hardHighlightsEnabled,
-                        allowSolution = hardAllowSolution,
-                        autoCheck = hardAutoCheck,
-                        onHintsChange = { hardHintsEnabled = it },
-                        onHighlightsChange = { hardHighlightsEnabled = it },
-                        onAllowSolutionChange = { hardAllowSolution = it },
-                        onAutoCheckChange = { hardAutoCheck = it }
+                    AmountConfigRow(
+                        exercisesCountInput = hardExercisesCountInput,
+                        repeatsInput = hardRepeatsInput,
+                        onExercisesCountChange = { hardExercisesCountInput = it },
+                        onRepeatsChange = { hardRepeatsInput = it }
                     )
-                    ExerciseSourceSection(
+                    ManualExerciseSection(
                         source = hardSource,
                         onSourceChange = { hardSource = it },
                         manualOps = hardManualOps,
@@ -516,11 +528,15 @@ fun HomeworkBuilderScreen(
                         },
                         manualItemText = { op -> "• ${op.a} × ${op.b}" }
                     )
-                    AmountConfigRow(
-                        exercisesCountInput = hardExercisesCountInput,
-                        repeatsInput = hardRepeatsInput,
-                        onExercisesCountChange = { hardExercisesCountInput = it },
-                        onRepeatsChange = { hardRepeatsInput = it }
+                    HelpConfigSection(
+                        hintsEnabled = hardHintsEnabled,
+                        highlightsEnabled = hardHighlightsEnabled,
+                        allowSolution = hardAllowSolution,
+                        autoCheck = hardAutoCheck,
+                        onHintsChange = { hardHintsEnabled = it },
+                        onHighlightsChange = { hardHighlightsEnabled = it },
+                        onAllowSolutionChange = { hardAllowSolution = it },
+                        onAutoCheckChange = { hardAutoCheck = it }
                     )
                 }
             }
@@ -752,7 +768,21 @@ private fun AmountConfigRow(
 }
 
 @Composable
-private fun ExerciseSourceSection(
+private fun RandomSourceRow(
+    source: ExerciseSourceConfig,
+    onSourceChange: (ExerciseSourceConfig) -> Unit
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SourceChip(
+            label = "Random",
+            selected = source is ExerciseSourceConfig.Random,
+            onClick = { onSourceChange(ExerciseSourceConfig.Random) }
+        )
+    }
+}
+
+@Composable
+private fun ManualExerciseSection(
     source: ExerciseSourceConfig,
     onSourceChange: (ExerciseSourceConfig) -> Unit,
     manualOps: List<ManualOp.AB>,
@@ -769,13 +799,7 @@ private fun ExerciseSourceSection(
     manualItemText: (ManualOp.AB) -> String
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Sorgente esercizi", fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SourceChip(
-                label = "Random",
-                selected = source is ExerciseSourceConfig.Random,
-                onClick = { onSourceChange(ExerciseSourceConfig.Random) }
-            )
             SourceChip(
                 label = "Manuale",
                 selected = source is ExerciseSourceConfig.Manual,
