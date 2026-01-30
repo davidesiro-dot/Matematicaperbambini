@@ -102,6 +102,8 @@ fun HomeworkBuilderScreen(
     val divisionManualOps = remember { mutableStateListOf<ManualOp.AB>() }
     var divisionManualDividendInput by remember { mutableStateOf("") }
     var divisionManualDivisorInput by remember { mutableStateOf("") }
+    val divisionManualDividendRange = 2..999
+    val divisionManualDivisorRange = 2..99
 
     var hardEnabled by remember { mutableStateOf(false) }
     var hardMaxAInput by remember { mutableStateOf("99") }
@@ -116,6 +118,8 @@ fun HomeworkBuilderScreen(
     val hardManualOps = remember { mutableStateListOf<ManualOp.AB>() }
     var hardManualAInput by remember { mutableStateOf("") }
     var hardManualBInput by remember { mutableStateOf("") }
+    val hardManualARange = 10..99
+    val hardManualBRange = 1..99
 
     Column(
         Modifier
@@ -441,10 +445,14 @@ fun HomeworkBuilderScreen(
                         onManualBChange = { divisionManualDivisorInput = it },
                         opLabel = "Dividendo",
                         opLabelB = "Divisore",
+                        maxDigitsA = divisionManualDividendRange.last.toString().length,
+                        maxDigitsB = divisionManualDivisorRange.last.toString().length,
                         onAddManual = {
                             val a = divisionManualDividendInput.toIntOrNull()
                             val b = divisionManualDivisorInput.toIntOrNull()
-                            if (a != null && b != null && a in 2..999 && b in 2..99 && a > b) {
+                            if (a != null && b != null && a in divisionManualDividendRange &&
+                                b in divisionManualDivisorRange && a > b
+                            ) {
                                 divisionManualOps += ManualOp.AB(a, b)
                                 divisionManualDividendInput = ""
                                 divisionManualDivisorInput = ""
@@ -510,12 +518,12 @@ fun HomeworkBuilderScreen(
                         onManualBChange = { hardManualBInput = it },
                         opLabel = "A",
                         opLabelB = "B",
-                        maxDigitsA = 2,
-                        maxDigitsB = 2,
+                        maxDigitsA = hardManualARange.last.toString().length,
+                        maxDigitsB = hardManualBRange.last.toString().length,
                         onAddManual = {
                             val a = hardManualAInput.toIntOrNull()
                             val b = hardManualBInput.toIntOrNull()
-                            if (a != null && b != null && a in 10..99 && b in 1..99) {
+                            if (a != null && b != null && a in hardManualARange && b in hardManualBRange) {
                                 hardManualOps += ManualOp.AB(a, b)
                                 hardManualAInput = ""
                                 hardManualBInput = ""
