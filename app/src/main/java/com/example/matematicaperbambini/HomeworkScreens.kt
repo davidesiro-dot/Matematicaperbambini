@@ -93,6 +93,7 @@ fun HomeworkBuilderScreen(
     var tableEnabled by remember { mutableStateOf(false) }
     var tableMode by remember { mutableStateOf(TabellineMode.CLASSIC) }
     var tableLevelInput by remember { mutableStateOf("2") }
+    val tableSelectedTables = remember { mutableStateListOf<Int>() }
     var tableExercisesCountInput by remember { mutableStateOf("5") }
     var tableRepeatsInput by remember { mutableStateOf("1") }
     var tableHintsEnabled by remember { mutableStateOf(false) }
@@ -373,10 +374,56 @@ fun HomeworkBuilderScreen(
                     OutlinedTextField(
                         value = tableLevelInput,
                         onValueChange = { tableLevelInput = it.filter(Char::isDigit).take(2) },
-                        label = { Text("Tabellina (1-10)") },
+                        label = { Text("Tabellina predefinita (1-10)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Text("Seleziona più tabelline (opzionale)", fontWeight = FontWeight.Bold)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            (1..5).forEach { table ->
+                                val selected = tableSelectedTables.contains(table)
+                                SourceChip(
+                                    label = table.toString(),
+                                    selected = selected,
+                                    onClick = {
+                                        if (selected) {
+                                            tableSelectedTables.remove(table)
+                                        } else {
+                                            tableSelectedTables.add(table)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            (6..10).forEach { table ->
+                                val selected = tableSelectedTables.contains(table)
+                                SourceChip(
+                                    label = table.toString(),
+                                    selected = selected,
+                                    onClick = {
+                                        if (selected) {
+                                            tableSelectedTables.remove(table)
+                                        } else {
+                                            tableSelectedTables.add(table)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        if (tableSelectedTables.isNotEmpty()) {
+                            Text(
+                                "Tabelline scelte: ${tableSelectedTables.sorted().joinToString()}",
+                                fontSize = 12.sp
+                            )
+                        } else {
+                            Text(
+                                "Nessuna selezionata: verrà usata la tabellina predefinita.",
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
                     Text("Modalità tabelline", fontWeight = FontWeight.Bold)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -637,6 +684,7 @@ fun HomeworkBuilderScreen(
                     }
                     if (tableEnabled) {
                         val level = tableLevelInput.toIntOrNull()
+                        val tables = tableSelectedTables.sorted().takeIf { it.isNotEmpty() }
                         val tableGame = when (tableMode) {
                             TabellineMode.CLASSIC -> GameType.MULTIPLICATION_TABLE
                             TabellineMode.GAPS -> GameType.MULTIPLICATION_GAPS
@@ -655,7 +703,7 @@ fun HomeworkBuilderScreen(
                         add(
                             HomeworkTaskConfig(
                                 game = tableGame,
-                                difficulty = DifficultyConfig(level = level),
+                                difficulty = DifficultyConfig(level = level, tables = tables),
                                 helps = helpSettings,
                                 source = ExerciseSourceConfig.Random,
                                 amount = AmountConfig(

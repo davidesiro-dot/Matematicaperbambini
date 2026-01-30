@@ -246,14 +246,6 @@ fun TabellineGapsGame(
                                                     msg = "✅ Tabellina completata!"
                                                     if (isHomeworkMode) {
                                                         completed = true
-                                                        onExerciseFinished?.invoke(
-                                                            ExerciseResultPartial(
-                                                                correct = true,
-                                                                attempts = attempts,
-                                                                wrongAnswers = wrongAnswers.toList(),
-                                                                solutionUsed = false
-                                                            )
-                                                        )
                                                     } else {
                                                         resetRound()
                                                     }
@@ -308,8 +300,32 @@ fun TabellineGapsGame(
                     }
                 }
             },
-            bottomBar = if (isHomeworkMode) null else {
-                {
+            bottomBar = {
+                if (isHomeworkMode) {
+                    Button(
+                        onClick = {
+                            if (completed) {
+                                onExerciseFinished?.invoke(
+                                    ExerciseResultPartial(
+                                        correct = true,
+                                        attempts = attempts,
+                                        wrongAnswers = wrongAnswers.toList(),
+                                        solutionUsed = false
+                                    )
+                                )
+                            }
+                        },
+                        enabled = completed,
+                        modifier = Modifier.fillMaxWidth().height(actionHeight),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                            contentColor = if (completed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                        ),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Avanti", fontWeight = FontWeight.Black)
+                    }
+                } else {
                     Button(
                         onClick = {
                             resetRound()
