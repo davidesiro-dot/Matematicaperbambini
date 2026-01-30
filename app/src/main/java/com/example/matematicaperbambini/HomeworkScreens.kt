@@ -394,7 +394,7 @@ fun HomeworkBuilderScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = divisionDigitsInput,
-                        onValueChange = { divisionDigitsInput = it.filter(Char::isDigit).take(2) },
+                        onValueChange = { divisionDigitsInput = it.filter(Char::isDigit).take(3) },
                         label = { Text("Cifre dividendo") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
