@@ -89,6 +89,7 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
     val aU = a % 10
     val bT = b / 10
     val bU = b % 10
+    val hasTens = bT > 0
 
     // Riga 1: a × unità
     val m1 = aU * bU
@@ -120,7 +121,7 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
     val a4 = hmPad4From2(a)
     val b4 = hmPad4From2(b)
     val p1_4 = hmPad4(p1)
-    val p2_4 = hmPad4(p2)
+    val p2_4 = if (hasTens) hmPad4(p2) else "    "
     val res_4 = hmPad4(res)
 
     // riporti (vedi tue note)
@@ -242,46 +243,48 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
     }
 
     // P2
-    addDigit(
-        HMRowKey.P2,
-        2,
-        w21.toString()[0],
-        "Riga decine: ${aU}×${bT} = $n1 → scrivi $w21 (unità è un trattino)",
-        highlightsForMul(3, 2, HMHighlightRow.P2, 2)
-    )
-    if (c21 > 0) {
-        addCarry(
-            HMRowKey.CARRY_P2,
-            1,
-            c21.toString()[0],
-            "Riporta $c21 nelle centinaia (riga 2)",
-            highlightsForMul(3, 2, HMHighlightRow.CARRY_P2, 1)
-        )
-    }
-    val p2HundredsHighlights = highlightsForMul(
-        2,
-        2,
-        HMHighlightRow.P2,
-        1,
-        extra = buildList {
-            if (carryP2[1] != ' ') add(HMHighlight(HMHighlightRow.CARRY_P2, 1))
-        }
-    )
-    addDigit(
-        HMRowKey.P2,
-        1,
-        w22.toString()[0],
-        "${aT}×${bT} = $n2raw${if (c21 > 0) " + $c21 = $n2" else ""} → scrivi $w22 nelle centinaia",
-        p2HundredsHighlights
-    )
-    if (c22 > 0) {
+    if (hasTens) {
         addDigit(
             HMRowKey.P2,
-            0,
-            c22.toString()[0],
-            "Ultimo riporto riga 2: scrivi $c22 nella casella delle migliaia",
-            highlightsForMul(2, 2, HMHighlightRow.P2, 0)
+            2,
+            w21.toString()[0],
+            "Riga decine: ${aU}×${bT} = $n1 → scrivi $w21 (unità è un trattino)",
+            highlightsForMul(3, 2, HMHighlightRow.P2, 2)
         )
+        if (c21 > 0) {
+            addCarry(
+                HMRowKey.CARRY_P2,
+                1,
+                c21.toString()[0],
+                "Riporta $c21 nelle centinaia (riga 2)",
+                highlightsForMul(3, 2, HMHighlightRow.CARRY_P2, 1)
+            )
+        }
+        val p2HundredsHighlights = highlightsForMul(
+            2,
+            2,
+            HMHighlightRow.P2,
+            1,
+            extra = buildList {
+                if (carryP2[1] != ' ') add(HMHighlight(HMHighlightRow.CARRY_P2, 1))
+            }
+        )
+        addDigit(
+            HMRowKey.P2,
+            1,
+            w22.toString()[0],
+            "${aT}×${bT} = $n2raw${if (c21 > 0) " + $c21 = $n2" else ""} → scrivi $w22 nelle centinaia",
+            p2HundredsHighlights
+        )
+        if (c22 > 0) {
+            addDigit(
+                HMRowKey.P2,
+                0,
+                c22.toString()[0],
+                "Ultimo riporto riga 2: scrivi $c22 nella casella delle migliaia",
+                highlightsForMul(2, 2, HMHighlightRow.P2, 0)
+            )
+        }
     }
 
     // SOMMA
