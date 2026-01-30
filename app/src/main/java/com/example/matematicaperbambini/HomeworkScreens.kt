@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -156,12 +157,14 @@ fun HomeworkBuilderScreen(
 
         if (lastResults.isNotEmpty()) {
             item {
-                val correctCount = lastResults.count { it.correct }
+                val correctCount = lastResults.count { it.correct && !exerciseHasErrors(it) }
+                val withErrorsCount = lastResults.count { it.correct && exerciseHasErrors(it) }
                 SeaGlassPanel(title = "Ultimo report") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
                         Text("Corretti: $correctCount")
-                        Text("Sbagliati: ${lastResults.size - correctCount}")
+                        Text("Completati con errori: $withErrorsCount")
+                        Text("Sbagliati: ${lastResults.size - correctCount - withErrorsCount}")
                     }
                 }
             }
@@ -1014,6 +1017,7 @@ fun HomeworkRunnerScreen(
                     correct = partial.correct,
                     attempts = partial.attempts,
                     wrongAnswers = partial.wrongAnswers,
+                    stepErrors = partial.stepErrors,
                     solutionUsed = partial.solutionUsed,
                     startedAt = startAt,
                     endedAt = endAt
@@ -1196,7 +1200,8 @@ private fun HomeworkReportScreen(
     results: List<ExerciseResult>,
     onSaveReport: (HomeworkReport) -> Unit
 ) {
-    val correctCount = results.count { it.correct }
+    val correctCount = results.count { it.correct && !exerciseHasErrors(it) }
+    val withErrorsCount = results.count { it.correct && exerciseHasErrors(it) }
     val total = results.size
     var childName by remember { mutableStateOf("") }
     var showNameDialog by remember { mutableStateOf(true) }
@@ -1253,7 +1258,8 @@ private fun HomeworkReportScreen(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
                 Text("Corretti: $correctCount")
-                Text("Sbagliati: ${total - correctCount}")
+                Text("Completati con errori: $withErrorsCount")
+                Text("Sbagliati: ${total - correctCount - withErrorsCount}")
             }
         }
 
@@ -1263,15 +1269,30 @@ private fun HomeworkReportScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     itemsIndexed(results) { idx, result ->
+                        val hadErrors = exerciseHasErrors(result)
+                        val expected = expectedAnswer(result.instance)
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 "Esercizio ${idx + 1}: ${exerciseLabel(result.instance)}",
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(if (result.correct) "✅ Corretto" else "❌ Sbagliato")
+                            val statusText = when {
+                                !result.correct -> "❌ Sbagliato"
+                                hadErrors -> "⚠️ Completato con errori"
+                                else -> "✅ Corretto"
+                            }
+                            Text(statusText)
+                            expected?.let { Text("Risposta corretta: $it") }
                             Text("Tentativi: ${result.attempts}")
-                            if (result.wrongAnswers.isNotEmpty()) {
-                                Text("Errori: ${result.wrongAnswers.joinToString()}")
+                            val wrongAnswers = result.wrongAnswers
+                            if (wrongAnswers.isNotEmpty()) {
+                                Text("Risposte errate: ${wrongAnswers.joinToString()}")
+                            }
+                            if (result.stepErrors.isNotEmpty()) {
+                                Text("Errore nel passaggio:")
+                                result.stepErrors.forEach { err ->
+                                    Text("• ${err.stepLabel}: inserito ${err.actual}, corretto ${err.expected}")
+                                }
                             }
                             if (result.solutionUsed) {
                                 Text("Soluzione usata")
@@ -1308,6 +1329,35 @@ fun HomeworkReportsScreen(
             onLeaderboard = {}
         )
 
+        if (reports.isNotEmpty()) {
+            val stats = buildReportStatistics(reports)
+            SeaGlassPanel(title = "Statistiche") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("📅 Giornaliero", fontWeight = FontWeight.Bold)
+                    Text("Esercizi oggi: ${stats.today.total}")
+                    Text("Corretti: ${stats.today.correct}")
+                    Text("Con errori: ${stats.today.withErrors}")
+                    Spacer(Modifier.height(8.dp))
+                    Text("📊 Settimanale", fontWeight = FontWeight.Bold)
+                    Text("Totale esercizi: ${stats.week.total}")
+                    val percent = if (stats.week.total > 0) {
+                        (stats.week.correct.toFloat() / stats.week.total.toFloat() * 100).toInt()
+                    } else {
+                        0
+                    }
+                    Text("Percentuale corretti: $percent%")
+                    Text("Errore più frequente: ${stats.topWeeklyError ?: "Nessuno"}")
+                    if (stats.recurringErrors.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text("⭐ Difficoltà ricorrenti", fontWeight = FontWeight.Bold)
+                        stats.recurringErrors.forEach { entry ->
+                            Text("• $entry")
+                        }
+                    }
+                }
+            }
+        }
+
         if (reports.isEmpty()) {
             SeaGlassPanel(title = "Nessun report") {
                 Text("Non ci sono report salvati.")
@@ -1319,20 +1369,37 @@ fun HomeworkReportsScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
                             Text("Data: ${formatTimestamp(report.createdAt)}")
-                            val correctCount = report.results.count { it.correct }
-                            Text("Risultati: $correctCount/${report.results.size} corretti")
+                            val correctCount = report.results.count { it.correct && !exerciseHasErrors(it) }
+                            val withErrorsCount = report.results.count { it.correct && exerciseHasErrors(it) }
+                            val wrongCount = report.results.size - correctCount - withErrorsCount
+                            Text("Risultati: $correctCount corretti, $withErrorsCount con errori, $wrongCount sbagliati")
                             Divider(Modifier.padding(vertical = 4.dp))
                             report.results.forEachIndexed { rIdx, result ->
+                                val hadErrors = exerciseHasErrors(result)
+                                val expected = expectedAnswer(result.instance)
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text("Esercizio ${rIdx + 1}: ${exerciseLabel(result.instance)}")
+                                    expected?.let { Text("Risposta corretta: $it") }
                                     Text("Tentativi: ${result.attempts}")
-                                    if (!result.correct) {
-                                        Text("Esito: Sbagliato", color = Color(0xFFDC2626))
-                                    } else {
-                                        Text("Esito: Corretto", color = Color(0xFF16A34A))
+                                    val statusText = when {
+                                        !result.correct -> "❌ Sbagliato"
+                                        hadErrors -> "⚠️ Completato con errori"
+                                        else -> "✅ Corretto"
                                     }
+                                    val statusColor = when {
+                                        !result.correct -> Color(0xFFDC2626)
+                                        hadErrors -> Color(0xFFF59E0B)
+                                        else -> Color(0xFF16A34A)
+                                    }
+                                    Text("Esito: $statusText", color = statusColor)
                                     if (result.wrongAnswers.isNotEmpty()) {
-                                        Text("Errori: ${result.wrongAnswers.joinToString()}")
+                                        Text("Risposte errate: ${result.wrongAnswers.joinToString()}")
+                                    }
+                                    if (result.stepErrors.isNotEmpty()) {
+                                        Text("Errore nel passaggio:")
+                                        result.stepErrors.forEach { err ->
+                                            Text("• ${err.stepLabel}: inserito ${err.actual}, corretto ${err.expected}")
+                                        }
                                     }
                                     if (result.solutionUsed) {
                                         Text("Soluzione usata")
@@ -1362,6 +1429,131 @@ private fun exerciseLabel(instance: ExerciseInstance): String {
         GameType.MULTIPLICATION_MULTIPLE_CHOICE -> "${instance.table ?: a} × $b"
         GameType.DIVISION_STEP -> "$a ÷ $b"
         else -> "$a × $b"
+    }
+}
+
+private fun exerciseHasErrors(result: ExerciseResult): Boolean {
+    return result.wrongAnswers.isNotEmpty() || result.stepErrors.isNotEmpty()
+}
+
+private fun expectedAnswer(instance: ExerciseInstance): String? {
+    val a = instance.a
+    val b = instance.b
+    return when (instance.game) {
+        GameType.ADDITION -> if (a != null && b != null) (a + b).toString() else null
+        GameType.SUBTRACTION -> if (a != null && b != null) (a - b).toString() else null
+        GameType.MULTIPLICATION_TABLE,
+        GameType.MULTIPLICATION_GAPS,
+        GameType.MULTIPLICATION_REVERSE,
+        GameType.MULTIPLICATION_MULTIPLE_CHOICE,
+        GameType.MULTIPLICATION_MIXED,
+        GameType.MULTIPLICATION_HARD -> if (a != null && b != null) (a * b).toString() else null
+        GameType.DIVISION_STEP -> {
+            if (a != null && b != null && b != 0) {
+                "Quoziente ${a / b}, resto ${a % b}"
+            } else {
+                null
+            }
+        }
+        GameType.MONEY_COUNT -> null
+    }
+}
+
+private data class ReportStats(val total: Int, val correct: Int, val withErrors: Int, val wrong: Int)
+
+private data class HomeworkStatistics(
+    val today: ReportStats,
+    val week: ReportStats,
+    val topWeeklyError: String?,
+    val recurringErrors: List<String>
+)
+
+private fun buildReportStatistics(reports: List<HomeworkReport>): HomeworkStatistics {
+    // Statistiche giornaliere e settimanali calcolate dai report salvati.
+    val now = Calendar.getInstance()
+    val startOfToday = now.apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val startOfWeek = (Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }).timeInMillis
+
+    val todayResults = reports.filter { it.createdAt >= startOfToday }.flatMap { it.results }
+    val weekResults = reports.filter { it.createdAt >= startOfWeek }.flatMap { it.results }
+
+    val todayStats = computeReportStats(todayResults)
+    val weekStats = computeReportStats(weekResults)
+
+    val categoryCounts = collectErrorCategories(weekResults)
+    val topWeeklyError = categoryCounts.maxByOrNull { it.value }?.key
+    val recurringErrors = categoryCounts.entries.sortedByDescending { it.value }
+        .take(3)
+        .map { it.key }
+
+    return HomeworkStatistics(
+        today = todayStats,
+        week = weekStats,
+        topWeeklyError = topWeeklyError,
+        recurringErrors = recurringErrors
+    )
+}
+
+private fun computeReportStats(results: List<ExerciseResult>): ReportStats {
+    var correct = 0
+    var withErrors = 0
+    var wrong = 0
+    results.forEach { result ->
+        val hadErrors = exerciseHasErrors(result)
+        when {
+            !result.correct -> wrong++
+            hadErrors -> withErrors++
+            else -> correct++
+        }
+    }
+    return ReportStats(
+        total = results.size,
+        correct = correct,
+        withErrors = withErrors,
+        wrong = wrong
+    )
+}
+
+private fun collectErrorCategories(results: List<ExerciseResult>): Map<String, Int> {
+    val counts = mutableMapOf<String, Int>()
+    results.forEach { result ->
+        if (result.wrongAnswers.isEmpty() && result.stepErrors.isEmpty()) return@forEach
+        val categories = mutableSetOf<String>()
+        if (result.stepErrors.isNotEmpty()) {
+            result.stepErrors.forEach { step ->
+                val label = step.stepLabel.lowercase(Locale.getDefault())
+                val category = when {
+                    label.contains("riporto") -> "Riporti nelle addizioni"
+                    label.contains("prestito") -> "Prestiti nelle sottrazioni"
+                    label.contains("quoziente") -> "Cifre del quoziente nelle divisioni"
+                    label.contains("prodotto") -> "Prodotti nelle divisioni"
+                    label.contains("resto") -> "Resti nelle divisioni"
+                    else -> genericCategory(result.instance.game)
+                }
+                categories += category
+            }
+        } else {
+            categories += genericCategory(result.instance.game)
+        }
+        categories.forEach { category ->
+            counts[category] = (counts[category] ?: 0) + 1
+        }
+    }
+    return counts
+}
+
+private fun genericCategory(game: GameType): String {
+    return when (game) {
+        GameType.ADDITION -> "Errori nelle addizioni"
+        GameType.SUBTRACTION -> "Errori nelle sottrazioni"
+        GameType.DIVISION_STEP -> "Errori nelle divisioni"
+        GameType.MONEY_COUNT -> "Errori nel conto dei soldi"
+        else -> "Errori nelle moltiplicazioni/tabelline"
     }
 }
 

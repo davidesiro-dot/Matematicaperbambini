@@ -94,6 +94,7 @@ fun DivisionStepGame(
     var solutionUsed by remember { mutableStateOf(false) }
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
+    val stepErrors = remember(exercise?.a, exercise?.b) { mutableStateListOf<StepError>() }
 
     val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
@@ -122,6 +123,7 @@ fun DivisionStepGame(
         solutionUsed = false
         attempts = 0
         wrongAnswers.clear()
+        stepErrors.clear()
         quotientInputs.forEachIndexed { idx, state ->
             state.value = ""
             quotientErrors[idx].value = false
@@ -202,6 +204,17 @@ fun DivisionStepGame(
             message = "❌ Riprova"
             attempts += 1
             wrongAnswers += digit.toString()
+            val stepLabel = when (activeTarget.type) {
+                DivisionTargetType.QUOTIENT -> "Quoziente (passo ${activeTarget.stepIndex + 1})"
+                DivisionTargetType.PRODUCT -> "Prodotto (passo ${activeTarget.stepIndex + 1}, cifra ${activeTarget.idx + 1})"
+                DivisionTargetType.REMAINDER -> "Resto (passo ${activeTarget.stepIndex + 1}, cifra ${activeTarget.idx + 1})"
+                DivisionTargetType.BRING_DOWN -> "Abbasso cifra (passo ${activeTarget.stepIndex + 1})"
+            }
+            stepErrors += StepError(
+                stepLabel = stepLabel,
+                expected = expected.toString(),
+                actual = digit.toString()
+            )
             playWrong()
             return
         }
@@ -707,6 +720,7 @@ fun DivisionStepGame(
                                         correct = true,
                                         attempts = attempts,
                                         wrongAnswers = wrongAnswers.toList(),
+                                        stepErrors = stepErrors.toList(),
                                         solutionUsed = solutionUsed
                                     )
                                 )
@@ -760,6 +774,7 @@ fun DivisionStepGame(
                             correct = true,
                             attempts = attempts,
                             wrongAnswers = wrongAnswers.toList(),
+                            stepErrors = stepErrors.toList(),
                             solutionUsed = solutionUsed
                         )
                     )

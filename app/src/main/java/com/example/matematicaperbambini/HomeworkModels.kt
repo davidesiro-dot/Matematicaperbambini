@@ -1,5 +1,8 @@
 package com.example.matematicaperbambini
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class GameType(val title: String) {
     ADDITION("Addizioni"),
     SUBTRACTION("Sottrazioni"),
@@ -57,6 +60,7 @@ sealed class ManualOp {
     data class Table(val table: Int) : ManualOp()
 }
 
+@Serializable
 data class ExerciseInstance(
     val game: GameType,
     val a: Int? = null,
@@ -65,23 +69,35 @@ data class ExerciseInstance(
     val meta: Map<String, String> = emptyMap()
 )
 
+@Serializable
 data class ExerciseResult(
     val instance: ExerciseInstance,
     val correct: Boolean,
     val attempts: Int,
     val wrongAnswers: List<String>,
+    val stepErrors: List<StepError> = emptyList(),
     val solutionUsed: Boolean,
     val startedAt: Long,
     val endedAt: Long
 )
 
+@Serializable
 data class ExerciseResultPartial(
     val correct: Boolean,
     val attempts: Int,
     val wrongAnswers: List<String>,
+    val stepErrors: List<StepError> = emptyList(),
     val solutionUsed: Boolean
 )
 
+@Serializable
+data class StepError(
+    val stepLabel: String,
+    val expected: String,
+    val actual: String
+)
+
+@Serializable
 data class HomeworkReport(
     val childName: String,
     val createdAt: Long,

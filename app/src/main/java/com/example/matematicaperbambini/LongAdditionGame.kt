@@ -18,6 +18,24 @@ import kotlin.random.Random
 private enum class AddRowKey { CARRY, A, B, SUM }
 private enum class AddCellKind { CARRY, DIGIT }
 
+private fun additionColumnName(posFromRight: Int): String = when (posFromRight) {
+    0 -> "unità"
+    1 -> "decine"
+    2 -> "centinaia"
+    3 -> "migliaia"
+    else -> "colonna ${posFromRight + 1}"
+}
+
+private fun additionColumnLabelFromLeft(colFromLeft: Int, digits: Int): String {
+    val posFromRight = (digits - 1) - colFromLeft
+    return additionColumnName(posFromRight)
+}
+
+private fun additionResultColumnLabelFromLeft(colFromLeft: Int, digits: Int): String {
+    val posFromRight = digits - colFromLeft
+    return additionColumnName(posFromRight)
+}
+
 private data class AddTarget(
     val row: AddRowKey,
     val col: Int,           // 0..N (da sinistra)
@@ -65,17 +83,6 @@ private fun computeAdditionPlan(digits: Int, a: Int, b: Int): AddPlan {
     // targets step-by-step: unità->sinistra
     val targets = mutableListOf<AddTarget>()
 
-    fun colLabel(i: Int, digits: Int): String {
-        val posFromRight = (digits - 1) - i
-        return when (posFromRight) {
-            0 -> "unità"
-            1 -> "decine"
-            2 -> "centinaia"
-            3 -> "migliaia"
-            else -> "colonna ${posFromRight + 1}"
-        }
-    }
-
     var carryIn = 0
     for (i in digits - 1 downTo 0) {
         val da = aS[i] - '0'
@@ -91,7 +98,7 @@ private fun computeAdditionPlan(digits: Int, a: Int, b: Int): AddPlan {
             col = resIndex, // colonna nel risultato (0..digits)
             kind = AddCellKind.DIGIT,
             expected = digitOut.toString()[0],
-            hint = "${da} + ${db}${if (carryIn > 0) " + riporto $carryIn" else ""} = $s → scrivi $digitOut nelle ${colLabel(i, digits)}"
+            hint = "${da} + ${db}${if (carryIn > 0) " + riporto $carryIn" else ""} = $s → scrivi $digitOut nelle ${additionColumnLabelFromLeft(i, digits)}"
         )
 
         // 2) se c’è carryOut e non siamo alla colonna più a sinistra -> scrivi il riporto nella casellina sopra la colonna a sinistra
@@ -101,7 +108,7 @@ private fun computeAdditionPlan(digits: Int, a: Int, b: Int): AddPlan {
                 col = i - 1,
                 kind = AddCellKind.CARRY,
                 expected = carryOut.toString()[0],
-                hint = "Riporta $carryOut nella ${colLabel(i - 1, digits)}"
+                hint = "Riporta $carryOut nella ${additionColumnLabelFromLeft(i - 1, digits)}"
             )
         }
 
@@ -178,6 +185,7 @@ fun LongAdditionGame(
     var solutionRevealed by remember { mutableStateOf(false) }
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
+    val stepErrors = remember(exercise?.a, exercise?.b) { mutableStateListOf<StepError>() }
     var solutionUsed by remember(exercise?.a, exercise?.b) { mutableStateOf(false) }
 
     // input
@@ -201,6 +209,7 @@ fun LongAdditionGame(
         solutionRevealed = false
         attempts = 0
         wrongAnswers.clear()
+        stepErrors.clear()
         solutionUsed = false
         clearInputs()
     }
@@ -310,6 +319,22 @@ fun LongAdditionGame(
         setCell(row, col, digit, !ok)
         if (!ok) {
             wrongAnswers += digit.toString()
+            val stepLabel = when (t.row) {
+                AddRowKey.CARRY -> "Riporto nelle ${additionColumnLabelFromLeft(t.col, planDigits)}"
+                AddRowKey.SUM -> {
+                    if (t.col == 0) {
+                        "Risultato (cifra più a sinistra)"
+                    } else {
+                        "Risultato nelle ${additionResultColumnLabelFromLeft(t.col, planDigits)}"
+                    }
+                }
+                else -> "Passaggio"
+            }
+            stepErrors += StepError(
+                stepLabel = stepLabel,
+                expected = t.expected.toString(),
+                actual = digit.toString()
+            )
         }
         if (ok) {
             val activePlan = plan ?: return
@@ -554,6 +579,7 @@ fun LongAdditionGame(
                                         correct = true,
                                         attempts = attempts,
                                         wrongAnswers = wrongAnswers.toList(),
+                                        stepErrors = stepErrors.toList(),
                                         solutionUsed = solutionUsed
                                     )
                                 )
@@ -592,6 +618,7 @@ fun LongAdditionGame(
                             correct = true,
                             attempts = attempts,
                             wrongAnswers = wrongAnswers.toList(),
+                            stepErrors = stepErrors.toList(),
                             solutionUsed = solutionUsed
                         )
                     )
