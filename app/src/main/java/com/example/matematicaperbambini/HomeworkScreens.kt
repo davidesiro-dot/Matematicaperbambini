@@ -20,6 +20,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -77,24 +78,9 @@ fun HomeworkBuilderScreen(
     var subtractionManualAInput by remember { mutableStateOf("") }
     var subtractionManualBInput by remember { mutableStateOf("") }
 
-    var mixedEnabled by remember { mutableStateOf(true) }
-    var mixedDigitsInput by remember { mutableStateOf("1") }
-    var mixedExercisesCountInput by remember { mutableStateOf("5") }
-    var mixedRepeatsInput by remember { mutableStateOf("1") }
-    var mixedHintsEnabled by remember { mutableStateOf(false) }
-    var mixedHighlightsEnabled by remember { mutableStateOf(false) }
-    var mixedAllowSolution by remember { mutableStateOf(false) }
-    var mixedAutoCheck by remember { mutableStateOf(false) }
-    var mixedSource by remember { mutableStateOf<ExerciseSourceConfig>(ExerciseSourceConfig.Random) }
-    val mixedManualOps = remember { mutableStateListOf<ManualOp.AB>() }
-    var mixedManualAInput by remember { mutableStateOf("") }
-    var mixedManualBInput by remember { mutableStateOf("") }
-
     var tableEnabled by remember { mutableStateOf(false) }
     var tableMode by remember { mutableStateOf(TabellineMode.CLASSIC) }
-    var tableLevelInput by remember { mutableStateOf("2") }
     val tableSelectedTables = remember { mutableStateListOf<Int>() }
-    var tableExercisesCountInput by remember { mutableStateOf("5") }
     var tableRepeatsInput by remember { mutableStateOf("1") }
     var tableHintsEnabled by remember { mutableStateOf(false) }
     var tableHighlightsEnabled by remember { mutableStateOf(false) }
@@ -168,17 +154,6 @@ fun HomeworkBuilderScreen(
                     checked = subtractionEnabled,
                     onCheckedChange = { subtractionEnabled = it }
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text("Tabelline miste", fontWeight = FontWeight.Bold)
-                        Text("Moltiplicazioni con numeri vari", fontSize = 12.sp)
-                    }
-                    Switch(checked = mixedEnabled, onCheckedChange = { mixedEnabled = it })
-                }
                 GameToggleRow(
                     title = "Tabellina",
                     subtitle = "Esercizi su una tabellina specifica",
@@ -312,73 +287,10 @@ fun HomeworkBuilderScreen(
             }
         }
 
-        if (mixedEnabled) {
-            SeaGlassPanel(title = "Configurazione tabelline miste") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = mixedDigitsInput,
-                        onValueChange = { mixedDigitsInput = it.filter(Char::isDigit).take(3) },
-                        label = { Text("Difficoltà (cifre)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    HelpConfigSection(
-                        hintsEnabled = mixedHintsEnabled,
-                        highlightsEnabled = mixedHighlightsEnabled,
-                        allowSolution = mixedAllowSolution,
-                        autoCheck = mixedAutoCheck,
-                        onHintsChange = { mixedHintsEnabled = it },
-                        onHighlightsChange = { mixedHighlightsEnabled = it },
-                        onAllowSolutionChange = { mixedAllowSolution = it },
-                        onAutoCheckChange = { mixedAutoCheck = it }
-                    )
-                    ExerciseSourceSection(
-                        source = mixedSource,
-                        onSourceChange = { mixedSource = it },
-                        manualOps = mixedManualOps,
-                        manualAInput = mixedManualAInput,
-                        manualBInput = mixedManualBInput,
-                        onManualAChange = { mixedManualAInput = it },
-                        onManualBChange = { mixedManualBInput = it },
-                        opLabel = "A",
-                        opLabelB = "B",
-                        onAddManual = {
-                            val a = mixedManualAInput.toIntOrNull()
-                            val b = mixedManualBInput.toIntOrNull()
-                            if (a != null && b != null) {
-                                mixedManualOps += ManualOp.AB(a, b)
-                                mixedManualAInput = ""
-                                mixedManualBInput = ""
-                                mixedSource = ExerciseSourceConfig.Manual(mixedManualOps.toList())
-                            }
-                        },
-                        onRemoveManual = { index ->
-                            mixedManualOps.removeAt(index)
-                            mixedSource = ExerciseSourceConfig.Manual(mixedManualOps.toList())
-                        },
-                        manualItemText = { op -> "• ${op.a} × ${op.b}" }
-                    )
-                    AmountConfigRow(
-                        exercisesCountInput = mixedExercisesCountInput,
-                        repeatsInput = mixedRepeatsInput,
-                        onExercisesCountChange = { mixedExercisesCountInput = it },
-                        onRepeatsChange = { mixedRepeatsInput = it }
-                    )
-                }
-            }
-        }
-
         if (tableEnabled) {
             SeaGlassPanel(title = "Configurazione tabellina") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = tableLevelInput,
-                        onValueChange = { tableLevelInput = it.filter(Char::isDigit).take(2) },
-                        label = { Text("Tabellina predefinita (1-10)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text("Seleziona più tabelline (opzionale)", fontWeight = FontWeight.Bold)
+                    Text("Seleziona la/le tabellina/e", fontWeight = FontWeight.Bold)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             (1..5).forEach { table ->
@@ -419,7 +331,7 @@ fun HomeworkBuilderScreen(
                             )
                         } else {
                             Text(
-                                "Nessuna selezionata: verrà usata la tabellina predefinita.",
+                                "Nessuna selezionata.",
                                 fontSize = 12.sp
                             )
                         }
@@ -440,11 +352,6 @@ fun HomeworkBuilderScreen(
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SourceChip(
-                                label = "Al contrario",
-                                selected = tableMode == TabellineMode.REVERSE,
-                                onClick = { tableMode = TabellineMode.REVERSE }
-                            )
-                            SourceChip(
                                 label = "Scelta multipla",
                                 selected = tableMode == TabellineMode.MULTIPLE_CHOICE,
                                 onClick = { tableMode = TabellineMode.MULTIPLE_CHOICE }
@@ -461,11 +368,20 @@ fun HomeworkBuilderScreen(
                         onAllowSolutionChange = { tableAllowSolution = it },
                         onAutoCheckChange = { tableAutoCheck = it }
                     )
-                    AmountConfigRow(
-                        exercisesCountInput = tableExercisesCountInput,
-                        repeatsInput = tableRepeatsInput,
-                        onExercisesCountChange = { tableExercisesCountInput = it },
-                        onRepeatsChange = { tableRepeatsInput = it }
+                    OutlinedTextField(
+                        value = tableRepeatsInput,
+                        onValueChange = { value ->
+                            val digits = value.filter(Char::isDigit).take(2)
+                            val parsed = digits.toIntOrNull()
+                            tableRepeatsInput = when {
+                                parsed == null -> ""
+                                parsed > 20 -> "20"
+                                else -> digits
+                            }
+                        },
+                        label = { Text("Ripetizioni tabelline (max 20)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -596,7 +512,7 @@ fun HomeworkBuilderScreen(
 
         Spacer(Modifier.weight(1f))
 
-        val anyEnabled = additionEnabled || subtractionEnabled || mixedEnabled || tableEnabled || divisionEnabled || hardEnabled
+        val anyEnabled = additionEnabled || subtractionEnabled || tableEnabled || divisionEnabled || hardEnabled
 
         Button(
             onClick = {
@@ -655,36 +571,8 @@ fun HomeworkBuilderScreen(
                             )
                         )
                     }
-                    if (mixedEnabled) {
-                        val digits = mixedDigitsInput.toIntOrNull()
-                        val exercisesCount = mixedExercisesCountInput.toIntOrNull() ?: 5
-                        val repeats = mixedRepeatsInput.toIntOrNull() ?: 1
-                        val helpSettings = HelpSettings(
-                            hintsEnabled = mixedHintsEnabled,
-                            highlightsEnabled = mixedHighlightsEnabled,
-                            allowSolution = mixedAllowSolution,
-                            autoCheck = mixedAutoCheck
-                        )
-                        val sourceConfig = when (mixedSource) {
-                            is ExerciseSourceConfig.Manual -> ExerciseSourceConfig.Manual(mixedManualOps.toList())
-                            else -> ExerciseSourceConfig.Random
-                        }
-                        add(
-                            HomeworkTaskConfig(
-                                game = GameType.MULTIPLICATION_MIXED,
-                                difficulty = DifficultyConfig(digits = digits),
-                                helps = helpSettings,
-                                source = sourceConfig,
-                                amount = AmountConfig(
-                                    exercisesCount = exercisesCount,
-                                    repeatsPerExercise = repeats
-                                )
-                            )
-                        )
-                    }
                     if (tableEnabled) {
-                        val level = tableLevelInput.toIntOrNull()
-                        val tables = tableSelectedTables.sorted().takeIf { it.isNotEmpty() }
+                        val tables = tableSelectedTables.sorted()
                         val tableGame = when (tableMode) {
                             TabellineMode.CLASSIC -> GameType.MULTIPLICATION_TABLE
                             TabellineMode.GAPS -> GameType.MULTIPLICATION_GAPS
@@ -692,8 +580,12 @@ fun HomeworkBuilderScreen(
                             TabellineMode.MULTIPLE_CHOICE -> GameType.MULTIPLICATION_MULTIPLE_CHOICE
                             TabellineMode.MIXED -> GameType.MULTIPLICATION_MIXED
                         }
-                        val exercisesCount = tableExercisesCountInput.toIntOrNull() ?: 5
-                        val repeats = tableRepeatsInput.toIntOrNull() ?: 1
+                        val repeats = tableRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                        val sourceConfig = if (tables.isEmpty()) {
+                            ExerciseSourceConfig.Random
+                        } else {
+                            ExerciseSourceConfig.Manual(tables.map { ManualOp.Table(it) })
+                        }
                         val helpSettings = HelpSettings(
                             hintsEnabled = tableHintsEnabled,
                             highlightsEnabled = tableHighlightsEnabled,
@@ -703,11 +595,11 @@ fun HomeworkBuilderScreen(
                         add(
                             HomeworkTaskConfig(
                                 game = tableGame,
-                                difficulty = DifficultyConfig(level = level, tables = tables),
+                                difficulty = DifficultyConfig(tables = tables.takeIf { it.isNotEmpty() }),
                                 helps = helpSettings,
-                                source = ExerciseSourceConfig.Random,
+                                source = sourceConfig,
                                 amount = AmountConfig(
-                                    exercisesCount = exercisesCount,
+                                    exercisesCount = tables.size.coerceAtLeast(1),
                                     repeatsPerExercise = repeats
                                 )
                             )
@@ -991,28 +883,45 @@ fun HomeworkRunnerScreen(
     }
 
     val current = queue[index]
-    HomeworkExerciseGame(
-        soundEnabled = soundEnabled,
-        onToggleSound = onToggleSound,
-        fx = fx,
-        onBack = onBack,
-        onOpenLeaderboard = onOpenLeaderboard,
-        onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
-        entry = current,
-        onExerciseFinished = { partial ->
-            val endAt = System.currentTimeMillis()
-            results += ExerciseResult(
-                instance = current.instance,
-                correct = partial.correct,
-                attempts = partial.attempts,
-                wrongAnswers = partial.wrongAnswers,
-                solutionUsed = partial.solutionUsed,
-                startedAt = startAt,
-                endedAt = endAt
+    val remainingExercises = (queue.size - index).coerceAtLeast(0)
+    Box(Modifier.fillMaxSize()) {
+        HomeworkExerciseGame(
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            fx = fx,
+            onBack = onBack,
+            onOpenLeaderboard = onOpenLeaderboard,
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            entry = current,
+            onExerciseFinished = { partial ->
+                val endAt = System.currentTimeMillis()
+                results += ExerciseResult(
+                    instance = current.instance,
+                    correct = partial.correct,
+                    attempts = partial.attempts,
+                    wrongAnswers = partial.wrongAnswers,
+                    solutionUsed = partial.solutionUsed,
+                    startedAt = startAt,
+                    endedAt = endAt
+                )
+                index += 1
+            }
+        )
+        Surface(
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            shape = MaterialTheme.shapes.large,
+            shadowElevation = 4.dp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 12.dp, end = 12.dp)
+        ) {
+            Text(
+                text = "Esercizi rimanenti: $remainingExercises",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
             )
-            index += 1
         }
-    )
+    }
 }
 
 @Composable
