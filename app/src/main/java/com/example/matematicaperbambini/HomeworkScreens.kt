@@ -426,7 +426,7 @@ fun HomeworkBuilderScreen(
                         onAddManual = {
                             val a = divisionManualDividendInput.toIntOrNull()
                             val b = divisionManualDivisorInput.toIntOrNull()
-                            if (a != null && b != null) {
+                            if (a != null && b != null && a in 2..999 && b in 2..99 && a > b) {
                                 divisionManualOps += ManualOp.AB(a, b)
                                 divisionManualDividendInput = ""
                                 divisionManualDivisorInput = ""
