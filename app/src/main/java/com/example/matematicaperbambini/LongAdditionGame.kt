@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -155,8 +156,9 @@ fun LongAdditionGame(
     onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
-    val minValue = 10.0.pow((digits - 1).toDouble()).toInt()
-    val maxValue = 10.0.pow(digits.toDouble()).toInt() - 1
+    val manualMinValue = 1
+    val manualMaxValue = 999
+    val manualMaxDigits = 3
     val isHomeworkMode = exercise != null || onExerciseFinished != null
 
     var manualA by remember { mutableStateOf("") }
@@ -209,9 +211,14 @@ fun LongAdditionGame(
         manualNumbers = null
     }
 
+    fun manualDigitsFor(a: Int, b: Int): Int {
+        return maxOf(a.toString().length, b.toString().length).coerceIn(1, manualMaxDigits)
+    }
+
     fun startManual(a: Int, b: Int) {
         manualNumbers = a to b
-        plan = computeAdditionPlan(digits, a, b)
+        val manualDigits = manualDigitsFor(a, b)
+        plan = computeAdditionPlan(manualDigits, a, b)
         resetSame()
     }
 
@@ -260,7 +267,8 @@ fun LongAdditionGame(
         val b = exercise?.b
         if (a != null && b != null) {
             manualNumbers = a to b
-            plan = computeAdditionPlan(digits, a, b)
+            val manualDigits = manualDigitsFor(a, b)
+            plan = computeAdditionPlan(manualDigits, a, b)
             resetSame()
         }
     }
@@ -343,28 +351,34 @@ fun LongAdditionGame(
                 if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
-                    val manualValid = manualAValue in minValue..maxValue && manualBValue in minValue..maxValue
+                    val manualValid = manualAValue in manualMinValue..manualMaxValue &&
+                        manualBValue in manualMinValue..manualMaxValue
                     val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
                         null
                     } else {
-                        "Inserisci due numeri da $minValue a $maxValue."
+                        "Inserisci due numeri da $manualMinValue a $manualMaxValue."
                     }
 
                     SeaGlassPanel(title = "Inserimento") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = manualA,
-                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(3) },
+                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(manualMaxDigits) },
                                 label = { Text("Numero A") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             OutlinedTextField(
                                 value = manualB,
-                                onValueChange = { manualB = it.filter { c -> c.isDigit() }.take(3) },
+                                onValueChange = { manualB = it.filter { c -> c.isDigit() }.take(manualMaxDigits) },
                                 label = { Text("Numero B") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                "Limiti inserimento: $manualMinValue - $manualMaxValue",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF6B7280)
                             )
                             Button(
                                 onClick = {
