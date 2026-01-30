@@ -74,7 +74,7 @@ fun DivisionStepGame(
         return generateDivisionPlan(dividend, divisor)
     }
 
-    var plan by remember(mode, startMode) {
+    var plan by remember(startMode) {
         mutableStateOf(if (startMode == StartMode.RANDOM) newPlan() else null)
     }
 
