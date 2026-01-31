@@ -543,14 +543,23 @@ fun HomeworkBuilderScreen(
                         )
                         OutlinedTextField(
                             value = hardMaxAInput,
-                            onValueChange = { hardMaxAInput = it.filter { char -> char in '2'..'3' }.take(1) },
+                            onValueChange = {
+                                val nextValue = it.filter { char -> char in '2'..'3' }.take(1)
+                                hardMaxAInput = nextValue
+                                if (nextValue == "3" && hardMaxBInput != "1") {
+                                    hardMaxBInput = "1"
+                                }
+                            },
                             label = { Text("Cifre Moltiplicando") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
                             value = hardMaxBInput,
-                            onValueChange = { hardMaxBInput = it.filter { char -> char in '1'..'2' }.take(1) },
+                            onValueChange = {
+                                val allowed = if (hardMaxAInput == "3") '1'..'1' else '1'..'2'
+                                hardMaxBInput = it.filter { char -> char in allowed }.take(1)
+                            },
                             label = { Text("Cifre Moltiplicatore") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth()
@@ -586,13 +595,22 @@ fun HomeworkBuilderScreen(
                                     b == null || b !in hardManualBRange -> {
                                         "Moltiplicatore valido: ${hardManualBRange.first}-${hardManualBRange.last}."
                                     }
+                                    a >= 100 && b >= 10 -> {
+                                        "Con 3 cifre nel moltiplicando il moltiplicatore deve avere 1 cifra."
+                                    }
                                     else -> null
                                 }
                             },
                             onAddManual = {
                                 val a = hardManualAInput.toIntOrNull()
                                 val b = hardManualBInput.toIntOrNull()
-                                if (a != null && b != null && a in hardManualARange && b in hardManualBRange) {
+                                if (
+                                    a != null &&
+                                    b != null &&
+                                    a in hardManualARange &&
+                                    b in hardManualBRange &&
+                                    !(a >= 100 && b >= 10)
+                                ) {
                                     hardManualOps += ManualOp.AB(a, b)
                                     hardManualAInput = ""
                                     hardManualBInput = ""
@@ -746,7 +764,11 @@ fun HomeworkBuilderScreen(
                         }
                         if (hardEnabled) {
                             val multiplicandDigits = hardMaxAInput.toIntOrNull()?.coerceIn(2, 3) ?: 2
-                            val multiplierDigits = hardMaxBInput.toIntOrNull()?.coerceIn(1, 2) ?: 1
+                            val multiplierDigits = if (multiplicandDigits == 3) {
+                                1
+                            } else {
+                                hardMaxBInput.toIntOrNull()?.coerceIn(1, 2) ?: 1
+                            }
                             val exercisesCount = hardExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 4
                             val repeats = hardRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
                             val helpSettings = HelpSettings(
