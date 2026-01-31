@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.random.Random
+import androidx.compose.foundation.layout.Spacer
 
 /* -----------------------------------------------------------------------
    LONG SUBTRACTION (guidata): con prestito e anche senza

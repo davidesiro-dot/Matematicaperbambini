@@ -28,6 +28,7 @@ import androidx.compose.ui.zIndex
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import androidx.compose.foundation.layout.Spacer
 
 data class StarState(
     val id: Int,

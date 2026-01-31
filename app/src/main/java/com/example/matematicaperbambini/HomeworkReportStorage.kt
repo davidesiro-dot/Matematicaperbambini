@@ -22,26 +22,46 @@ private val reportJson = Json {
 }
 
 class HomeworkReportStorage(private val context: Context) {
+    private companion object {
+        const val MAX_REPORTS = 300
+    }
+
     // Persistenza locale dei report (DataStore): nessun backend, solo dispositivo.
     suspend fun saveReport(report: HomeworkReport) {
-        val existing = loadReports().toMutableList()
-        existing.add(0, report)
-        persistReports(existing)
+        val existing = loadReports()
+        val limited = (listOf(report) + existing).take(MAX_REPORTS)
+        persistReports(limited)
     }
 
     suspend fun loadReports(): List<HomeworkReport> {
-        return context.homeworkReportDataStore.data
-            .map { prefs -> prefs[reportsKey].orEmpty() }
-            .map { json ->
-                if (json.isBlank()) emptyList() else reportJson.decodeFromString<List<HomeworkReport>>(json)
-            }
-            .first()
+        return try {
+            context.homeworkReportDataStore.data
+                .map { prefs -> prefs[reportsKey].orEmpty() }
+                .map { json ->
+                    try {
+                        if (json.isBlank()) {
+                            emptyList()
+                        } else {
+                            reportJson.decodeFromString<List<HomeworkReport>>(json)
+                        }
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                }
+                .first()
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     private suspend fun persistReports(reports: List<HomeworkReport>) {
-        val payload = reportJson.encodeToString(reports)
-        context.homeworkReportDataStore.edit { prefs ->
-            prefs[reportsKey] = payload
+        try {
+            val payload = reportJson.encodeToString(reports)
+            context.homeworkReportDataStore.edit { prefs ->
+                prefs[reportsKey] = payload
+            }
+        } catch (e: Exception) {
+            // Ignora errori di persistenza per evitare crash.
         }
     }
 }
