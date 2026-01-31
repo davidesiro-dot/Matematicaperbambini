@@ -945,6 +945,9 @@ fun HardMultiplication2x2Game(
     var solutionUsed by remember { mutableStateOf(false) }
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
+    val stepErrors = remember(exercise?.a, exercise?.b) { mutableStateListOf<StepError>() }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     var inCarryP1 by remember { mutableStateOf(CharArray(initialColumns) { '\u0000' }) }
     var inP1 by remember { mutableStateOf(CharArray(initialColumns) { '\u0000' }) }
@@ -971,6 +974,7 @@ fun HardMultiplication2x2Game(
         solutionUsed = false
         attempts = 0
         wrongAnswers.clear()
+        stepErrors.clear()
         inCarryP1 = CharArray(columns) { '\u0000' }
         inP1 = CharArray(columns) { '\u0000' }
         inCarryP2 = CharArray(columns) { '\u0000' }
@@ -984,6 +988,8 @@ fun HardMultiplication2x2Game(
         errP2 = BooleanArray(columns) { false }
         errCarrySUM = BooleanArray(columns) { false }
         errSUM = BooleanArray(columns) { false }
+        gameState = if (plan == null) GameState.INIT else GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     fun clearInputsOnly() {
@@ -993,6 +999,7 @@ fun HardMultiplication2x2Game(
         solutionUsed = false
         attempts = 0
         wrongAnswers.clear()
+        stepErrors.clear()
         inCarryP1 = CharArray(columns) { '\u0000' }
         inP1 = CharArray(columns) { '\u0000' }
         inCarryP2 = CharArray(columns) { '\u0000' }
@@ -1006,6 +1013,8 @@ fun HardMultiplication2x2Game(
         errP2 = BooleanArray(columns) { false }
         errCarrySUM = BooleanArray(columns) { false }
         errSUM = BooleanArray(columns) { false }
+        gameState = if (plan == null) GameState.INIT else GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     fun resetManualInputs() {
@@ -1115,6 +1124,22 @@ fun HardMultiplication2x2Game(
             setCell(row, col, '\u0000', false)
             return
         }
+        val stepId = "hm-${step}-${row.name}-${col}"
+        val validation = validateUserInput(
+            stepId = stepId,
+            value = digit.toString(),
+            expectedRange = 0..9,
+            gameState = gameState,
+            guard = inputGuard
+        )
+        if (!validation.isValid) {
+            if (validation.failure == ValidationFailure.TOO_FAST ||
+                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+            ) {
+                return
+            }
+            return
+        }
 
         val ok = digit == t.expected
         setCell(row, col, digit, !ok)
@@ -1123,10 +1148,31 @@ fun HardMultiplication2x2Game(
             if (soundEnabled) fx.correct()
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
+            gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
         } else {
             attempts += 1
             wrongAnswers += digit.toString()
+            val stepLabel = when (row) {
+                HMRowKey.CARRY_P1 -> "Riporto P1 (colonna ${col + 1})"
+                HMRowKey.P1 -> "Parziale 1 (colonna ${col + 1})"
+                HMRowKey.CARRY_P2 -> "Riporto P2 (colonna ${col + 1})"
+                HMRowKey.P2 -> "Parziale 2 (colonna ${col + 1})"
+                HMRowKey.CARRY_SUM -> "Riporto somma (colonna ${col + 1})"
+                HMRowKey.SUM -> "Risultato (colonna ${col + 1})"
+            }
+            stepErrors += StepError(
+                stepLabel = stepLabel,
+                expected = t.expected.toString(),
+                actual = digit.toString()
+            )
             if (soundEnabled) fx.wrong()
+            val locked = inputGuard.registerAttempt(stepId)
+            if (locked) {
+                val activePlan = plan ?: return
+                setCell(row, col, t.expected, false)
+                step = (step + 1).coerceAtMost(activePlan.targets.size)
+                gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
+            }
         }
     }
 
@@ -1407,6 +1453,7 @@ fun HardMultiplication2x2Game(
                                         correct = true,
                                         attempts = attempts,
                                         wrongAnswers = wrongAnswers.toList(),
+                                        stepErrors = stepErrors.toList(),
                                         solutionUsed = solutionUsed
                                     )
                                 )
@@ -1465,6 +1512,7 @@ fun HardMultiplication2x2Game(
                             correct = true,
                             attempts = attempts,
                             wrongAnswers = wrongAnswers.toList(),
+                            stepErrors = stepErrors.toList(),
                             solutionUsed = solutionUsed
                         )
                     )

@@ -96,6 +96,8 @@ fun DivisionStepGame(
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
     val stepErrors = remember(exercise?.a, exercise?.b) { mutableStateListOf<StepError>() }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
@@ -142,6 +144,8 @@ fun DivisionStepGame(
             }
         }
         bringDownDone.forEach { it.value = false }
+        gameState = if (plan == null) GameState.INIT else GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     fun resetNew() {
@@ -157,6 +161,8 @@ fun DivisionStepGame(
             message = null
             showSuccessDialog = false
             solutionUsed = false
+            gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
         }
     }
 
@@ -171,6 +177,9 @@ fun DivisionStepGame(
                 correctCount++
             }
             message = "✅ Finito! Quoziente ${pp.finalQuotient} resto ${pp.finalRemainder}"
+            gameState = GameState.GAME_COMPLETED
+        } else {
+            gameState = GameState.AWAITING_INPUT
         }
     }
 
@@ -194,9 +203,37 @@ fun DivisionStepGame(
 
     fun onDigitInput(target: DivisionTarget, value: String) {
         val activeTarget = currentTarget ?: return
-        if (activeTarget != target) return
+        if (activeTarget != target) {
+            val digit = value.firstOrNull() ?: return
+            val expected = target.expected ?: return
+            attempts += 1
+            wrongAnswers += digit.toString()
+            stepErrors += StepError(
+                stepLabel = "Passo fuori ordine",
+                expected = expected.toString(),
+                actual = digit.toString()
+            )
+            playWrong()
+            return
+        }
         val digit = value.firstOrNull() ?: return
         val expected = activeTarget.expected ?: return
+        val stepId = "div-${activeTarget.stepIndex}-${activeTarget.type}-${activeTarget.idx}"
+        val validation = validateUserInput(
+            stepId = stepId,
+            value = digit.toString(),
+            expectedRange = 0..9,
+            gameState = gameState,
+            guard = inputGuard
+        )
+        if (!validation.isValid) {
+            if (validation.failure == ValidationFailure.TOO_FAST ||
+                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+            ) {
+                return
+            }
+            return
+        }
 
         updateCellValue(activeTarget, digit.toString())
         if (digit != expected) {
@@ -217,6 +254,13 @@ fun DivisionStepGame(
                 actual = digit.toString()
             )
             playWrong()
+            val locked = inputGuard.registerAttempt(stepId)
+            if (locked) {
+                updateCellError(activeTarget, false)
+                updateCellValue(activeTarget, expected.toString())
+                message = "Continuiamo con il prossimo passo."
+                advanceTarget()
+            }
             return
         }
 
@@ -229,6 +273,21 @@ fun DivisionStepGame(
     fun onBringDown(target: DivisionTarget) {
         val activeTarget = currentTarget ?: return
         if (activeTarget != target || activeTarget.type != DivisionTargetType.BRING_DOWN) return
+        val stepId = "div-bring-${target.stepIndex}"
+        val validation = validateUserInput(
+            stepId = stepId,
+            value = "0",
+            expectedRange = 0..1,
+            gameState = gameState,
+            guard = inputGuard
+        )
+        if (!validation.isValid) {
+            if (validation.failure == ValidationFailure.TOO_FAST ||
+                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+            ) {
+                return
+            }
+        }
         bringDownDone[target.stepIndex].value = true
         message = null
         playCorrect()

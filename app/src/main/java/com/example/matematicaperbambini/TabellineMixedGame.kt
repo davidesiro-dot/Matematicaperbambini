@@ -59,6 +59,8 @@ fun TabellineMixedGame(
     var attempts by remember { mutableStateOf(0) }
     val wrongAnswers = remember { mutableStateListOf<String>() }
     var completed by remember { mutableStateOf(false) }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     fun randomNumber() = rng.nextInt(1, 11)
 
@@ -71,6 +73,8 @@ fun TabellineMixedGame(
         attempts = 0
         wrongAnswers.clear()
         completed = false
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     LaunchedEffect(exercise?.a, exercise?.b, exerciseKey) {
@@ -141,6 +145,23 @@ fun TabellineMixedGame(
                     Button(
                         onClick = {
                             if (completed) return@Button
+                            val stepId = "mixed-${a}-${b}"
+                            val validation = validateUserInput(
+                                stepId = stepId,
+                                value = input,
+                                expectedRange = 0..100,
+                                gameState = gameState,
+                                guard = inputGuard
+                            )
+                            if (!validation.isValid) {
+                                if (validation.failure == ValidationFailure.TOO_FAST ||
+                                    validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                                ) {
+                                    return@Button
+                                }
+                                msg = "Inserisci un numero valido."
+                                return@Button
+                            }
                             attempts += 1
                             val user = input.toIntOrNull()
                             if (user == correct) {
@@ -148,6 +169,7 @@ fun TabellineMixedGame(
                                 if (isHomeworkMode) {
                                     completed = true
                                     msg = "✅ Corretto!"
+                                    gameState = GameState.GAME_COMPLETED
                                     onExerciseFinished?.invoke(
                                         ExerciseResultPartial(
                                             correct = true,
@@ -161,12 +183,31 @@ fun TabellineMixedGame(
                                     correctCount += 1
                                     msg = if (hitBonus) "🎉 Bonus sbloccato!" else "✅ Corretto! Tappa per continuare"
                                     waitTap = !hitBonus
+                                    gameState = GameState.STEP_COMPLETED
                                 }
                             } else {
+                                val locked = inputGuard.registerAttempt(stepId)
                                 if (soundEnabled) fx.wrong()
                                 msg = "❌ Riprova"
                                 if (input.isNotBlank()) {
                                     wrongAnswers += input
+                                }
+                                gameState = GameState.AWAITING_INPUT
+                                if (locked) {
+                                    msg = "Passiamo alla prossima domanda."
+                                    waitTap = !isHomeworkMode
+                                    gameState = GameState.STEP_COMPLETED
+                                    if (isHomeworkMode) {
+                                        completed = true
+                                        onExerciseFinished?.invoke(
+                                            ExerciseResultPartial(
+                                                correct = true,
+                                                attempts = attempts,
+                                                wrongAnswers = wrongAnswers.toList(),
+                                                solutionUsed = false
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         },

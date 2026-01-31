@@ -60,6 +60,8 @@ fun MoneyCountGame(
     var wrongAttempts by remember { mutableStateOf(0) }
     var revealSolution by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     fun generateRound(clearMessage: Boolean) {
         val round = MoneyRoundGenerator.generateRound(
@@ -73,6 +75,8 @@ fun MoneyCountGame(
         wrongAttempts = 0
         revealSolution = false
         showSuccessDialog = false
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
         if (clearMessage) {
             message = null
         }
@@ -196,11 +200,29 @@ fun MoneyCountGame(
                                 Button(
                                     onClick = {
                                         val parsed = parseInputToCents(input)
-                                        if (parsed == null) {
-                                            message = "Scrivi un importo valido (esempio ${formatEuro(350)})"
+                                        val stepId = "money-count-$expectedTotalCents"
+                                        val validation = if (parsed == null) {
+                                            ValidationResult.invalid(ValidationFailure.NON_NUMERIC)
+                                        } else {
+                                            validateUserInput(
+                                                stepId = stepId,
+                                                value = parsed.toString(),
+                                                expectedRange = 0..10000,
+                                                gameState = gameState,
+                                                guard = inputGuard
+                                            )
+                                        }
+                                        if (!validation.isValid) {
+                                            if (validation.failure == ValidationFailure.TOO_FAST ||
+                                                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                                            ) {
+                                                return@Button
+                                            }
                                             if (soundEnabled) fx.wrong()
+                                            message = "Scrivi un importo valido (esempio ${formatEuro(350)})"
                                             return@Button
                                         }
+                                        if (parsed == null) return@Button
 
                                         if (parsed == expectedTotalCents) {
                                             correctCount += 1
@@ -209,10 +231,18 @@ fun MoneyCountGame(
                                             if (!showSuccessDialog) {
                                                 showSuccessDialog = true
                                             }
+                                            gameState = GameState.STEP_COMPLETED
                                         } else {
                                             wrongAttempts += 1
+                                            val locked = inputGuard.registerAttempt(stepId)
                                             message = "Riprova. Hai scritto ${formatEuro(parsed)}"
                                             if (soundEnabled) fx.wrong()
+                                            gameState = GameState.AWAITING_INPUT
+                                            if (locked) {
+                                                message = "Vediamo insieme il totale corretto."
+                                                revealSolution = true
+                                                gameState = GameState.STEP_COMPLETED
+                                            }
                                         }
                                     },
                                     modifier = Modifier.weight(1f).height(actionHeight)
