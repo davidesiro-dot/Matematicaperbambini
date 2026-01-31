@@ -50,6 +50,8 @@ private data class ExpectedSub(
 private enum class SubStepType { RESULT_DIGIT }
 private data class SubStep(val type: SubStepType, val colIndexFromLeft: Int)
 
+private enum class BorrowUIState { HIDDEN, AVAILABLE }
+
 private fun digitsToInt(ds: IntArray): Int {
     var n = 0
     for (d in ds) n = n * 10 + d
@@ -189,16 +191,28 @@ private fun colNameFromRight(posFromRight: Int): String = when (posFromRight) {
     else -> "colonna ${posFromRight + 1}"
 }
 
-private fun instructionSub(step: SubStep, digits: Int, expected: ExpectedSub): String {
+private fun instructionSub(
+    step: SubStep,
+    digits: Int,
+    expected: ExpectedSub,
+    borrowUiStates: List<BorrowUIState>
+): String {
     val col = step.colIndexFromLeft
     val posFromRight = (digits - 1) - col
     val colName = colNameFromRight(posFromRight)
     return when (step.type) {
         SubStepType.RESULT_DIGIT -> {
-            val top = expected.topDigitsAfterBorrow[col]
+            val topOriginal = expected.topDigitsOriginal[col]
+            val topAfterBorrow = expected.topDigitsAfterBorrow[col]
             val bottom = expected.bottomDigits[col]
-            val result = (top - bottom) % 10
-            "Calcola $top − $bottom nelle $colName e scrivi $result."
+            val borrowVisible = borrowUiStates.getOrNull(col) == BorrowUIState.AVAILABLE
+            val top = if (borrowVisible) topAfterBorrow else topOriginal
+            if (!borrowVisible && topOriginal < bottom) {
+                "Nelle $colName: prova a sottrarre $top − $bottom."
+            } else {
+                val result = (topAfterBorrow - bottom) % 10
+                "Calcola $top − $bottom nelle $colName e scrivi $result."
+            }
         }
     }
 }
@@ -206,16 +220,25 @@ private fun instructionSub(step: SubStep, digits: Int, expected: ExpectedSub): S
 /* ---------------- UI helpers (solo per questo file, nomi “Sub*” per non conflitti) ---------------- */
 
 @Composable
-private fun SubStaticBox(text: String, size: Dp, active: Boolean) {
+private fun SubStaticBox(
+    text: String,
+    size: Dp,
+    active: Boolean,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    borderColorOverride: Color? = null,
+    borderWidthOverride: Dp? = null
+) {
     val highlightColor = Color(0xFF22C55E)
-    val borderColor = if (active) highlightColor else MaterialTheme.colorScheme.outlineVariant
-    val borderWidth = if (active) 3.dp else 1.dp
+    val borderColor = borderColorOverride
+        ?: if (active) highlightColor else MaterialTheme.colorScheme.outlineVariant
+    val borderWidth = borderWidthOverride ?: if (active) 3.dp else 1.dp
 
     Box(
         modifier = Modifier
             .size(size)
             .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(backgroundColor)
             .border(borderWidth, borderColor, RoundedCornerShape(14.dp)),
         contentAlignment = Alignment.Center
     ) {
@@ -223,7 +246,8 @@ private fun SubStaticBox(text: String, size: Dp, active: Boolean) {
             text,
             fontSize = 24.sp,
             fontWeight = FontWeight.ExtraBold,
-            fontFamily = FontFamily.Monospace
+            fontFamily = FontFamily.Monospace,
+            color = textColor
         )
     }
 }
@@ -362,6 +386,10 @@ fun LongSubtractionGame(
         mutableStateListOf<Boolean?>().apply { repeat(activeDigits) { add(null) } }
     }
 
+    val borrowUiStates = remember(problem, activeDigits) {
+        mutableStateListOf<BorrowUIState>().apply { repeat(activeDigits) { add(BorrowUIState.HIDDEN) } }
+    }
+
     fun resetSame() {
         stepIndex = 0
         message = null
@@ -374,6 +402,7 @@ fun LongSubtractionGame(
         solutionUsed = false
         for (i in resInputs.indices) resInputs[i] = ""
         for (i in resOk.indices) resOk[i] = null
+        for (i in borrowUiStates.indices) borrowUiStates[i] = BorrowUIState.HIDDEN
         gameState = if (problem == null) GameState.INIT else GameState.AWAITING_INPUT
         inputGuard.reset()
     }
@@ -462,8 +491,19 @@ fun LongSubtractionGame(
                             actual = resInputs[col]
                         )
                     }
+                    val borrowNeeded = expectedValues.topDigitsOriginal[col] < bDigit
+                    if (borrowNeeded && borrowUiStates[col] == BorrowUIState.HIDDEN) {
+                        val revealColumns = expectedValues.borrowSteps[col].toMutableSet().apply { add(col) }
+                        revealColumns.forEach { idx ->
+                            if (idx in borrowUiStates.indices) {
+                                borrowUiStates[idx] = BorrowUIState.AVAILABLE
+                            }
+                        }
+                        message = "❌ Qui serve un prestito."
+                    } else {
+                        message = "❌ Riprova"
+                    }
                     resInputs[col] = "" // cancella
-                    message = "❌ Riprova"
                     val locked = inputGuard.registerAttempt(stepId)
                     gameState = GameState.AWAITING_INPUT
                     if (locked) {
@@ -493,7 +533,7 @@ fun LongSubtractionGame(
     val hint = when {
         expected == null -> "Inserisci i numeri e premi Avvia."
         helps?.hintsEnabled == false && !done -> "Completa l'operazione."
-        !done -> instructionSub(currentStep!!, activeDigits, expected)
+        !done -> instructionSub(currentStep!!, activeDigits, expected, borrowUiStates)
         solutionRevealed -> "Soluzione: ${expected.resultDigits.joinToString("")}"
         else -> "Bravo! 🙂"
     }
@@ -604,18 +644,26 @@ fun LongSubtractionGame(
                     } else {
                         @Composable fun BlankBox() { Box(Modifier.size(boxSize)) }
 
-                        // Riga “nuovi numeri sopra” (solo per spiegazioni visive)
-                        val borrowColumns = expected.borrowSteps.flatten().toSet()
+                        // Riga “nuovi numeri sopra” (solo dopo errore prestito)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             BlankBox()
                             Spacer(Modifier.width(gap))
                             for (col in 0 until activeDigits) {
-                                val show = borrowColumns.contains(col)
+                                val show = borrowUiStates[col] == BorrowUIState.AVAILABLE
                                 if (show) {
+                                    val active = currentStep?.colIndexFromLeft == col
                                     SubStaticBox(
                                         text = expected.topDigitsAfterBorrow[col].toString(),
                                         size = boxSize,
-                                        active = currentStep?.colIndexFromLeft == col
+                                        active = active,
+                                        textColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        borderColorOverride = if (active) {
+                                            Color(0xFF22C55E)
+                                        } else {
+                                            MaterialTheme.colorScheme.tertiary
+                                        },
+                                        borderWidthOverride = if (active) 3.dp else 2.dp
                                     )
                                 } else {
                                     Box(Modifier.size(boxSize))
@@ -635,11 +683,21 @@ fun LongSubtractionGame(
                                         val active =
                                             (currentStep?.colIndexFromLeft == col) &&
                                                 (currentStep?.type == SubStepType.RESULT_DIGIT)
+                                        val borrowVisible = borrowUiStates[col] == BorrowUIState.AVAILABLE
+                                        val dimmedText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                                        val dimmedBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
 
                                         SubStaticBox(
                                             text = expected.topDigitsOriginal[col].toString(),
                                             size = boxSize,
-                                            active = active
+                                            active = active,
+                                            textColor = if (borrowVisible) dimmedText else MaterialTheme.colorScheme.onSurface,
+                                            backgroundColor = if (borrowVisible) dimmedBackground else MaterialTheme.colorScheme.surfaceVariant,
+                                            borderColorOverride = if (borrowVisible) {
+                                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                                            } else {
+                                                null
+                                            }
                                         )
                                         Spacer(Modifier.width(gap))
                                     }
