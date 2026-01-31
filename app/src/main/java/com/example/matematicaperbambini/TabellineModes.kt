@@ -53,11 +53,15 @@ fun TabellineMixedGame(
     var msg by remember { mutableStateOf<String?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
+    var gameState by remember { mutableStateOf(GameState.AWAITING_INPUT) }
+    val inputGuard = remember { StepInputGuard() }
 
     fun newQuestion() {
         a = rng.nextInt(1, 11)
         b = rng.nextInt(1, 11)
         input = ""
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -106,15 +110,40 @@ fun TabellineMixedGame(
                 Spacer(Modifier.height(ui.spacing))
                 Button(
                     onClick = {
+                        val stepId = "mixed-basic-${a}-${b}"
+                        val validation = validateUserInput(
+                            stepId = stepId,
+                            value = input,
+                            expectedRange = 0..100,
+                            gameState = gameState,
+                            guard = inputGuard
+                        )
+                        if (!validation.isValid) {
+                            if (validation.failure == ValidationFailure.TOO_FAST ||
+                                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                            ) {
+                                return@Button
+                            }
+                            msg = "Inserisci un numero valido."
+                            return@Button
+                        }
                         val user = input.toIntOrNull()
+                        gameState = GameState.VALIDATING
                         if (user == a * b) {
                             msg = "✅ Corretto!"
                             correctCount += 1
                             if (soundEnabled) fx.correct()
                             newQuestion()
+                            gameState = GameState.AWAITING_INPUT
                         } else {
+                            val locked = inputGuard.registerAttempt(stepId)
                             msg = "❌ Riprova"
                             if (soundEnabled) fx.wrong()
+                            gameState = GameState.AWAITING_INPUT
+                            if (locked) {
+                                msg = "Passiamo alla prossima."
+                                newQuestion()
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(actionHeight),
@@ -164,6 +193,8 @@ fun TabellineGapsGame(
     var attempts by remember { mutableStateOf(0) }
     val wrongAnswers = remember { mutableStateListOf<String>() }
     var completed by remember { mutableStateOf(false) }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     fun resetRound() {
         blanks = (1..10).shuffled(rng).take(4).toSet()
@@ -174,6 +205,8 @@ fun TabellineGapsGame(
         attempts = 0
         wrongAnswers.clear()
         completed = false
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     LaunchedEffect(resolvedTable, exerciseKey) { resetRound() }
@@ -236,6 +269,23 @@ fun TabellineGapsGame(
                                             inputs[index] = it.filter { c -> c.isDigit() }.take(3)
                                             ok[index] = null
                                             if (inputs[index].length < expectedLength) return@OutlinedTextField
+                                            val stepId = "gaps-$resolvedTable-$i"
+                                            val validation = validateUserInput(
+                                                stepId = stepId,
+                                                value = inputs[index],
+                                                expectedRange = 0..(resolvedTable * 10),
+                                                gameState = gameState,
+                                                guard = inputGuard
+                                            )
+                                            if (!validation.isValid) {
+                                                if (validation.failure == ValidationFailure.TOO_FAST ||
+                                                    validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                                                ) {
+                                                    return@OutlinedTextField
+                                                }
+                                                msg = "Inserisci un numero valido."
+                                                return@OutlinedTextField
+                                            }
                                             val v = inputs[index].toIntOrNull()
                                             attempts += 1
                                             if (v == expected) {
@@ -244,6 +294,7 @@ fun TabellineGapsGame(
                                                 }
                                                 ok[index] = true
                                                 if (soundEnabled) fx.correct()
+                                                gameState = GameState.AWAITING_INPUT
                                                 val allDone = blanks.all { blankIndex ->
                                                     ok[blankIndex - 1] == true
                                                 }
@@ -251,16 +302,36 @@ fun TabellineGapsGame(
                                                     msg = "✅ Tabellina completata!"
                                                     if (isHomeworkMode) {
                                                         completed = true
+                                                        gameState = GameState.GAME_COMPLETED
                                                     } else {
                                                         resetRound()
                                                     }
                                                 }
                                             } else {
+                                                val locked = inputGuard.registerAttempt(stepId)
                                                 ok[index] = false
                                                 inputs[index] = ""
                                                 if (soundEnabled) fx.wrong()
                                                 if (it.isNotBlank()) {
                                                     wrongAnswers += it
+                                                }
+                                                gameState = GameState.AWAITING_INPUT
+                                                if (locked) {
+                                                    inputs[index] = expected.toString()
+                                                    ok[index] = true
+                                                    msg = "Completiamo insieme."
+                                                    val allDone = blanks.all { blankIndex ->
+                                                        ok[blankIndex - 1] == true
+                                                    }
+                                                    if (allDone) {
+                                                        msg = "✅ Tabellina completata!"
+                                                        if (isHomeworkMode) {
+                                                            completed = true
+                                                            gameState = GameState.GAME_COMPLETED
+                                                        } else {
+                                                            resetRound()
+                                                        }
+                                                    }
                                                 }
                                             }
                                         },
@@ -398,6 +469,8 @@ fun TabellinaReverseGame(
     var attempts by remember { mutableStateOf(0) }
     val wrongAnswers = remember { mutableStateListOf<String>() }
     var completed by remember { mutableStateOf(false) }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     fun newQuestion() {
         question = ReverseQuestion(
@@ -406,6 +479,8 @@ fun TabellinaReverseGame(
         )
         input = ""
         msg = null
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     LaunchedEffect(exercise?.a, exercise?.b, exercise?.table, exerciseKey) {
@@ -419,6 +494,8 @@ fun TabellinaReverseGame(
             attempts = 0
             wrongAnswers.clear()
             completed = false
+            gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
         }
     }
 
@@ -478,6 +555,23 @@ fun TabellinaReverseGame(
                 Button(
                     onClick = {
                         if (completed) return@Button
+                        val stepId = "reverse-${question.a}-${question.b}"
+                        val validation = validateUserInput(
+                            stepId = stepId,
+                            value = input,
+                            expectedRange = 1..10,
+                            gameState = gameState,
+                            guard = inputGuard
+                        )
+                        if (!validation.isValid) {
+                            if (validation.failure == ValidationFailure.TOO_FAST ||
+                                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                            ) {
+                                return@Button
+                            }
+                            msg = "Inserisci un numero valido."
+                            return@Button
+                        }
                         attempts += 1
                         val user = input.toIntOrNull()
                         if (user == question.a) {
@@ -485,6 +579,7 @@ fun TabellinaReverseGame(
                             if (soundEnabled) fx.correct()
                             if (isHomeworkMode) {
                                 completed = true
+                                gameState = GameState.GAME_COMPLETED
                                 onExerciseFinished?.invoke(
                                     ExerciseResultPartial(
                                         correct = true,
@@ -498,10 +593,29 @@ fun TabellinaReverseGame(
                                 newQuestion()
                             }
                         } else {
+                            val locked = inputGuard.registerAttempt(stepId)
                             msg = "❌ Riprova"
                             if (soundEnabled) fx.wrong()
                             if (input.isNotBlank()) {
                                 wrongAnswers += input
+                            }
+                            gameState = GameState.AWAITING_INPUT
+                            if (locked) {
+                                msg = "Passiamo alla prossima domanda."
+                                if (isHomeworkMode) {
+                                    completed = true
+                                    gameState = GameState.GAME_COMPLETED
+                                    onExerciseFinished?.invoke(
+                                        ExerciseResultPartial(
+                                            correct = true,
+                                            attempts = attempts,
+                                            wrongAnswers = wrongAnswers.toList(),
+                                            solutionUsed = false
+                                        )
+                                    )
+                                } else {
+                                    newQuestion()
+                                }
                             }
                         }
                     },
@@ -552,6 +666,8 @@ fun TabellineMultipleChoiceGame(
     var attempts by remember { mutableStateOf(0) }
     val wrongAnswers = remember { mutableStateListOf<String>() }
     var completed by remember { mutableStateOf(false) }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     fun newQuestion() {
         a = rng.nextInt(1, 11)
@@ -563,6 +679,8 @@ fun TabellineMultipleChoiceGame(
         }
         options = optionSet.shuffled(rng)
         msg = null
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     LaunchedEffect(isHomeworkMode) {
@@ -585,6 +703,8 @@ fun TabellineMultipleChoiceGame(
             attempts = 0
             wrongAnswers.clear()
             completed = false
+            gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
         }
     }
 
@@ -628,12 +748,30 @@ fun TabellineMultipleChoiceGame(
                                 Button(
                                     onClick = {
                                         if (completed) return@Button
+                                        val stepId = "choice-${a}-${b}"
+                                        val validation = validateUserInput(
+                                            stepId = stepId,
+                                            value = option.toString(),
+                                            expectedRange = 0..100,
+                                            gameState = gameState,
+                                            guard = inputGuard
+                                        )
+                                        if (!validation.isValid) {
+                                            if (validation.failure == ValidationFailure.TOO_FAST ||
+                                                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                                            ) {
+                                                return@Button
+                                            }
+                                            msg = "Seleziona una risposta valida."
+                                            return@Button
+                                        }
                                         attempts += 1
                                         if (option == correctResult) {
                                             msg = "✅ Corretto!"
                                             if (soundEnabled) fx.correct()
                                             if (isHomeworkMode) {
                                                 completed = true
+                                                gameState = GameState.GAME_COMPLETED
                                                 onExerciseFinished?.invoke(
                                                     ExerciseResultPartial(
                                                         correct = true,
@@ -647,9 +785,28 @@ fun TabellineMultipleChoiceGame(
                                                 newQuestion()
                                             }
                                         } else {
+                                            val locked = inputGuard.registerAttempt(stepId)
                                             msg = "❌ Riprova"
                                             if (soundEnabled) fx.wrong()
                                             wrongAnswers += option.toString()
+                                            gameState = GameState.AWAITING_INPUT
+                                            if (locked) {
+                                                msg = "Passiamo alla prossima."
+                                                if (isHomeworkMode) {
+                                                    completed = true
+                                                    gameState = GameState.GAME_COMPLETED
+                                                    onExerciseFinished?.invoke(
+                                                        ExerciseResultPartial(
+                                                            correct = true,
+                                                            attempts = attempts,
+                                                            wrongAnswers = wrongAnswers.toList(),
+                                                            solutionUsed = false
+                                                        )
+                                                    )
+                                                } else {
+                                                    newQuestion()
+                                                }
+                                            }
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth().height(actionHeight),
