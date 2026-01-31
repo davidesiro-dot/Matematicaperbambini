@@ -116,11 +116,7 @@ private fun generateRandomInstance(config: HomeworkTaskConfig): ExerciseInstance
         }
         GameType.MULTIPLICATION_HARD -> {
             val multiplicandDigits = (config.difficulty.maxA ?: 2).coerceIn(2, 3)
-            val multiplierDigits = if (multiplicandDigits == 3) {
-                1
-            } else {
-                (config.difficulty.maxB ?: 1).coerceIn(1, 2)
-            }
+            val multiplierDigits = (config.difficulty.maxB ?: 1).coerceIn(1, 2)
             val rangeA = digitsRange(multiplicandDigits)
             val rangeB = digitsRange(multiplierDigits)
             ExerciseInstance(
