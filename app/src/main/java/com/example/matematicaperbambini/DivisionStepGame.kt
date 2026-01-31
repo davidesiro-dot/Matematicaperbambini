@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.pow
 import kotlin.random.Random
+import androidx.compose.foundation.layout.Spacer
 
 private enum class DivMode { ONE_DIGIT, TWO_DIGIT }
 

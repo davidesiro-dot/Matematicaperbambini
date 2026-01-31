@@ -158,8 +158,8 @@ fun HomeworkBuilderScreen(
 
         if (lastResults.isNotEmpty()) {
             item {
-                val correctCount = lastResults.count { it.correct && !exerciseHasErrors(it) }
-                val withErrorsCount = lastResults.count { it.correct && exerciseHasErrors(it) }
+                val correctCount = lastResults.count { it.correct && !it.hasErrors() }
+                val withErrorsCount = lastResults.count { it.correct && it.hasErrors() }
                 SeaGlassPanel(title = "Ultimo report") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
@@ -1226,8 +1226,8 @@ private fun HomeworkReportScreen(
     results: List<ExerciseResult>,
     onSaveReport: (HomeworkReport) -> Unit
 ) {
-    val correctCount = results.count { it.correct && !exerciseHasErrors(it) }
-    val withErrorsCount = results.count { it.correct && exerciseHasErrors(it) }
+    val correctCount = results.count { it.correct && !it.hasErrors() }
+    val withErrorsCount = results.count { it.correct && it.hasErrors() }
     val total = results.size
     var childName by remember { mutableStateOf("") }
     var showNameDialog by remember { mutableStateOf(true) }
@@ -1295,7 +1295,7 @@ private fun HomeworkReportScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     itemsIndexed(results) { idx, result ->
-                        val hadErrors = exerciseHasErrors(result)
+                        val hadErrors = result.hasErrors()
                         val expected = expectedAnswer(result.instance)
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
@@ -1356,7 +1356,7 @@ fun HomeworkReportsScreen(
         )
 
         if (reports.isNotEmpty()) {
-            val stats = buildReportStatistics(reports)
+            val stats = remember(reports) { buildReportStatistics(reports) }
             SeaGlassPanel(title = "Statistiche") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("📅 Giornaliero", fontWeight = FontWeight.Bold)
@@ -1395,13 +1395,13 @@ fun HomeworkReportsScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
                             Text("Data: ${formatTimestamp(report.createdAt)}")
-                            val correctCount = report.results.count { it.correct && !exerciseHasErrors(it) }
-                            val withErrorsCount = report.results.count { it.correct && exerciseHasErrors(it) }
+                            val correctCount = report.results.count { it.correct && !it.hasErrors() }
+                            val withErrorsCount = report.results.count { it.correct && it.hasErrors() }
                             val wrongCount = report.results.size - correctCount - withErrorsCount
                             Text("Risultati: $correctCount corretti, $withErrorsCount con errori, $wrongCount sbagliati")
                             Divider(Modifier.padding(vertical = 4.dp))
                             report.results.forEachIndexed { rIdx, result ->
-                                val hadErrors = exerciseHasErrors(result)
+                                val hadErrors = result.hasErrors()
                                 val expected = expectedAnswer(result.instance)
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text("Esercizio ${rIdx + 1}: ${exerciseLabel(result.instance)}")
@@ -1456,10 +1456,6 @@ private fun exerciseLabel(instance: ExerciseInstance): String {
         GameType.DIVISION_STEP -> "$a ÷ $b"
         else -> "$a × $b"
     }
-}
-
-private fun exerciseHasErrors(result: ExerciseResult): Boolean {
-    return result.wrongAnswers.isNotEmpty() || result.stepErrors.isNotEmpty()
 }
 
 private fun expectedAnswer(instance: ExerciseInstance): String? {
@@ -1530,7 +1526,7 @@ private fun computeReportStats(results: List<ExerciseResult>): ReportStats {
     var withErrors = 0
     var wrong = 0
     results.forEach { result ->
-        val hadErrors = exerciseHasErrors(result)
+        val hadErrors = result.hasErrors()
         when {
             !result.correct -> wrong++
             hadErrors -> withErrors++
@@ -1548,20 +1544,11 @@ private fun computeReportStats(results: List<ExerciseResult>): ReportStats {
 private fun collectErrorCategories(results: List<ExerciseResult>): Map<String, Int> {
     val counts = mutableMapOf<String, Int>()
     results.forEach { result ->
-        if (result.wrongAnswers.isEmpty() && result.stepErrors.isEmpty()) return@forEach
+        if (!result.hasErrors()) return@forEach
         val categories = mutableSetOf<String>()
         if (result.stepErrors.isNotEmpty()) {
             result.stepErrors.forEach { step ->
-                val label = step.stepLabel.lowercase(Locale.getDefault())
-                val category = when {
-                    label.contains("riporto") -> "Riporti nelle addizioni"
-                    label.contains("prestito") -> "Prestiti nelle sottrazioni"
-                    label.contains("quoziente") -> "Cifre del quoziente nelle divisioni"
-                    label.contains("prodotto") -> "Prodotti nelle divisioni"
-                    label.contains("resto") -> "Resti nelle divisioni"
-                    else -> genericCategory(result.instance.game)
-                }
-                categories += category
+                categories += classifyStepError(step.stepLabel, result.instance.game)
             }
         } else {
             categories += genericCategory(result.instance.game)
@@ -1580,6 +1567,18 @@ private fun genericCategory(game: GameType): String {
         GameType.DIVISION_STEP -> "Errori nelle divisioni"
         GameType.MONEY_COUNT -> "Errori nel conto dei soldi"
         else -> "Errori nelle moltiplicazioni/tabelline"
+    }
+}
+
+private fun classifyStepError(stepLabel: String, game: GameType): String {
+    val label = stepLabel.lowercase(Locale.getDefault())
+    return when {
+        label.contains("riporto") -> "Riporti nelle addizioni"
+        label.contains("prestito") -> "Prestiti nelle sottrazioni"
+        label.contains("quoziente") -> "Cifre del quoziente nelle divisioni"
+        label.contains("prodotto") -> "Prodotti nelle divisioni"
+        label.contains("resto") -> "Resti nelle divisioni"
+        else -> genericCategory(game)
     }
 }
 
