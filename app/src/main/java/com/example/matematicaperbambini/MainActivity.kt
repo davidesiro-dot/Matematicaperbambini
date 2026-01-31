@@ -916,8 +916,8 @@ private fun HomeMenuKids(
                         painter = logoPainter,
                         contentDescription = "Math Kids",
                         modifier = Modifier
-                            .padding(top = 10.dp)
-                            .fillMaxWidth(0.85f),
+                            .padding(top = 18.dp)
+                            .fillMaxWidth(1.02f),
                         contentScale = ContentScale.Fit
                     )
                 } else {
@@ -926,7 +926,7 @@ private fun HomeMenuKids(
                         contentDescription = "Logo mancante",
                         tint = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier
-                            .padding(top = 10.dp)
+                            .padding(top = 18.dp)
                             .size(48.dp)
                     )
                 }
