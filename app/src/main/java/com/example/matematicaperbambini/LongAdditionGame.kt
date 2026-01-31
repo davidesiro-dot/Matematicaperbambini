@@ -188,6 +188,8 @@ fun LongAdditionGame(
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
     val stepErrors = remember(exercise?.a, exercise?.b) { mutableStateListOf<StepError>() }
     var solutionUsed by remember(exercise?.a, exercise?.b) { mutableStateOf(false) }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     // input
     val planDigits = plan?.digits ?: digits
@@ -213,6 +215,8 @@ fun LongAdditionGame(
         stepErrors.clear()
         solutionUsed = false
         clearInputs()
+        gameState = if (plan == null) GameState.INIT else GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     fun resetManualInputs() {
@@ -315,6 +319,22 @@ fun LongAdditionGame(
             setCell(row, col, '\u0000', false)
             return
         }
+        val stepId = "add-${step}-${row.name}-${col}"
+        val validation = validateUserInput(
+            stepId = stepId,
+            value = digit.toString(),
+            expectedRange = 0..9,
+            gameState = gameState,
+            guard = inputGuard
+        )
+        if (!validation.isValid) {
+            if (validation.failure == ValidationFailure.TOO_FAST ||
+                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+            ) {
+                return
+            }
+            return
+        }
         attempts += 1
         val ok = digit == t.expected
         setCell(row, col, digit, !ok)
@@ -336,10 +356,19 @@ fun LongAdditionGame(
                 expected = t.expected.toString(),
                 actual = digit.toString()
             )
+            val locked = inputGuard.registerAttempt(stepId)
+            if (locked) {
+                setCell(row, col, t.expected, false)
+                val activePlan = plan ?: return
+                step = (step + 1).coerceAtMost(activePlan.targets.size)
+                gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
+                return
+            }
         }
         if (ok) {
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
+            gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
         }
     }
 

@@ -358,6 +358,8 @@ fun LongSubtractionGame(
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
     val stepErrors = remember(exercise?.a, exercise?.b) { mutableStateListOf<StepError>() }
     var solutionUsed by remember(exercise?.a, exercise?.b) { mutableStateOf(false) }
+    var gameState by remember { mutableStateOf(GameState.INIT) }
+    val inputGuard = remember { StepInputGuard() }
 
     var message by remember { mutableStateOf<String?>(null) }
     var waitTapToContinue by remember { mutableStateOf(false) }
@@ -392,6 +394,8 @@ fun LongSubtractionGame(
         for (i in resInputs.indices) resInputs[i] = ""
         for (i in topOk.indices) topOk[i] = null
         for (i in resOk.indices) resOk[i] = null
+        gameState = if (problem == null) GameState.INIT else GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     fun resetForNew() {
@@ -447,6 +451,23 @@ fun LongSubtractionGame(
                 val col = s.colIndexFromLeft
                 val exp = expectedValues.topDigitsAfterBorrow[col]
                 val user = topNewInputs[col].toIntOrNull() ?: return
+                val stepId = "sub-borrow-$col"
+                val validation = validateUserInput(
+                    stepId = stepId,
+                    value = topNewInputs[col],
+                    expectedRange = 0..9,
+                    gameState = gameState,
+                    guard = inputGuard
+                )
+                if (!validation.isValid) {
+                    if (validation.failure == ValidationFailure.TOO_FAST ||
+                        validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                    ) {
+                        return
+                    }
+                    return
+                }
+                gameState = GameState.VALIDATING
                 val ok = user == exp
                 topOk[col] = ok
                 if (!ok) {
@@ -464,16 +485,42 @@ fun LongSubtractionGame(
                     }
                     topNewInputs[col] = "" // cancella
                     message = "❌ Riprova"
+                    val locked = inputGuard.registerAttempt(stepId)
+                    gameState = GameState.AWAITING_INPUT
+                    if (locked) {
+                        topNewInputs[col] = exp.toString()
+                        topOk[col] = true
+                        message = "Continuiamo con il prossimo passo."
+                        stepIndex++
+                    }
                     return
                 }
                 playCorrect()
                 stepIndex++
+                gameState = GameState.AWAITING_INPUT
             }
 
             SubStepType.RESULT_DIGIT -> {
                 val col = s.colIndexFromLeft
                 val exp = expectedValues.resultDigits[col]
                 val user = resInputs[col].toIntOrNull() ?: return
+                val stepId = "sub-result-$col"
+                val validation = validateUserInput(
+                    stepId = stepId,
+                    value = resInputs[col],
+                    expectedRange = 0..9,
+                    gameState = gameState,
+                    guard = inputGuard
+                )
+                if (!validation.isValid) {
+                    if (validation.failure == ValidationFailure.TOO_FAST ||
+                        validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                    ) {
+                        return
+                    }
+                    return
+                }
+                gameState = GameState.VALIDATING
                 val ok = user == exp
                 resOk[col] = ok
                 if (!ok) {
@@ -491,15 +538,25 @@ fun LongSubtractionGame(
                     }
                     resInputs[col] = "" // cancella
                     message = "❌ Riprova"
+                    val locked = inputGuard.registerAttempt(stepId)
+                    gameState = GameState.AWAITING_INPUT
+                    if (locked) {
+                        resInputs[col] = exp.toString()
+                        resOk[col] = true
+                        message = "Continuiamo con il prossimo passo."
+                        stepIndex++
+                    }
                     return
                 }
                 playCorrect()
                 stepIndex++
+                gameState = GameState.AWAITING_INPUT
             }
         }
 
         if (stepIndex >= steps.size) {
             message = "✅ Corretto!"
+            gameState = GameState.GAME_COMPLETED
         }
     }
 
