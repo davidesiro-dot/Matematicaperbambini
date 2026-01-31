@@ -81,6 +81,10 @@ data class ExerciseResult(
     val endedAt: Long
 )
 
+fun ExerciseResult.hasErrors(): Boolean {
+    return wrongAnswers.isNotEmpty() || stepErrors.isNotEmpty()
+}
+
 @Serializable
 data class ExerciseResultPartial(
     val correct: Boolean,

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 import kotlin.math.pow
+import androidx.compose.foundation.layout.Spacer
 
 
 // --------------------------------------------------

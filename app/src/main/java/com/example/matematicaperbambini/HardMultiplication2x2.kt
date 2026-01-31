@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.random.Random
+import androidx.compose.foundation.layout.Spacer
 
 /* -------------------------------------------------------------------------
    MOLTIPLICAZIONE DIFFICILE 2x2 GUIDATA
