@@ -287,6 +287,13 @@ fun LongAdditionGame(
         }
     }
 
+    LaunchedEffect(plan) {
+        if (plan != null && gameState == GameState.INIT) {
+            gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
+        }
+    }
+
     fun enabled(row: AddRowKey, col: Int, kind: AddCellKind): Boolean {
         val t = current ?: return false
         return t.row == row && t.col == col && t.kind == kind
@@ -325,7 +332,11 @@ fun LongAdditionGame(
             value = digit.toString(),
             expectedRange = 0..9,
             gameState = gameState,
-            guard = inputGuard
+            guard = inputGuard,
+            onInit = {
+                gameState = GameState.AWAITING_INPUT
+                inputGuard.reset()
+            }
         )
         if (!validation.isValid) {
             if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -362,6 +373,7 @@ fun LongAdditionGame(
                 val activePlan = plan ?: return
                 step = (step + 1).coerceAtMost(activePlan.targets.size)
                 gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
+                inputGuard.reset()
                 return
             }
         }
@@ -369,6 +381,7 @@ fun LongAdditionGame(
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
             gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
+            inputGuard.reset()
         }
     }
 

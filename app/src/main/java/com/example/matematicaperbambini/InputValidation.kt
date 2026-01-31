@@ -73,9 +73,14 @@ fun validateUserInput(
     value: String,
     expectedRange: IntRange,
     gameState: GameState = GameState.AWAITING_INPUT,
-    guard: StepInputGuard? = null
+    guard: StepInputGuard? = null,
+    onInit: (() -> Unit)? = null
 ): ValidationResult {
-    if (gameState != GameState.AWAITING_INPUT) {
+    val isInit = gameState == GameState.INIT
+    if (isInit) {
+        onInit?.invoke()
+    }
+    if (gameState != GameState.AWAITING_INPUT && !isInit) {
         return ValidationResult.invalid(ValidationFailure.NOT_AWAITING_INPUT)
     }
     guard?.allowInput(stepId)?.let { return ValidationResult.invalid(it) }
