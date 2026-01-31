@@ -209,7 +209,11 @@ fun MoneyCountGame(
                                                 value = parsed.toString(),
                                                 expectedRange = 0..10000,
                                                 gameState = gameState,
-                                                guard = inputGuard
+                                                guard = inputGuard,
+                                                onInit = {
+                                                    gameState = GameState.AWAITING_INPUT
+                                                    inputGuard.reset()
+                                                }
                                             )
                                         }
                                         if (!validation.isValid) {

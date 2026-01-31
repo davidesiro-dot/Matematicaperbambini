@@ -64,6 +64,11 @@ fun TabellineMixedGame(
         inputGuard.reset()
     }
 
+    LaunchedEffect(Unit) {
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
+    }
+
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
         val questionSize = if (ui.isCompact) 30.sp else 36.sp
@@ -116,7 +121,11 @@ fun TabellineMixedGame(
                             value = input,
                             expectedRange = 0..100,
                             gameState = gameState,
-                            guard = inputGuard
+                            guard = inputGuard,
+                            onInit = {
+                                gameState = GameState.AWAITING_INPUT
+                                inputGuard.reset()
+                            }
                         )
                         if (!validation.isValid) {
                             if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -275,7 +284,11 @@ fun TabellineGapsGame(
                                                 value = inputs[index],
                                                 expectedRange = 0..(resolvedTable * 10),
                                                 gameState = gameState,
-                                                guard = inputGuard
+                                                guard = inputGuard,
+                                                onInit = {
+                                                    gameState = GameState.AWAITING_INPUT
+                                                    inputGuard.reset()
+                                                }
                                             )
                                             if (!validation.isValid) {
                                                 if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -483,6 +496,13 @@ fun TabellinaReverseGame(
         inputGuard.reset()
     }
 
+    LaunchedEffect(Unit) {
+        if (!isHomeworkMode) {
+            gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
+        }
+    }
+
     LaunchedEffect(exercise?.a, exercise?.b, exercise?.table, exerciseKey) {
         if (isHomeworkMode) {
             question = ReverseQuestion(
@@ -561,7 +581,11 @@ fun TabellinaReverseGame(
                             value = input,
                             expectedRange = 1..10,
                             gameState = gameState,
-                            guard = inputGuard
+                            guard = inputGuard,
+                            onInit = {
+                                gameState = GameState.AWAITING_INPUT
+                                inputGuard.reset()
+                            }
                         )
                         if (!validation.isValid) {
                             if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -754,7 +778,11 @@ fun TabellineMultipleChoiceGame(
                                             value = option.toString(),
                                             expectedRange = 0..100,
                                             gameState = gameState,
-                                            guard = inputGuard
+                                            guard = inputGuard,
+                                            onInit = {
+                                                gameState = GameState.AWAITING_INPUT
+                                                inputGuard.reset()
+                                            }
                                         )
                                         if (!validation.isValid) {
                                             if (validation.failure == ValidationFailure.TOO_FAST ||
