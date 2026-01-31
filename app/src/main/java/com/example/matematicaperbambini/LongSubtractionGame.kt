@@ -451,11 +451,12 @@ fun LongSubtractionGame(
                 val col = s.colIndexFromLeft
                 val exp = expectedValues.topDigitsAfterBorrow[col]
                 val user = topNewInputs[col].toIntOrNull() ?: return
+                val expectedRange = if (exp >= 10) 0..19 else 0..9
                 val stepId = "sub-borrow-$col"
                 val validation = validateUserInput(
                     stepId = stepId,
                     value = topNewInputs[col],
-                    expectedRange = 0..9,
+                    expectedRange = expectedRange,
                     gameState = gameState,
                     guard = inputGuard,
                     onInit = {
