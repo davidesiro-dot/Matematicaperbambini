@@ -159,14 +159,14 @@ fun HomeworkBuilderScreen(
 
         if (lastResults.isNotEmpty()) {
             item {
-                val correctCount = lastResults.count { it.correct && !it.hasErrors() }
-                val withErrorsCount = lastResults.count { it.correct && it.hasErrors() }
+                val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
+                val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
                 SeaGlassPanel(title = "Ultimo report") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
-                        Text("Corretti: $correctCount")
-                        Text("Completati con errori: $withErrorsCount")
-                        Text("Sbagliati: ${lastResults.size - correctCount - withErrorsCount}")
+                        Text("Corretto: $perfectCount")
+                        Text("Completato con passaggi da rinforzare: $withErrorsCount")
+                        Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
                     }
                 }
             }
@@ -1001,6 +1001,7 @@ fun HomeworkRunnerScreen(
     onOpenLeaderboard: () -> Unit,
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     queue: List<HomeworkExerciseEntry>,
+    previousReports: List<HomeworkReport>,
     onExit: (List<ExerciseResult>) -> Unit,
     onSaveReport: (HomeworkReport) -> Unit
 ) {
@@ -1018,6 +1019,7 @@ fun HomeworkRunnerScreen(
             onToggleSound = onToggleSound,
             onBack = { onExit(results.toList()) },
             results = results,
+            previousReports = previousReports,
             onSaveReport = onSaveReport
         )
         return
@@ -1225,10 +1227,11 @@ private fun HomeworkReportScreen(
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
     results: List<ExerciseResult>,
+    previousReports: List<HomeworkReport>,
     onSaveReport: (HomeworkReport) -> Unit
 ) {
-    val correctCount = results.count { it.correct && !it.hasErrors() }
-    val withErrorsCount = results.count { it.correct && it.hasErrors() }
+    val perfectCount = results.count { it.outcome() == ExerciseOutcome.PERFECT }
+    val withErrorsCount = results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
     val total = results.size
     var childName by remember { mutableStateOf("") }
     var showNameDialog by remember { mutableStateOf(true) }
@@ -1284,9 +1287,59 @@ private fun HomeworkReportScreen(
         SeaGlassPanel(title = "Riepilogo") {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
-                Text("Corretti: $correctCount")
-                Text("Completati con errori: $withErrorsCount")
-                Text("Sbagliati: ${total - correctCount - withErrorsCount}")
+                Text("Corretto: $perfectCount")
+                Text("Completato con passaggi da rinforzare: $withErrorsCount")
+                Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
+            }
+        }
+
+        val errorPatterns = remember(results) { analyzeErrorPatterns(results) }
+        val suggestions = remember(errorPatterns) { suggestionsForPatterns(errorPatterns) }
+        val now = remember { System.currentTimeMillis() }
+        val progressInsights = remember(results, previousReports, now) {
+            buildProgressInsights(results, previousReports, now)
+        }
+        val badges = remember(results, previousReports, now) {
+            buildEducationalBadges(results, previousReports, now)
+        }
+
+        if (errorPatterns.isNotEmpty()) {
+            SeaGlassPanel(title = "🔍 Difficoltà principali") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    errorPatterns.take(3).forEach { pattern ->
+                        Text("• ${pattern.category}")
+                    }
+                }
+            }
+        }
+
+        if (suggestions.isNotEmpty()) {
+            SeaGlassPanel(title = "💡 Suggerimenti") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    suggestions.take(2).forEach { suggestion ->
+                        Text("• $suggestion")
+                    }
+                }
+            }
+        }
+
+        if (progressInsights.isNotEmpty()) {
+            SeaGlassPanel(title = "📈 Progressi") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    progressInsights.forEach { insight ->
+                        Text(insight)
+                    }
+                }
+            }
+        }
+
+        if (badges.isNotEmpty()) {
+            SeaGlassPanel(title = "🏅 Riconoscimenti") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    badges.forEach { badge ->
+                        Text("• $badge")
+                    }
+                }
             }
         }
 
@@ -1296,33 +1349,29 @@ private fun HomeworkReportScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     itemsIndexed(results) { idx, result ->
-                        val hadErrors = result.hasErrors()
                         val expected = expectedAnswer(result.instance)
+                        val outcome = result.outcome()
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 "Esercizio ${idx + 1}: ${exerciseLabel(result.instance)}",
                                 fontWeight = FontWeight.Bold
                             )
-                            val statusText = when {
-                                !result.correct -> "❌ Sbagliato"
-                                hadErrors -> "⚠️ Completato con errori"
-                                else -> "✅ Corretto"
-                            }
+                            val statusText = outcomeLabel(outcome)
                             Text(statusText)
                             expected?.let { Text("Risposta corretta: $it") }
                             Text("Tentativi: ${result.attempts}")
                             val wrongAnswers = result.wrongAnswers
                             if (wrongAnswers.isNotEmpty()) {
-                                Text("Risposte errate: ${wrongAnswers.joinToString()}")
+                                Text("Risposte da rivedere: ${wrongAnswers.joinToString()}")
                             }
                             if (result.stepErrors.isNotEmpty()) {
-                                Text("Errore nel passaggio:")
+                                Text("Passaggi da rinforzare:")
                                 result.stepErrors.forEach { err ->
                                     Text("• ${err.stepLabel}: inserito ${err.actual}, corretto ${err.expected}")
                                 }
                             }
                             if (result.solutionUsed) {
-                                Text("Soluzione usata")
+                                Text("Soluzione guidata usata")
                             }
                         }
                         if (idx < results.lastIndex) {
@@ -1362,8 +1411,8 @@ fun HomeworkReportsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("📅 Giornaliero", fontWeight = FontWeight.Bold)
                     Text("Esercizi oggi: ${stats.today.total}")
-                    Text("Corretti: ${stats.today.correct}")
-                    Text("Con errori: ${stats.today.withErrors}")
+                    Text("Corretto: ${stats.today.correct}")
+                    Text("Con passaggi da rinforzare: ${stats.today.withErrors}")
                     Spacer(Modifier.height(8.dp))
                     Text("📊 Settimanale", fontWeight = FontWeight.Bold)
                     Text("Totale esercizi: ${stats.week.total}")
@@ -1373,7 +1422,7 @@ fun HomeworkReportsScreen(
                         0
                     }
                     Text("Percentuale corretti: $percent%")
-                    Text("Errore più frequente: ${stats.topWeeklyError ?: "Nessuno"}")
+                    Text("Passaggio da rinforzare più frequente: ${stats.topWeeklyError ?: "Nessuno"}")
                     if (stats.recurringErrors.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Text("⭐ Difficoltà ricorrenti", fontWeight = FontWeight.Bold)
@@ -1396,40 +1445,32 @@ fun HomeworkReportsScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
                             Text("Data: ${formatTimestamp(report.createdAt)}")
-                            val correctCount = report.results.count { it.correct && !it.hasErrors() }
-                            val withErrorsCount = report.results.count { it.correct && it.hasErrors() }
+                            val correctCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
+                            val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
                             val wrongCount = report.results.size - correctCount - withErrorsCount
-                            Text("Risultati: $correctCount corretti, $withErrorsCount con errori, $wrongCount sbagliati")
+                            Text("Risultati: $correctCount corretti, $withErrorsCount con passaggi da rinforzare, $wrongCount da ripassare")
                             Divider(Modifier.padding(vertical = 4.dp))
                             report.results.forEachIndexed { rIdx, result ->
-                                val hadErrors = result.hasErrors()
                                 val expected = expectedAnswer(result.instance)
+                                val outcome = result.outcome()
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text("Esercizio ${rIdx + 1}: ${exerciseLabel(result.instance)}")
                                     expected?.let { Text("Risposta corretta: $it") }
                                     Text("Tentativi: ${result.attempts}")
-                                    val statusText = when {
-                                        !result.correct -> "❌ Sbagliato"
-                                        hadErrors -> "⚠️ Completato con errori"
-                                        else -> "✅ Corretto"
-                                    }
-                                    val statusColor = when {
-                                        !result.correct -> Color(0xFFDC2626)
-                                        hadErrors -> Color(0xFFF59E0B)
-                                        else -> Color(0xFF16A34A)
-                                    }
+                                    val statusText = outcomeLabel(outcome)
+                                    val statusColor = outcomeColor(outcome)
                                     Text("Esito: $statusText", color = statusColor)
                                     if (result.wrongAnswers.isNotEmpty()) {
-                                        Text("Risposte errate: ${result.wrongAnswers.joinToString()}")
+                                        Text("Risposte da rivedere: ${result.wrongAnswers.joinToString()}")
                                     }
                                     if (result.stepErrors.isNotEmpty()) {
-                                        Text("Errore nel passaggio:")
+                                        Text("Passaggi da rinforzare:")
                                         result.stepErrors.forEach { err ->
                                             Text("• ${err.stepLabel}: inserito ${err.actual}, corretto ${err.expected}")
                                         }
                                     }
                                     if (result.solutionUsed) {
-                                        Text("Soluzione usata")
+                                        Text("Soluzione guidata usata")
                                     }
                                 }
                                 if (rIdx < report.results.lastIndex) {
@@ -1508,11 +1549,11 @@ private fun buildReportStatistics(reports: List<HomeworkReport>): HomeworkStatis
     val todayStats = computeReportStats(todayResults)
     val weekStats = computeReportStats(weekResults)
 
-    val categoryCounts = collectErrorCategories(weekResults)
-    val topWeeklyError = categoryCounts.maxByOrNull { it.value }?.key
-    val recurringErrors = categoryCounts.entries.sortedByDescending { it.value }
+    val patterns = analyzeErrorPatterns(weekResults)
+    val topWeeklyError = patterns.maxByOrNull { it.occurrences }?.category
+    val recurringErrors = patterns.sortedByDescending { it.occurrences }
         .take(3)
-        .map { it.key }
+        .map { it.category }
 
     return HomeworkStatistics(
         today = todayStats,
@@ -1527,11 +1568,10 @@ private fun computeReportStats(results: List<ExerciseResult>): ReportStats {
     var withErrors = 0
     var wrong = 0
     results.forEach { result ->
-        val hadErrors = result.hasErrors()
-        when {
-            !result.correct -> wrong++
-            hadErrors -> withErrors++
-            else -> correct++
+        when (result.outcome()) {
+            ExerciseOutcome.FAILED -> wrong++
+            ExerciseOutcome.COMPLETED_WITH_ERRORS -> withErrors++
+            ExerciseOutcome.PERFECT -> correct++
         }
     }
     return ReportStats(
@@ -1542,32 +1582,13 @@ private fun computeReportStats(results: List<ExerciseResult>): ReportStats {
     )
 }
 
-private fun collectErrorCategories(results: List<ExerciseResult>): Map<String, Int> {
-    val counts = mutableMapOf<String, Int>()
-    results.forEach { result ->
-        if (!result.hasErrors()) return@forEach
-        val categories = mutableSetOf<String>()
-        if (result.stepErrors.isNotEmpty()) {
-            result.stepErrors.forEach { step ->
-                categories += classifyStepError(step.stepLabel, result.instance.game)
-            }
-        } else {
-            categories += genericCategory(result.instance.game)
-        }
-        categories.forEach { category ->
-            counts[category] = (counts[category] ?: 0) + 1
-        }
-    }
-    return counts
-}
-
 private fun genericCategory(game: GameType): String {
     return when (game) {
-        GameType.ADDITION -> "Errori nelle addizioni"
-        GameType.SUBTRACTION -> "Errori nelle sottrazioni"
-        GameType.DIVISION_STEP -> "Errori nelle divisioni"
-        GameType.MONEY_COUNT -> "Errori nel conto dei soldi"
-        else -> "Errori nelle moltiplicazioni/tabelline"
+        GameType.ADDITION -> "Addizioni da ripassare"
+        GameType.SUBTRACTION -> "Sottrazioni da ripassare"
+        GameType.DIVISION_STEP -> "Divisioni da ripassare"
+        GameType.MONEY_COUNT -> "Conta dei soldi da ripassare"
+        else -> "Moltiplicazioni e tabelline da ripassare"
     }
 }
 
@@ -1580,6 +1601,175 @@ private fun classifyStepError(stepLabel: String, game: GameType): String {
         label.contains("prodotto") -> "Prodotti nelle divisioni"
         label.contains("resto") -> "Resti nelle divisioni"
         else -> genericCategory(game)
+    }
+}
+
+private fun analyzeErrorPatterns(results: List<ExerciseResult>): List<ErrorPattern> {
+    if (results.isEmpty()) return emptyList()
+    val patterns = mutableMapOf<String, Pair<Int, MutableSet<GameType>>>()
+    results.forEach { result ->
+        if (!result.hasErrors()) return@forEach
+        val categories = mutableSetOf<String>()
+        if (result.stepErrors.isNotEmpty()) {
+            result.stepErrors.forEach { step ->
+                categories += classifyStepError(step.stepLabel, result.instance.game)
+            }
+        } else {
+            categories += genericCategory(result.instance.game)
+        }
+        categories.forEach { category ->
+            val current = patterns[category]
+            val count = (current?.first ?: 0) + 1
+            val games = current?.second ?: mutableSetOf()
+            games += result.instance.game
+            patterns[category] = count to games
+        }
+    }
+    return patterns.entries
+        .sortedByDescending { it.value.first }
+        .map { (category, data) ->
+            ErrorPattern(
+                category = category,
+                occurrences = data.first,
+                games = data.second.sortedBy { it.name }
+            )
+        }
+}
+
+private fun suggestionsForPatterns(patterns: List<ErrorPattern>): List<String> {
+    if (patterns.isEmpty()) return emptyList()
+    val suggestionMap = mapOf(
+        "Riporti nelle addizioni" to listOf(
+            "Potrebbe essere utile ripassare le addizioni con riporto",
+            "Consigliati esercizi guidati con numeri a due cifre"
+        ),
+        "Prestiti nelle sottrazioni" to listOf(
+            "Potrebbe aiutare ripassare le sottrazioni con prestito",
+            "Utile lavorare su esempi passo-passo"
+        ),
+        "Cifre del quoziente nelle divisioni" to listOf(
+            "Potrebbe essere utile ripassare la scelta del quoziente",
+            "Consigliati esercizi guidati con divisori semplici"
+        ),
+        "Prodotti nelle divisioni" to listOf(
+            "Potrebbe essere utile ripassare le moltiplicazioni collegate alle divisioni",
+            "Utile esercitarsi su prodotti entro le tabelline base"
+        ),
+        "Resti nelle divisioni" to listOf(
+            "Potrebbe essere utile ripassare il concetto di resto",
+            "Consigliati esercizi guidati con resto semplice"
+        ),
+        "Addizioni da ripassare" to listOf(
+            "Potrebbe essere utile ripassare le addizioni di base",
+            "Utile usare esercizi con numeri piccoli e graduali"
+        ),
+        "Sottrazioni da ripassare" to listOf(
+            "Potrebbe essere utile ripassare le sottrazioni di base",
+            "Utile partire da esempi senza prestito"
+        ),
+        "Divisioni da ripassare" to listOf(
+            "Potrebbe essere utile ripassare le divisioni con quozienti semplici",
+            "Consigliati esercizi guidati con resti piccoli"
+        ),
+        "Conta dei soldi da ripassare" to listOf(
+            "Potrebbe essere utile esercitarsi con somme di monete semplici",
+            "Utile usare esempi con pochi valori alla volta"
+        ),
+        "Moltiplicazioni e tabelline da ripassare" to listOf(
+            "Potrebbe essere utile ripassare le tabelline principali",
+            "Consigliati esercizi guidati sulle moltiplicazioni di base"
+        )
+    )
+    return patterns.asSequence()
+        .flatMap { pattern -> suggestionMap[pattern.category].orEmpty().asSequence() }
+        .distinct()
+        .take(2)
+        .toList()
+}
+
+private fun buildProgressInsights(
+    currentResults: List<ExerciseResult>,
+    previousReports: List<HomeworkReport>,
+    referenceTime: Long
+): List<String> {
+    if (currentResults.isEmpty() || previousReports.isEmpty()) return emptyList()
+    val weekStart = referenceTime - 7L * 24 * 60 * 60 * 1000
+    val previousResults = previousReports.filter { it.createdAt >= weekStart }.flatMap { it.results }
+    if (previousResults.isEmpty()) return emptyList()
+
+    val currentPerfectPercent = percentPerfect(currentResults)
+    val previousPerfectPercent = percentPerfect(previousResults)
+    val currentIssues = currentResults.count { it.outcome() != ExerciseOutcome.PERFECT }
+    val previousIssues = previousResults.count { it.outcome() != ExerciseOutcome.PERFECT }
+
+    val insights = mutableListOf<String>()
+    if (currentPerfectPercent > previousPerfectPercent + 4) {
+        insights += "Più esercizi corretti rispetto agli ultimi 7 giorni"
+    }
+    if (currentIssues < previousIssues) {
+        insights += "Meno esercizi da ripassare rispetto agli ultimi 7 giorni"
+    }
+
+    val previousTop = analyzeErrorPatterns(previousResults).firstOrNull()
+    val currentTop = analyzeErrorPatterns(currentResults).firstOrNull()
+    if (previousTop != null && (currentTop == null || currentTop.category != previousTop.category)) {
+        insights += "Miglioramento nei passaggi legati a: ${previousTop.category.lowercase()}"
+    }
+
+    return insights
+}
+
+private fun buildEducationalBadges(
+    currentResults: List<ExerciseResult>,
+    previousReports: List<HomeworkReport>,
+    referenceTime: Long
+): List<String> {
+    if (currentResults.isEmpty()) return emptyList()
+    val badges = mutableListOf<String>()
+    val allPerfect = currentResults.all { it.outcome() == ExerciseOutcome.PERFECT }
+    if (allPerfect && currentResults.size >= 3) {
+        badges += "Sessione con esercizi tutti corretti"
+    }
+
+    if (previousReports.isNotEmpty()) {
+        val weekStart = referenceTime - 7L * 24 * 60 * 60 * 1000
+        val previousResults = previousReports.filter { it.createdAt >= weekStart }.flatMap { it.results }
+        if (previousResults.isNotEmpty()) {
+            val improvement = percentPerfect(currentResults) - percentPerfect(previousResults)
+            if (improvement >= 10) {
+                badges += "Ha migliorato la precisione rispetto alla settimana scorsa"
+            }
+            val previousPatterns = analyzeErrorPatterns(previousResults)
+            val currentPatterns = analyzeErrorPatterns(currentResults).map { it.category }.toSet()
+            val improvedCategory = previousPatterns.firstOrNull { it.category !in currentPatterns }
+            if (improvedCategory != null) {
+                badges += "Ha rafforzato: ${improvedCategory.category.lowercase()}"
+            }
+        }
+    }
+
+    return badges.take(2)
+}
+
+private fun percentPerfect(results: List<ExerciseResult>): Int {
+    if (results.isEmpty()) return 0
+    val perfectCount = results.count { it.outcome() == ExerciseOutcome.PERFECT }
+    return (perfectCount.toFloat() / results.size.toFloat() * 100).toInt()
+}
+
+private fun outcomeLabel(outcome: ExerciseOutcome): String {
+    return when (outcome) {
+        ExerciseOutcome.PERFECT -> "✅ Corretto"
+        ExerciseOutcome.COMPLETED_WITH_ERRORS -> "⚠️ Completato con passaggi da rinforzare"
+        ExerciseOutcome.FAILED -> "❌ Da ripassare"
+    }
+}
+
+private fun outcomeColor(outcome: ExerciseOutcome): Color {
+    return when (outcome) {
+        ExerciseOutcome.PERFECT -> Color(0xFF16A34A)
+        ExerciseOutcome.COMPLETED_WITH_ERRORS -> Color(0xFFF59E0B)
+        ExerciseOutcome.FAILED -> Color(0xFFDC2626)
     }
 }
 

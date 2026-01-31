@@ -777,6 +777,7 @@ private fun AppShell() {
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
                 queue = homeworkQueue,
+                previousReports = homeworkReports,
                 onExit = { results ->
                     lastHomeworkResults = results
                     navAnim = NavAnim.SLIDE
