@@ -120,8 +120,8 @@ fun HomeworkBuilderScreen(
     }
 
     var hardEnabled by remember { mutableStateOf(false) }
-    var hardMaxAInput by remember { mutableStateOf("99") }
-    var hardMaxBInput by remember { mutableStateOf("99") }
+    var hardMaxAInput by remember { mutableStateOf("2") }
+    var hardMaxBInput by remember { mutableStateOf("1") }
     var hardExercisesCountInput by remember { mutableStateOf("4") }
     var hardRepeatsInput by remember { mutableStateOf("1") }
     var hardHintsEnabled by remember { mutableStateOf(false) }
@@ -132,7 +132,7 @@ fun HomeworkBuilderScreen(
     var hardManualSelected by remember { mutableStateOf(false) }
     var hardManualAInput by remember { mutableStateOf("") }
     var hardManualBInput by remember { mutableStateOf("") }
-    val hardManualARange = 10..99
+    val hardManualARange = 10..999
     val hardManualBRange = 1..99
     val hardSource = if (hardManualSelected) {
         ExerciseSourceConfig.Manual(hardManualOps.toList())
@@ -541,22 +541,20 @@ fun HomeworkBuilderScreen(
                             source = hardSource,
                             onSourceChange = { hardManualSelected = false }
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
-                                value = hardMaxAInput,
-                                onValueChange = { hardMaxAInput = it.filter(Char::isDigit).take(2) },
-                                label = { Text("Numero A (10-99)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = hardMaxBInput,
-                                onValueChange = { hardMaxBInput = it.filter(Char::isDigit).take(2) },
-                                label = { Text("Numero B (1-99)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        OutlinedTextField(
+                            value = hardMaxAInput,
+                            onValueChange = { hardMaxAInput = it.filter { char -> char in '2'..'3' }.take(1) },
+                            label = { Text("Cifre Moltiplicando") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = hardMaxBInput,
+                            onValueChange = { hardMaxBInput = it.filter { char -> char in '1'..'2' }.take(1) },
+                            label = { Text("Cifre Moltiplicatore") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         AmountConfigRow(
                             exercisesCountInput = hardExercisesCountInput,
                             repeatsInput = hardRepeatsInput,
@@ -571,10 +569,26 @@ fun HomeworkBuilderScreen(
                             manualBInput = hardManualBInput,
                             onManualAChange = { hardManualAInput = it },
                             onManualBChange = { hardManualBInput = it },
-                            opLabel = "A",
-                            opLabelB = "B",
+                            opLabel = "Moltiplicando",
+                            opLabelB = "Moltiplicatore",
                             maxDigitsA = hardManualARange.last.toString().length,
                             maxDigitsB = hardManualBRange.last.toString().length,
+                            manualError = run {
+                                val a = hardManualAInput.toIntOrNull()
+                                val b = hardManualBInput.toIntOrNull()
+                                val aBlank = hardManualAInput.isBlank()
+                                val bBlank = hardManualBInput.isBlank()
+                                when {
+                                    aBlank && bBlank -> null
+                                    a == null || a !in hardManualARange -> {
+                                        "Moltiplicando valido: ${hardManualARange.first}-${hardManualARange.last}."
+                                    }
+                                    b == null || b !in hardManualBRange -> {
+                                        "Moltiplicatore valido: ${hardManualBRange.first}-${hardManualBRange.last}."
+                                    }
+                                    else -> null
+                                }
+                            },
                             onAddManual = {
                                 val a = hardManualAInput.toIntOrNull()
                                 val b = hardManualBInput.toIntOrNull()
@@ -731,8 +745,8 @@ fun HomeworkBuilderScreen(
                             )
                         }
                         if (hardEnabled) {
-                            val maxA = hardMaxAInput.toIntOrNull()?.coerceIn(10, 99) ?: 99
-                            val maxB = hardMaxBInput.toIntOrNull()?.coerceIn(1, 99) ?: 99
+                            val multiplicandDigits = hardMaxAInput.toIntOrNull()?.coerceIn(2, 3) ?: 2
+                            val multiplierDigits = hardMaxBInput.toIntOrNull()?.coerceIn(1, 2) ?: 1
                             val exercisesCount = hardExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 4
                             val repeats = hardRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
                             val helpSettings = HelpSettings(
@@ -749,7 +763,7 @@ fun HomeworkBuilderScreen(
                             add(
                                 HomeworkTaskConfig(
                                     game = GameType.MULTIPLICATION_HARD,
-                                    difficulty = DifficultyConfig(maxA = maxA, maxB = maxB),
+                                    difficulty = DifficultyConfig(maxA = multiplicandDigits, maxB = multiplierDigits),
                                     helps = helpSettings,
                                     source = sourceConfig,
                                     amount = AmountConfig(
