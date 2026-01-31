@@ -83,6 +83,15 @@ private fun hmRowLabel(row: HMRowKey): String = when (row) {
 }
 
 private fun hmComputePlan(a: Int, b: Int): HMPlan {
+    require(a in 10..999 && b in 1..99)
+    return if (a >= 100 && b < 10) {
+        hmComputePlan3x1(a, b)
+    } else {
+        hmComputePlan2x2(a, b)
+    }
+}
+
+private fun hmComputePlan2x2(a: Int, b: Int): HMPlan {
     require(a in 10..99 && b in 1..99)
 
     val aT = a / 10
@@ -359,6 +368,239 @@ private fun hmComputePlan(a: Int, b: Int): HMPlan {
     )
 }
 
+private fun hmComputePlan3x1(a: Int, b: Int): HMPlan {
+    require(a in 100..999 && b in 1..9)
+
+    val aH = a / 100
+    val aT = (a / 10) % 10
+    val aU = a % 10
+    val bU = b
+
+    // Riga 1: a × unità
+    val m1 = aU * bU
+    val w11 = m1 % 10
+    val c11 = m1 / 10
+
+    val m2raw = aT * bU
+    val m2 = m2raw + c11
+    val w12 = m2 % 10
+    val c12 = m2 / 10
+
+    val m3raw = aH * bU
+    val m3 = m3raw + c12
+    val w13 = m3 % 10
+    val c13 = m3 / 10
+
+    val p1 = (c13 * 1000) + (w13 * 100) + (w12 * 10) + w11
+    val res = p1
+
+    val a4 = hmPad4(a)
+    val b4 = hmPad4From2(b)
+    val p1Chars = CharArray(4) { ' ' }.also {
+        it[3] = w11.toString()[0]
+        it[2] = w12.toString()[0]
+        it[1] = w13.toString()[0]
+        if (c13 > 0) it[0] = c13.toString()[0]
+    }
+    val p1_4 = p1Chars.concatToString()
+    val p2_4 = "    "
+    val res_4 = hmPad4(res)
+
+    val carryP1 = CharArray(4) { ' ' }
+    if (c11 > 0) carryP1[2] = c11.toString()[0]
+    if (c12 > 0) carryP1[1] = c12.toString()[0]
+
+    val carryP2 = CharArray(4) { ' ' }
+
+    val p1d = p1_4.map { if (it == ' ') 0 else it - '0' }
+    val p2d = p2_4.map { if (it == ' ') 0 else it - '0' }
+    val carrySUM = CharArray(4) { ' ' }
+
+    val targets = mutableListOf<HMTarget>()
+
+    fun addHighlight(
+        list: MutableList<HMHighlight>,
+        row: HMHighlightRow,
+        col: Int,
+        ch: Char? = null
+    ) {
+        if (col !in 0..3) return
+        if (ch != null && ch == ' ') return
+        list += HMHighlight(row, col)
+    }
+
+    fun addDigit(row: HMRowKey, col: Int, ch: Char, hint: String, highlights: List<HMHighlight>) {
+        targets += HMTarget(row, col, HMCellKind.DIGIT, ch, hint, highlights)
+    }
+
+    fun addCarry(row: HMRowKey, col: Int, ch: Char, hint: String, highlights: List<HMHighlight>) {
+        targets += HMTarget(row, col, HMCellKind.CARRY, ch, hint, highlights)
+    }
+
+    fun highlightsForMul(
+        aCol: Int,
+        bCol: Int,
+        targetRow: HMHighlightRow,
+        targetCol: Int,
+        extra: List<HMHighlight> = emptyList()
+    ): List<HMHighlight> {
+        val list = mutableListOf<HMHighlight>()
+        addHighlight(list, HMHighlightRow.TOP_A, aCol, a4[aCol])
+        addHighlight(list, HMHighlightRow.TOP_B, bCol, b4[bCol])
+        addHighlight(list, targetRow, targetCol)
+        list.addAll(extra)
+        return list.distinct()
+    }
+
+    fun highlightsForSum(
+        col: Int,
+        targetRow: HMHighlightRow,
+        targetCol: Int,
+        carryCol: Int? = null
+    ): List<HMHighlight> {
+        val list = mutableListOf<HMHighlight>()
+        addHighlight(list, HMHighlightRow.P1, col, p1_4[col])
+        addHighlight(list, HMHighlightRow.P2, col, p2_4[col])
+        addHighlight(list, targetRow, targetCol)
+        if (carryCol != null) {
+            addHighlight(list, HMHighlightRow.CARRY_SUM, carryCol, carrySUM[carryCol])
+        }
+        return list.distinct()
+    }
+
+    addDigit(
+        HMRowKey.P1,
+        3,
+        w11.toString()[0],
+        "${aU}×${bU} = $m1 → scrivi $w11 nelle unità",
+        highlightsForMul(3, 3, HMHighlightRow.P1, 3)
+    )
+    if (c11 > 0) {
+        addCarry(
+            HMRowKey.CARRY_P1,
+            2,
+            c11.toString()[0],
+            "${aU}×${bU} = $m1 → riporta $c11 nelle decine",
+            highlightsForMul(3, 3, HMHighlightRow.CARRY_P1, 2)
+        )
+    }
+    val p1TensHighlights = highlightsForMul(
+        2,
+        3,
+        HMHighlightRow.P1,
+        2,
+        extra = buildList {
+            if (carryP1[2] != ' ') add(HMHighlight(HMHighlightRow.CARRY_P1, 2))
+        }
+    )
+    addDigit(
+        HMRowKey.P1,
+        2,
+        w12.toString()[0],
+        "${aT}×${bU} = $m2raw${if (c11 > 0) " + $c11 = $m2" else ""} → scrivi $w12 nelle decine",
+        p1TensHighlights
+    )
+    if (c12 > 0) {
+        addCarry(
+            HMRowKey.CARRY_P1,
+            1,
+            c12.toString()[0],
+            "Riporta $c12 nelle centinaia",
+            highlightsForMul(2, 3, HMHighlightRow.CARRY_P1, 1)
+        )
+    }
+    val p1HundredsHighlights = highlightsForMul(
+        1,
+        3,
+        HMHighlightRow.P1,
+        1,
+        extra = buildList {
+            if (carryP1[1] != ' ') add(HMHighlight(HMHighlightRow.CARRY_P1, 1))
+        }
+    )
+    addDigit(
+        HMRowKey.P1,
+        1,
+        w13.toString()[0],
+        "${aH}×${bU} = $m3raw${if (c12 > 0) " + $c12 = $m3" else ""} → scrivi $w13 nelle centinaia",
+        p1HundredsHighlights
+    )
+    if (c13 > 0) {
+        addDigit(
+            HMRowKey.P1,
+            0,
+            c13.toString()[0],
+            "Ultimo riporto riga 1: scrivi $c13 nella casella delle migliaia",
+            highlightsForMul(1, 3, HMHighlightRow.P1, 0)
+        )
+    }
+
+    fun addSum(col: Int, carryIn: Int, carryOut: Int, digit: Int) {
+        val carryHighlightCol = if (carryIn > 0 && carrySUM[col] != ' ') col else null
+        addDigit(
+            HMRowKey.SUM,
+            col,
+            digit.toString()[0],
+            "Somma ${hmColLabel(col)}: ${p1d[col]} + ${p2d[col]}${if (carryIn > 0) " + riporto $carryIn" else ""} → scrivi $digit",
+            highlightsForSum(col, HMHighlightRow.SUM, col, carryHighlightCol)
+        )
+        if (carryOut > 0 && col - 1 >= 0 && (col - 1) != 0) {
+            addCarry(
+                HMRowKey.CARRY_SUM,
+                col - 1,
+                carryOut.toString()[0],
+                "Riporta $carryOut nella ${hmColLabel(col - 1)}",
+                highlightsForSum(col, HMHighlightRow.CARRY_SUM, col - 1)
+            )
+        }
+    }
+
+    val sumStartCol = res_4.indexOfFirst { it != ' ' }.let { if (it == -1) 3 else it }
+    var cin = 0
+    run { val s = p1d[3] + p2d[3] + cin; addSum(3, cin, s / 10, s % 10); cin = s / 10 }
+    run {
+        if (sumStartCol <= 2) {
+            val s = p1d[2] + p2d[2] + cin
+            addSum(2, cin, s / 10, s % 10)
+            cin = s / 10
+        }
+    }
+    run {
+        if (sumStartCol <= 1) {
+            val s = p1d[1] + p2d[1] + cin
+            addSum(1, cin, s / 10, s % 10)
+            cin = s / 10
+        }
+    }
+    run {
+        if (sumStartCol <= 0) {
+            val s = p1d[0] + p2d[0] + cin
+            addDigit(
+                HMRowKey.SUM,
+                0,
+                (s % 10).toString()[0],
+                "Ultima colonna a sinistra: ${p1d[0]} + ${p2d[0]}${if (cin > 0) " + riporto $cin" else ""} → scrivi ${s % 10}",
+                highlightsForSum(0, HMHighlightRow.SUM, 0)
+            )
+        }
+    }
+
+    return HMPlan(
+        a = a,
+        b = b,
+        a4 = a4,
+        b4 = b4,
+        p1_4 = p1_4,
+        p2_4 = p2_4,
+        res_4 = res_4,
+        carryP1 = carryP1,
+        carryP2 = carryP2,
+        carrySUM = carrySUM,
+        targets = targets,
+        result = res
+    )
+}
+
 /* ----------------------------- GAME ----------------------------- */
 
 @Composable
@@ -409,8 +651,8 @@ fun HardMultiplication2x2Game(
     var errSUM by remember { mutableStateOf(BooleanArray(4) { false }) }
 
     fun reset(newA: Int, newB: Int) {
-        val safeA = newA.coerceIn(10, 99)
-        val safeB = newB.coerceIn(1, 99)
+        val safeA = newA.coerceIn(10, 999)
+        val safeB = if (safeA >= 100) newB.coerceIn(1, 9) else newB.coerceIn(1, 99)
         plan = hmComputePlan(safeA, safeB)
         step = 0
         showSuccessDialog = false
@@ -461,8 +703,8 @@ fun HardMultiplication2x2Game(
     }
 
     fun startManual(a: Int, b: Int) {
-        val safeA = a.coerceIn(10, 99)
-        val safeB = b.coerceIn(1, 99)
+        val safeA = a.coerceIn(10, 999)
+        val safeB = if (safeA >= 100) b.coerceIn(1, 9) else b.coerceIn(1, 99)
         if (a != safeA) {
             manualA = safeA.toString()
         }
@@ -483,8 +725,8 @@ fun HardMultiplication2x2Game(
         val a = exercise?.a
         val b = exercise?.b
         if (a != null && b != null) {
-            val safeA = a.coerceIn(10, 99)
-            val safeB = b.coerceIn(1, 99)
+            val safeA = a.coerceIn(10, 999)
+            val safeB = if (safeA >= 100) b.coerceIn(1, 9) else b.coerceIn(1, 99)
             manualNumbers = safeA to safeB
             reset(safeA, safeB)
         }
@@ -622,18 +864,20 @@ fun HardMultiplication2x2Game(
                 if (startMode == StartMode.MANUAL && !isHomeworkMode) {
                     val manualAValue = manualA.toIntOrNull()
                     val manualBValue = manualB.toIntOrNull()
-                    val manualValid = manualAValue in 10..99 && manualBValue in 1..99
+                    val manualValid = manualAValue in 10..999 &&
+                        manualBValue in 1..99 &&
+                        (manualAValue == null || manualAValue < 100 || manualBValue in 1..9)
                     val manualError = if (manualValid || (manualA.isBlank() && manualB.isBlank())) {
                         null
                     } else {
-                        "Inserisci A tra 10 e 99, B tra 1 e 99."
+                        "Inserisci A tra 10 e 999, B tra 1 e 99 (se A ha 3 cifre, B deve avere 1 cifra)."
                     }
 
                     SeaGlassPanel(title = "Inserimento") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = manualA,
-                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(2) },
+                                onValueChange = { manualA = it.filter { c -> c.isDigit() }.take(3) },
                                 label = { Text("Numero A") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
