@@ -127,8 +127,9 @@ private fun BasicColumnGame(
         inputGuard.reset()
     }
 
-    if (gameState == GameState.INIT) {
+    LaunchedEffect(Unit) {
         gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -184,7 +185,11 @@ private fun BasicColumnGame(
                                 value = input,
                                 expectedRange = expectedRange,
                                 gameState = gameState,
-                                guard = inputGuard
+                                guard = inputGuard,
+                                onInit = {
+                                    gameState = GameState.AWAITING_INPUT
+                                    inputGuard.reset()
+                                }
                             )
                             if (!validation.isValid) {
                                 if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -362,7 +367,11 @@ fun MultiplicationTableGame(
                                             value = inputs[index],
                                             expectedRange = 0..(resolvedTable * 10),
                                             gameState = gameState,
-                                            guard = inputGuard
+                                            guard = inputGuard,
+                                            onInit = {
+                                                gameState = GameState.AWAITING_INPUT
+                                                inputGuard.reset()
+                                            }
                                         )
                                         if (!validation.isValid) {
                                             if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -381,6 +390,7 @@ fun MultiplicationTableGame(
                                             correctCount += 1
                                             step++
                                             gameState = if (step > 10) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
+                                            inputGuard.reset()
                                             if (step > 10 && isHomeworkMode) {
                                                 completed = true
                                                 msg = "✅ Tabellina completata!"
@@ -397,6 +407,7 @@ fun MultiplicationTableGame(
                                                 msg = "Passiamo alla prossima."
                                                 step++
                                                 gameState = if (step > 10) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
+                                                inputGuard.reset()
                                                 if (step > 10 && isHomeworkMode) {
                                                     completed = true
                                                 }
@@ -509,6 +520,11 @@ fun DivisionGame(
     var gameState by remember { mutableStateOf(GameState.AWAITING_INPUT) }
     val inputGuard = remember { StepInputGuard() }
 
+    LaunchedEffect(Unit) {
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
+    }
+
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
         val actionHeight = if (ui.isCompact) 44.dp else 52.dp
@@ -543,7 +559,11 @@ fun DivisionGame(
                         value = input,
                         expectedRange = 0..100,
                         gameState = gameState,
-                        guard = inputGuard
+                        guard = inputGuard,
+                        onInit = {
+                            gameState = GameState.AWAITING_INPUT
+                            inputGuard.reset()
+                        }
                     )
                     if (!validation.isValid) {
                         if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -561,7 +581,7 @@ fun DivisionGame(
                         if (soundEnabled) fx.correct()
                         q = newQ()
                         input = ""
-                        inputGuard.reset(stepId)
+                        inputGuard.reset()
                         gameState = GameState.AWAITING_INPUT
                     } else {
                         val locked = inputGuard.registerAttempt(stepId)
@@ -572,7 +592,7 @@ fun DivisionGame(
                             msg = "Proviamo con un'altra divisione."
                             q = newQ()
                             input = ""
-                            inputGuard.reset(stepId)
+                            inputGuard.reset()
                         }
                     }
                 },
@@ -607,6 +627,11 @@ fun MoneyGame(
     var rewardsEarned by remember { mutableStateOf(0) }
     var gameState by remember { mutableStateOf(GameState.AWAITING_INPUT) }
     val inputGuard = remember { StepInputGuard() }
+
+    LaunchedEffect(Unit) {
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset()
+    }
 
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
@@ -646,7 +671,11 @@ fun MoneyGame(
                                 value = input,
                                 expectedRange = 0..200,
                                 gameState = gameState,
-                                guard = inputGuard
+                                guard = inputGuard,
+                                onInit = {
+                                    gameState = GameState.AWAITING_INPUT
+                                    inputGuard.reset()
+                                }
                             )
                             if (!validation.isValid) {
                                 if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -666,7 +695,7 @@ fun MoneyGame(
                                 a = rng.nextInt(1, 10)
                                 b = rng.nextInt(1, 10)
                                 input = ""
-                                inputGuard.reset(stepId)
+                                inputGuard.reset()
                                 gameState = GameState.AWAITING_INPUT
                             } else {
                                 val locked = inputGuard.registerAttempt(stepId)
@@ -678,7 +707,7 @@ fun MoneyGame(
                                     a = rng.nextInt(1, 10)
                                     b = rng.nextInt(1, 10)
                                     input = ""
-                                    inputGuard.reset(stepId)
+                                    inputGuard.reset()
                                 }
                             }
                         },

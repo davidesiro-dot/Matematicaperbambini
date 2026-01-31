@@ -457,7 +457,11 @@ fun LongSubtractionGame(
                     value = topNewInputs[col],
                     expectedRange = 0..9,
                     gameState = gameState,
-                    guard = inputGuard
+                    guard = inputGuard,
+                    onInit = {
+                        gameState = GameState.AWAITING_INPUT
+                        inputGuard.reset()
+                    }
                 )
                 if (!validation.isValid) {
                     if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -492,12 +496,14 @@ fun LongSubtractionGame(
                         topOk[col] = true
                         message = "Continuiamo con il prossimo passo."
                         stepIndex++
+                        inputGuard.reset()
                     }
                     return
                 }
                 playCorrect()
                 stepIndex++
                 gameState = GameState.AWAITING_INPUT
+                inputGuard.reset()
             }
 
             SubStepType.RESULT_DIGIT -> {
@@ -510,7 +516,11 @@ fun LongSubtractionGame(
                     value = resInputs[col],
                     expectedRange = 0..9,
                     gameState = gameState,
-                    guard = inputGuard
+                    guard = inputGuard,
+                    onInit = {
+                        gameState = GameState.AWAITING_INPUT
+                        inputGuard.reset()
+                    }
                 )
                 if (!validation.isValid) {
                     if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -545,12 +555,14 @@ fun LongSubtractionGame(
                         resOk[col] = true
                         message = "Continuiamo con il prossimo passo."
                         stepIndex++
+                        inputGuard.reset()
                     }
                     return
                 }
                 playCorrect()
                 stepIndex++
                 gameState = GameState.AWAITING_INPUT
+                inputGuard.reset()
             }
         }
 
@@ -587,6 +599,13 @@ fun LongSubtractionGame(
             manualNumbers = a to b
             problem = SubProblem(a, b)
             resetSame()
+        }
+    }
+
+    LaunchedEffect(problem) {
+        if (problem != null && gameState == GameState.INIT) {
+            gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
         }
     }
 

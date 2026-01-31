@@ -180,6 +180,7 @@ fun DivisionStepGame(
             gameState = GameState.GAME_COMPLETED
         } else {
             gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
         }
     }
 
@@ -224,7 +225,11 @@ fun DivisionStepGame(
             value = digit.toString(),
             expectedRange = 0..9,
             gameState = gameState,
-            guard = inputGuard
+            guard = inputGuard,
+            onInit = {
+                gameState = GameState.AWAITING_INPUT
+                inputGuard.reset()
+            }
         )
         if (!validation.isValid) {
             if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -279,7 +284,11 @@ fun DivisionStepGame(
             value = "0",
             expectedRange = 0..1,
             gameState = gameState,
-            guard = inputGuard
+            guard = inputGuard,
+            onInit = {
+                gameState = GameState.AWAITING_INPUT
+                inputGuard.reset()
+            }
         )
         if (!validation.isValid) {
             if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -342,6 +351,13 @@ fun DivisionStepGame(
             plan = generateDivisionPlan(dividend, divisor)
             manualNumbers = dividend to divisor
             resetSame()
+        }
+    }
+
+    LaunchedEffect(plan) {
+        if (plan != null && gameState == GameState.INIT) {
+            gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
         }
     }
 

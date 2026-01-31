@@ -1048,6 +1048,13 @@ fun HardMultiplication2x2Game(
         }
     }
 
+    LaunchedEffect(plan) {
+        if (plan != null && gameState == GameState.INIT) {
+            gameState = GameState.AWAITING_INPUT
+            inputGuard.reset()
+        }
+    }
+
     val p = plan
     val current = p?.targets?.getOrNull(step)
     val done = p != null && step >= p.targets.size
@@ -1130,7 +1137,11 @@ fun HardMultiplication2x2Game(
             value = digit.toString(),
             expectedRange = 0..9,
             gameState = gameState,
-            guard = inputGuard
+            guard = inputGuard,
+            onInit = {
+                gameState = GameState.AWAITING_INPUT
+                inputGuard.reset()
+            }
         )
         if (!validation.isValid) {
             if (validation.failure == ValidationFailure.TOO_FAST ||
@@ -1149,6 +1160,7 @@ fun HardMultiplication2x2Game(
             val activePlan = plan ?: return
             step = (step + 1).coerceAtMost(activePlan.targets.size)
             gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
+            inputGuard.reset()
         } else {
             attempts += 1
             wrongAnswers += digit.toString()
@@ -1172,6 +1184,7 @@ fun HardMultiplication2x2Game(
                 setCell(row, col, t.expected, false)
                 step = (step + 1).coerceAtMost(activePlan.targets.size)
                 gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
+                inputGuard.reset()
             }
         }
     }

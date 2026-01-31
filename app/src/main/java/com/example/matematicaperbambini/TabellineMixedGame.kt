@@ -151,7 +151,11 @@ fun TabellineMixedGame(
                                 value = input,
                                 expectedRange = 0..100,
                                 gameState = gameState,
-                                guard = inputGuard
+                                guard = inputGuard,
+                                onInit = {
+                                    gameState = GameState.AWAITING_INPUT
+                                    inputGuard.reset()
+                                }
                             )
                             if (!validation.isValid) {
                                 if (validation.failure == ValidationFailure.TOO_FAST ||
