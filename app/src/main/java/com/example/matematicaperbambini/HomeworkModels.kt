@@ -81,9 +81,29 @@ data class ExerciseResult(
     val endedAt: Long
 )
 
+enum class ExerciseOutcome {
+    PERFECT,
+    COMPLETED_WITH_ERRORS,
+    FAILED
+}
+
 fun ExerciseResult.hasErrors(): Boolean {
     return wrongAnswers.isNotEmpty() || stepErrors.isNotEmpty()
 }
+
+fun ExerciseResult.outcome(): ExerciseOutcome {
+    return when {
+        !correct -> ExerciseOutcome.FAILED
+        hasErrors() -> ExerciseOutcome.COMPLETED_WITH_ERRORS
+        else -> ExerciseOutcome.PERFECT
+    }
+}
+
+data class ErrorPattern(
+    val category: String,
+    val occurrences: Int,
+    val games: List<GameType>
+)
 
 @Serializable
 data class ExerciseResultPartial(
