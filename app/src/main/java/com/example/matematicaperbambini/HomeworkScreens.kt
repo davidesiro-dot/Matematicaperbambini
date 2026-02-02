@@ -116,6 +116,7 @@ fun HomeworkBuilderScreen(
     var divisionHighlightsEnabled by remember { mutableStateOf(false) }
     var divisionAllowSolution by remember { mutableStateOf(false) }
     var divisionAutoCheck by remember { mutableStateOf(false) }
+    var divisionShowCellHelper by remember { mutableStateOf(false) }
     val divisionManualOps = remember { mutableStateListOf<ManualOp.AB>() }
     var divisionManualSelected by remember { mutableStateOf(false) }
     var divisionManualDividendInput by remember { mutableStateOf("") }
@@ -536,10 +537,12 @@ fun HomeworkBuilderScreen(
                             highlightsEnabled = divisionHighlightsEnabled,
                             allowSolution = divisionAllowSolution,
                             autoCheck = divisionAutoCheck,
+                            showCellHelper = divisionShowCellHelper,
                             onHintsChange = { divisionHintsEnabled = it },
                             onHighlightsChange = { divisionHighlightsEnabled = it },
                             onAllowSolutionChange = { divisionAllowSolution = it },
-                            onAutoCheckChange = { divisionAutoCheck = it }
+                            onAutoCheckChange = { divisionAutoCheck = it },
+                            onShowCellHelperChange = { divisionShowCellHelper = it }
                         )
                     }
                 }
@@ -656,7 +659,8 @@ fun HomeworkBuilderScreen(
                                 hintsEnabled = additionHintsEnabled,
                                 highlightsEnabled = additionHighlightsEnabled,
                                 allowSolution = additionAllowSolution,
-                                autoCheck = additionAutoCheck
+                                autoCheck = additionAutoCheck,
+                                showCellHelper = false
                             )
                             // why: manualOps is the single source of truth for manual exercises.
                             val sourceConfig = if (additionManualOps.isNotEmpty()) {
@@ -685,7 +689,8 @@ fun HomeworkBuilderScreen(
                                 hintsEnabled = subtractionHintsEnabled,
                                 highlightsEnabled = subtractionHighlightsEnabled,
                                 allowSolution = subtractionAllowSolution,
-                                autoCheck = subtractionAutoCheck
+                                autoCheck = subtractionAutoCheck,
+                                showCellHelper = false
                             )
                             val sourceConfig = if (subtractionManualOps.isNotEmpty()) {
                                 ExerciseSourceConfig.Manual(subtractionManualOps.toList())
@@ -724,7 +729,8 @@ fun HomeworkBuilderScreen(
                                 hintsEnabled = tableHintsEnabled,
                                 highlightsEnabled = tableHighlightsEnabled,
                                 allowSolution = tableAllowSolution,
-                                autoCheck = tableAutoCheck
+                                autoCheck = tableAutoCheck,
+                                showCellHelper = false
                             )
                             add(
                                 HomeworkTaskConfig(
@@ -748,7 +754,8 @@ fun HomeworkBuilderScreen(
                                 hintsEnabled = divisionHintsEnabled,
                                 highlightsEnabled = divisionHighlightsEnabled,
                                 allowSolution = divisionAllowSolution,
-                                autoCheck = divisionAutoCheck
+                                autoCheck = divisionAutoCheck,
+                                showCellHelper = divisionShowCellHelper
                             )
                             val sourceConfig = if (divisionManualOps.isNotEmpty()) {
                                 ExerciseSourceConfig.Manual(divisionManualOps.toList())
@@ -777,7 +784,8 @@ fun HomeworkBuilderScreen(
                                 hintsEnabled = hardHintsEnabled,
                                 highlightsEnabled = hardHighlightsEnabled,
                                 allowSolution = hardAllowSolution,
-                                autoCheck = hardAutoCheck
+                                autoCheck = hardAutoCheck,
+                                showCellHelper = false
                             )
                             val sourceConfig = if (hardManualOps.isNotEmpty()) {
                                 ExerciseSourceConfig.Manual(hardManualOps.toList())
@@ -833,14 +841,19 @@ private fun HelpConfigSection(
     highlightsEnabled: Boolean,
     allowSolution: Boolean,
     autoCheck: Boolean,
+    showCellHelper: Boolean? = null,
     onHintsChange: (Boolean) -> Unit,
     onHighlightsChange: (Boolean) -> Unit,
     onAllowSolutionChange: (Boolean) -> Unit,
-    onAutoCheckChange: (Boolean) -> Unit
+    onAutoCheckChange: (Boolean) -> Unit,
+    onShowCellHelperChange: ((Boolean) -> Unit)? = null
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Aiuti", fontWeight = FontWeight.Bold)
         HelpToggleRow("Suggerimenti", hintsEnabled) { onHintsChange(it) }
+        if (showCellHelper != null && onShowCellHelperChange != null) {
+            HelpToggleRow("Aiuto nella cella", showCellHelper) { onShowCellHelperChange(it) }
+        }
         HelpToggleRow("Evidenziazioni", highlightsEnabled) { onHighlightsChange(it) }
         HelpToggleRow("Soluzione", allowSolution) { onAllowSolutionChange(it) }
         HelpToggleRow("Auto-check", autoCheck) { onAutoCheckChange(it) }
