@@ -43,14 +43,23 @@ private data class ExpectedSub(
     val topDigitsOriginal: List<Int>,
     val bottomDigits: List<Int>,
     val topDigitsAfterBorrow: List<Int>, // come devono diventare dopo i prestiti
+    val topDigitsBeforeBorrow: List<Int>, // cifre disponibili al momento del confronto
+    val borrowNeeded: List<Boolean>,
     val resultDigits: List<Int>,
     val borrowSteps: List<List<Int>>      // colonne da aggiornare prima della cifra risultato
 )
 
-private enum class SubStepType { RESULT_DIGIT }
+private enum class SubStepType {
+    COMPARE,
+    BORROW_DECISION,
+    BORROW_VALUE,
+    RESULT_DIGIT
+}
 private data class SubStep(val type: SubStepType, val colIndexFromLeft: Int)
 
-private enum class BorrowUIState { HIDDEN, AVAILABLE }
+private const val BORROW_DECISION_ERROR = "BORROW_DECISION_ERROR"
+private const val BORROW_VALUE_ERROR = "BORROW_VALUE_ERROR"
+private const val SUBTRACTION_CALCULATION_ERROR = "SUBTRACTION_CALCULATION_ERROR"
 
 private fun digitsToInt(ds: IntArray): Int {
     var n = 0
@@ -136,12 +145,16 @@ private fun computeExpectedSub(problem: SubProblem, digits: Int): ExpectedSub {
     val top = problem.a.toString().padStart(digits, '0').map { it.digitToInt() }.toMutableList()
     val bottom = problem.b.toString().padStart(digits, '0').map { it.digitToInt() }
     val topAfter = top.toMutableList()
+    val topBefore = MutableList(digits) { 0 }
+    val borrowNeeded = MutableList(digits) { false }
     val borrowSteps = MutableList(digits) { mutableListOf<Int>() }
     val res = MutableList(digits) { 0 }
 
     for (i in digits - 1 downTo 0) {
         val b = bottom[i]
+        topBefore[i] = topAfter[i]
         if (topAfter[i] < b) {
+            borrowNeeded[i] = true
             var j = i - 1
             while (j >= 0 && topAfter[j] == 0) j--
             if (j >= 0) {
@@ -155,9 +168,7 @@ private fun computeExpectedSub(problem: SubProblem, digits: Int): ExpectedSub {
                     }
                 }
                 topAfter[i] += 10
-                if (i != digits - 1) {
-                    updatedColumns += i
-                }
+                updatedColumns += i
                 borrowSteps[i].addAll(updatedColumns)
             }
         }
@@ -168,6 +179,8 @@ private fun computeExpectedSub(problem: SubProblem, digits: Int): ExpectedSub {
         topDigitsOriginal = top,
         bottomDigits = bottom,
         topDigitsAfterBorrow = topAfter,
+        topDigitsBeforeBorrow = topBefore,
+        borrowNeeded = borrowNeeded,
         resultDigits = res,
         borrowSteps = borrowSteps
     )
@@ -177,7 +190,11 @@ private fun buildStepsSub(expected: ExpectedSub): List<SubStep> {
     val digits = expected.topDigitsOriginal.size
     val steps = mutableListOf<SubStep>()
     for (i in digits - 1 downTo 0) {
-        // poi scrivo la cifra del risultato in colonna i
+        steps += SubStep(SubStepType.COMPARE, i)
+        if (expected.borrowNeeded[i]) {
+            steps += SubStep(SubStepType.BORROW_DECISION, i)
+            steps += SubStep(SubStepType.BORROW_VALUE, i)
+        }
         steps += SubStep(SubStepType.RESULT_DIGIT, i)
     }
     return steps
@@ -195,24 +212,29 @@ private fun instructionSub(
     step: SubStep,
     digits: Int,
     expected: ExpectedSub,
-    borrowUiStates: List<BorrowUIState>
+    borrowVisible: List<Boolean>
 ): String {
     val col = step.colIndexFromLeft
     val posFromRight = (digits - 1) - col
     val colName = colNameFromRight(posFromRight)
     return when (step.type) {
+        SubStepType.COMPARE -> {
+            val top = expected.topDigitsBeforeBorrow[col]
+            val bottom = expected.bottomDigits[col]
+            "Nelle $colName: puoi fare $top − $bottom?"
+        }
+        SubStepType.BORROW_DECISION -> "Devi chiedere in prestito?"
+        SubStepType.BORROW_VALUE -> {
+            val top = expected.topDigitsBeforeBorrow[col]
+            "Scrivi il prestito sopra il $top nelle $colName."
+        }
         SubStepType.RESULT_DIGIT -> {
-            val topOriginal = expected.topDigitsOriginal[col]
             val topAfterBorrow = expected.topDigitsAfterBorrow[col]
             val bottom = expected.bottomDigits[col]
-            val borrowVisible = borrowUiStates.getOrNull(col) == BorrowUIState.AVAILABLE
-            val top = if (borrowVisible) topAfterBorrow else topOriginal
-            if (!borrowVisible && topOriginal < bottom) {
-                "Nelle $colName: prova a sottrarre $top − $bottom."
-            } else {
-                val result = (topAfterBorrow - bottom) % 10
-                "Calcola $top − $bottom nelle $colName e scrivi $result."
-            }
+            val result = (topAfterBorrow - bottom) % 10
+            val showBorrow = borrowVisible.getOrNull(col) == true
+            val top = if (showBorrow) topAfterBorrow else expected.topDigitsBeforeBorrow[col]
+            "Calcola $top − $bottom nelle $colName e scrivi $result."
         }
     }
 }
@@ -386,8 +408,16 @@ fun LongSubtractionGame(
         mutableStateListOf<Boolean?>().apply { repeat(activeDigits) { add(null) } }
     }
 
-    val borrowUiStates = remember(problem, activeDigits) {
-        mutableStateListOf<BorrowUIState>().apply { repeat(activeDigits) { add(BorrowUIState.HIDDEN) } }
+    val borrowInputs = remember(problem, activeDigits) {
+        mutableStateListOf<String>().apply { repeat(activeDigits) { add("") } }
+    }
+
+    val borrowOk = remember(problem, activeDigits) {
+        mutableStateListOf<Boolean?>().apply { repeat(activeDigits) { add(null) } }
+    }
+
+    val borrowVisible = remember(problem, activeDigits) {
+        mutableStateListOf<Boolean>().apply { repeat(activeDigits) { add(false) } }
     }
 
     fun resetSame() {
@@ -402,7 +432,9 @@ fun LongSubtractionGame(
         solutionUsed = false
         for (i in resInputs.indices) resInputs[i] = ""
         for (i in resOk.indices) resOk[i] = null
-        for (i in borrowUiStates.indices) borrowUiStates[i] = BorrowUIState.HIDDEN
+        for (i in borrowInputs.indices) borrowInputs[i] = ""
+        for (i in borrowOk.indices) borrowOk[i] = null
+        for (i in borrowVisible.indices) borrowVisible[i] = false
         gameState = if (problem == null) GameState.INIT else GameState.AWAITING_INPUT
         inputGuard.reset()
     }
@@ -442,7 +474,66 @@ fun LongSubtractionGame(
         return currentStep?.type == SubStepType.RESULT_DIGIT && currentStep.colIndexFromLeft == col
     }
 
-    fun tryValidate() {
+    fun tryValidateBorrow() {
+        if (waitTapToContinue) return
+        val s = currentStep ?: return
+        val expectedValues = expected ?: return
+        if (s.type != SubStepType.BORROW_VALUE) return
+        message = null
+        val col = s.colIndexFromLeft
+        val stepId = "sub-borrow-$col"
+        val expectedBorrow = expectedValues.topDigitsAfterBorrow[col]
+        val validation = validateUserInput(
+            stepId = stepId,
+            value = borrowInputs[col],
+            expectedRange = 10..19,
+            gameState = gameState,
+            guard = inputGuard,
+            onInit = {
+                gameState = GameState.AWAITING_INPUT
+                inputGuard.reset()
+            }
+        )
+        if (!validation.isValid) {
+            if (validation.failure == ValidationFailure.TOO_FAST ||
+                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+            ) {
+                return
+            }
+            return
+        }
+        gameState = GameState.VALIDATING
+        val user = borrowInputs[col].toIntOrNull() ?: return
+        val ok = user == expectedBorrow
+        borrowOk[col] = ok
+        if (!ok) {
+            playWrong()
+            attempts += 1
+            stepErrors += StepError(
+                stepLabel = BORROW_VALUE_ERROR,
+                expected = expectedBorrow.toString(),
+                actual = borrowInputs[col]
+            )
+            message = "❌ Quando prendi in prestito aggiungi 10."
+            borrowInputs[col] = ""
+            gameState = GameState.AWAITING_INPUT
+            return
+        }
+        playCorrect()
+        val revealColumns = expectedValues.borrowSteps[col].toMutableSet().apply { add(col) }
+        revealColumns.forEach { idx ->
+            if (idx in borrowVisible.indices) {
+                borrowVisible[idx] = true
+                borrowInputs[idx] = expectedValues.topDigitsAfterBorrow[idx].toString()
+                borrowOk[idx] = true
+            }
+        }
+        stepIndex++
+        gameState = GameState.AWAITING_INPUT
+        inputGuard.reset(stepId)
+    }
+
+    fun tryValidateResult() {
         if (waitTapToContinue) return
         val s = currentStep ?: return
         val expectedValues = expected ?: return
@@ -486,23 +577,12 @@ fun LongSubtractionGame(
                         val posFromRight = (activeDigits - 1) - col
                         val colName = colNameFromRight(posFromRight)
                         stepErrors += StepError(
-                            stepLabel = "Risultato nelle $colName",
+                            stepLabel = SUBTRACTION_CALCULATION_ERROR,
                             expected = exp.toString(),
                             actual = resInputs[col]
                         )
                     }
-                    val borrowNeeded = expectedValues.topDigitsOriginal[col] < bDigit
-                    if (borrowNeeded && borrowUiStates[col] == BorrowUIState.HIDDEN) {
-                        val revealColumns = expectedValues.borrowSteps[col].toMutableSet().apply { add(col) }
-                        revealColumns.forEach { idx ->
-                            if (idx in borrowUiStates.indices) {
-                                borrowUiStates[idx] = BorrowUIState.AVAILABLE
-                            }
-                        }
-                        message = "❌ Qui serve un prestito."
-                    } else {
-                        message = "❌ Riprova"
-                    }
+                    message = "❌ Riprova"
                     resInputs[col] = "" // cancella
                     val locked = inputGuard.registerAttempt(stepId)
                     gameState = GameState.AWAITING_INPUT
@@ -533,7 +613,7 @@ fun LongSubtractionGame(
     val hint = when {
         expected == null -> "Inserisci i numeri e premi Avvia."
         helps?.hintsEnabled == false && !done -> "Completa l'operazione."
-        !done -> instructionSub(currentStep!!, activeDigits, expected, borrowUiStates)
+        !done -> instructionSub(currentStep!!, activeDigits, expected, borrowVisible)
         solutionRevealed -> "Soluzione: ${expected.resultDigits.joinToString("")}"
         else -> "Bravo! 🙂"
     }
@@ -561,6 +641,16 @@ fun LongSubtractionGame(
         if (problem != null && gameState == GameState.INIT) {
             gameState = GameState.AWAITING_INPUT
             inputGuard.reset()
+        }
+    }
+
+    LaunchedEffect(currentStep) {
+        if (currentStep?.type == SubStepType.BORROW_VALUE) {
+            val col = currentStep.colIndexFromLeft
+            if (col in borrowInputs.indices) {
+                borrowInputs[col] = ""
+                borrowOk[col] = null
+            }
         }
     }
 
@@ -644,16 +734,31 @@ fun LongSubtractionGame(
                     } else {
                         @Composable fun BlankBox() { Box(Modifier.size(boxSize)) }
 
-                        // Riga “nuovi numeri sopra” (solo dopo errore prestito)
+                        // Riga “prestito” (visibile solo nel passo dedicato o dopo conferma)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             BlankBox()
                             Spacer(Modifier.width(gap))
                             for (col in 0 until activeDigits) {
-                                val show = borrowUiStates[col] == BorrowUIState.AVAILABLE
-                                if (show) {
+                                val isBorrowStep = currentStep?.type == SubStepType.BORROW_VALUE &&
+                                    currentStep?.colIndexFromLeft == col
+                                val showBorrow = borrowVisible[col] && !isBorrowStep
+                                if (isBorrowStep) {
+                                    SubDigitInput(
+                                        value = borrowInputs[col],
+                                        onChange = { v ->
+                                            borrowInputs[col] = v
+                                        },
+                                        size = boxSize,
+                                        enabled = true,
+                                        active = true,
+                                        bg = MaterialTheme.colorScheme.tertiaryContainer,
+                                        status = borrowOk[col],
+                                        maxDigits = 2
+                                    )
+                                } else if (showBorrow) {
                                     val active = currentStep?.colIndexFromLeft == col
                                     SubStaticBox(
-                                        text = expected.topDigitsAfterBorrow[col].toString(),
+                                        text = borrowInputs[col],
                                         size = boxSize,
                                         active = active,
                                         textColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -680,10 +785,8 @@ fun LongSubtractionGame(
                                     BlankBox()
                                     Spacer(Modifier.width(gap))
                                     for (col in 0 until activeDigits) {
-                                        val active =
-                                            (currentStep?.colIndexFromLeft == col) &&
-                                                (currentStep?.type == SubStepType.RESULT_DIGIT)
-                                        val borrowVisible = borrowUiStates[col] == BorrowUIState.AVAILABLE
+                                        val active = currentStep?.colIndexFromLeft == col
+                                        val showBorrow = borrowVisible[col]
                                         val dimmedText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                                         val dimmedBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
 
@@ -691,9 +794,9 @@ fun LongSubtractionGame(
                                             text = expected.topDigitsOriginal[col].toString(),
                                             size = boxSize,
                                             active = active,
-                                            textColor = if (borrowVisible) dimmedText else MaterialTheme.colorScheme.onSurface,
-                                            backgroundColor = if (borrowVisible) dimmedBackground else MaterialTheme.colorScheme.surfaceVariant,
-                                            borderColorOverride = if (borrowVisible) {
+                                            textColor = if (showBorrow) dimmedText else MaterialTheme.colorScheme.onSurface,
+                                            backgroundColor = if (showBorrow) dimmedBackground else MaterialTheme.colorScheme.surfaceVariant,
+                                            borderColorOverride = if (showBorrow) {
                                                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                                             } else {
                                                 null
@@ -708,9 +811,7 @@ fun LongSubtractionGame(
                                     BlankBox()
                                     Spacer(Modifier.width(gap))
                                     for (col in 0 until activeDigits) {
-                                        val active =
-                                            (currentStep?.colIndexFromLeft == col) &&
-                                                (currentStep?.type == SubStepType.RESULT_DIGIT)
+                                        val active = currentStep?.colIndexFromLeft == col
 
                                         SubStaticBox(
                                             text = expected.bottomDigits[col].toString(),
@@ -750,7 +851,7 @@ fun LongSubtractionGame(
                                     value = resInputs[col],
                                     onChange = { v ->
                                         resInputs[col] = v
-                                        if (enabled) tryValidate()
+                                        if (enabled) tryValidateResult()
                                     },
                                     size = boxSize,
                                     enabled = enabled,
@@ -762,11 +863,73 @@ fun LongSubtractionGame(
                             }
                         }
 
-                        Text(
-                            "Le caselle azzurre sono per il cambio (prestito).",
-                            color = Color(0xFF6B7280),
-                            fontSize = hintFont
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            when (currentStep?.type) {
+                                SubStepType.COMPARE -> {
+                                    Text(
+                                        "Puoi fare ${expected.topDigitsBeforeBorrow[currentStep.colIndexFromLeft]} − " +
+                                            "${expected.bottomDigits[currentStep.colIndexFromLeft]}?",
+                                        color = Color(0xFF6B7280),
+                                        fontSize = hintFont
+                                    )
+                                    Button(onClick = {
+                                        message = null
+                                        stepIndex++
+                                    }) {
+                                        Text("Continua")
+                                    }
+                                }
+                                SubStepType.BORROW_DECISION -> {
+                                    Text(
+                                        "Devi chiedere in prestito?",
+                                        color = Color(0xFF6B7280),
+                                        fontSize = hintFont
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Button(onClick = {
+                                            message = null
+                                            stepIndex++
+                                        }) { Text("Sì") }
+                                        Button(
+                                            onClick = {
+                                                playWrong()
+                                                attempts += 1
+                                                stepErrors += StepError(
+                                                    stepLabel = BORROW_DECISION_ERROR,
+                                                    expected = "Sì",
+                                                    actual = "No"
+                                                )
+                                                message = "❌ A è più piccolo di B, serve un prestito."
+                                            }
+                                        ) {
+                                            Text("No")
+                                        }
+                                    }
+                                }
+                                SubStepType.BORROW_VALUE -> {
+                                    Text(
+                                        "Scrivi il prestito nella casella sopra.",
+                                        color = Color(0xFF6B7280),
+                                        fontSize = hintFont
+                                    )
+                                    val col = currentStep.colIndexFromLeft
+                                    val enabled = borrowInputs[col].length >= 2
+                                    Button(
+                                        onClick = { tryValidateBorrow() },
+                                        enabled = enabled
+                                    ) {
+                                        Text("Conferma prestito")
+                                    }
+                                }
+                                else -> {
+                                    Text(
+                                        "Le caselle grigie sono per il risultato.",
+                                        color = Color(0xFF6B7280),
+                                        fontSize = hintFont
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
