@@ -98,6 +98,13 @@ fun HomeworkBuilderScreen(
     var tableHighlightsEnabled by remember { mutableStateOf(false) }
     var tableAllowSolution by remember { mutableStateOf(false) }
     var tableAutoCheck by remember { mutableStateOf(false) }
+    val toggleTable: (Int) -> Unit = { table ->
+        if (tableSelectedTables.contains(table)) {
+            tableSelectedTables.remove(table)
+        } else {
+            tableSelectedTables.add(table)
+        }
+    }
 
     var divisionEnabled by remember { mutableStateOf(false) }
     var divisionDigitsInput by remember { mutableStateOf("2") }
@@ -339,38 +346,32 @@ fun HomeworkBuilderScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Seleziona la/le tabellina/e", fontWeight = FontWeight.Bold)
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 (1..5).forEach { table ->
                                     val selected = tableSelectedTables.contains(table)
                                     Box(modifier = Modifier.weight(1f)) {
                                         SourceChip(
                                             label = table.toString(),
                                             selected = selected,
-                                            onClick = {
-                                                if (selected) {
-                                                    tableSelectedTables.remove(table)
-                                                } else {
-                                                    tableSelectedTables.add(table)
-                                                }
-                                            }
+                                            onClick = { toggleTable(table) }
                                         )
                                     }
                                 }
                             }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 (6..10).forEach { table ->
                                     val selected = tableSelectedTables.contains(table)
                                     Box(modifier = Modifier.weight(1f)) {
                                         SourceChip(
                                             label = table.toString(),
                                             selected = selected,
-                                            onClick = {
-                                                if (selected) {
-                                                    tableSelectedTables.remove(table)
-                                                } else {
-                                                    tableSelectedTables.add(table)
-                                                }
-                                            }
+                                            onClick = { toggleTable(table) }
                                         )
                                     }
                                 }
