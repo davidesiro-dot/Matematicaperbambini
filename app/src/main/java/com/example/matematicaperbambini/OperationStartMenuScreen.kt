@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
@@ -110,15 +108,18 @@ fun OperationStartMenuScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 HelpPreset.values().forEach { preset ->
-                    ModeSegmentedButton(
-                        label = when (preset) {
-                            HelpPreset.GUIDED -> "Guidato"
-                            HelpPreset.TRAINING -> "Allenamento"
-                            HelpPreset.CHALLENGE -> "Sfida"
-                        },
-                        selected = preset == selectedHelpPreset,
-                        onClick = { onSelectHelpPreset(preset) }
-                    )
+                    Box(modifier = Modifier.weight(1f)) {
+                        ModeSegmentedButton(
+                            label = when (preset) {
+                                HelpPreset.GUIDED -> "Guidato"
+                                HelpPreset.TRAINING -> "Allenamento"
+                                HelpPreset.CHALLENGE -> "Sfida"
+                            },
+                            selected = preset == selectedHelpPreset,
+                            onClick = { onSelectHelpPreset(preset) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
@@ -217,7 +218,7 @@ private fun StartModeButton(
 }
 
 @Composable
-private fun RowScope.ModeSegmentedButton(
+private fun ModeSegmentedButton(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -237,7 +238,6 @@ private fun RowScope.ModeSegmentedButton(
     Button(
         onClick = onClick,
         modifier = modifier
-            .weight(1f)
             .height(48.dp),
         shape = RoundedCornerShape(12.dp),
         colors = colors,
