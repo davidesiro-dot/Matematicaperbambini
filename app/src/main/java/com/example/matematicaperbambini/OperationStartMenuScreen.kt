@@ -115,8 +115,7 @@ fun OperationStartMenuScreen(
                             HelpPreset.CHALLENGE -> "Sfida"
                         },
                         selected = preset == selectedHelpPreset,
-                        onClick = { onSelectHelpPreset(preset) },
-                        modifier = Modifier.weight(1f)
+                        onClick = { onSelectHelpPreset(preset) }
                     )
                 }
             }
@@ -235,23 +234,26 @@ private fun ModeSegmentedButton(
     }
     Button(
         onClick = onClick,
-        modifier = modifier.height(50.dp),
+        modifier = modifier
+            .weight(1f)
+            .height(48.dp),
         shape = RoundedCornerShape(12.dp),
         colors = colors,
         border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+        contentPadding = PaddingValues(0.dp)
     ) {
-        ModeButtonText(
-            text = label,
-            modifier = Modifier.fillMaxWidth()
-        )
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            ModeButtonText(label)
+        }
     }
 }
 
 @Composable
 private fun ModeButtonText(
-    text: String,
-    modifier: Modifier = Modifier
+    text: String
 ) {
     val textSizeState = remember(text) { mutableStateOf(16.sp) }
 
@@ -262,12 +264,12 @@ private fun ModeButtonText(
         overflow = TextOverflow.Clip,
         fontSize = textSizeState.value,
         fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
         onTextLayout = { result ->
             if (result.hasVisualOverflow && textSizeState.value > 12.sp) {
                 textSizeState.value = (textSizeState.value.value - 1).sp
             }
-        },
-        modifier = modifier
+        }
     )
 }
 
