@@ -1015,6 +1015,7 @@ private fun SourceChip(
         ) {
             Text(
                 label,
+                modifier = Modifier.padding(vertical = 4.dp),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 softWrap = false
