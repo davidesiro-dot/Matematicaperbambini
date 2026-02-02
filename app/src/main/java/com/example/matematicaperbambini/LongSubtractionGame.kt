@@ -56,6 +56,11 @@ private enum class BorrowPhase {
     TARGET_INPUT
 }
 
+private enum class DigitVisualState {
+    ACTIVE,
+    CONSUMED_BY_BORROW
+}
+
 private fun digitsToInt(ds: IntArray): Int {
     var n = 0
     for (d in ds) n = n * 10 + d
@@ -891,7 +896,21 @@ fun LongSubtractionGame(
                                     Spacer(Modifier.width(gap))
                                     for (col in 0 until activeDigits) {
                                         val active = col == currentColumn
-                                        val showBorrow = borrowVisible[col]
+                                        val isActiveBorrowSource = borrowPending &&
+                                            borrowPhase == BorrowPhase.SOURCE_INPUT &&
+                                            borrowSource == col
+                                        val isActiveBorrowTarget = borrowPending &&
+                                            borrowPhase == BorrowPhase.TARGET_INPUT &&
+                                            col == currentColumn
+                                        val isConsumedByBorrow = borrowVisible[col] ||
+                                            borrowTargetOk[col] == true ||
+                                            isActiveBorrowSource ||
+                                            isActiveBorrowTarget
+                                        val visualState = if (isConsumedByBorrow) {
+                                            DigitVisualState.CONSUMED_BY_BORROW
+                                        } else {
+                                            DigitVisualState.ACTIVE
+                                        }
                                         val dimmedText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                                         val dimmedBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
 
@@ -899,9 +918,17 @@ fun LongSubtractionGame(
                                             text = expected.topDigitsOriginal[col].toString(),
                                             size = boxSize,
                                             active = active,
-                                            textColor = if (showBorrow) dimmedText else MaterialTheme.colorScheme.onSurface,
-                                            backgroundColor = if (showBorrow) dimmedBackground else MaterialTheme.colorScheme.surfaceVariant,
-                                            borderColorOverride = if (showBorrow) {
+                                            textColor = if (visualState == DigitVisualState.CONSUMED_BY_BORROW) {
+                                                dimmedText
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurface
+                                            },
+                                            backgroundColor = if (visualState == DigitVisualState.CONSUMED_BY_BORROW) {
+                                                dimmedBackground
+                                            } else {
+                                                MaterialTheme.colorScheme.surfaceVariant
+                                            },
+                                            borderColorOverride = if (visualState == DigitVisualState.CONSUMED_BY_BORROW) {
                                                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                                             } else {
                                                 null
