@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -97,6 +98,13 @@ fun HomeworkBuilderScreen(
     var tableHighlightsEnabled by remember { mutableStateOf(false) }
     var tableAllowSolution by remember { mutableStateOf(false) }
     var tableAutoCheck by remember { mutableStateOf(false) }
+    val toggleTable: (Int) -> Unit = { table ->
+        if (tableSelectedTables.contains(table)) {
+            tableSelectedTables.remove(table)
+        } else {
+            tableSelectedTables.add(table)
+        }
+    }
 
     var divisionEnabled by remember { mutableStateOf(false) }
     var divisionDigitsInput by remember { mutableStateOf("2") }
@@ -164,7 +172,7 @@ fun HomeworkBuilderScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
                         Text("Corretto: $perfectCount")
-                        Text("Completato con passaggi da rinforzare: $withErrorsCount")
+                        Text("Completato con errori: $withErrorsCount")
                         Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
                     }
                 }
@@ -338,36 +346,34 @@ fun HomeworkBuilderScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Seleziona la/le tabellina/e", fontWeight = FontWeight.Bold)
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 (1..5).forEach { table ->
                                     val selected = tableSelectedTables.contains(table)
-                                    SourceChip(
-                                        label = table.toString(),
-                                        selected = selected,
-                                        onClick = {
-                                            if (selected) {
-                                                tableSelectedTables.remove(table)
-                                            } else {
-                                                tableSelectedTables.add(table)
-                                            }
-                                        }
-                                    )
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SourceChip(
+                                            label = table.toString(),
+                                            selected = selected,
+                                            onClick = { toggleTable(table) }
+                                        )
+                                    }
                                 }
                             }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 (6..10).forEach { table ->
                                     val selected = tableSelectedTables.contains(table)
-                                    SourceChip(
-                                        label = table.toString(),
-                                        selected = selected,
-                                        onClick = {
-                                            if (selected) {
-                                                tableSelectedTables.remove(table)
-                                            } else {
-                                                tableSelectedTables.add(table)
-                                            }
-                                        }
-                                    )
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SourceChip(
+                                            label = table.toString(),
+                                            selected = selected,
+                                            onClick = { toggleTable(table) }
+                                        )
+                                    }
                                 }
                             }
                             if (tableSelectedTables.isNotEmpty()) {
@@ -385,23 +391,29 @@ fun HomeworkBuilderScreen(
                         Text("Modalità tabelline", fontWeight = FontWeight.Bold)
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SourceChip(
-                                    label = "Classica",
-                                    selected = tableMode == TabellineMode.CLASSIC,
-                                    onClick = { tableMode = TabellineMode.CLASSIC }
-                                )
-                                SourceChip(
-                                    label = "Buchi",
-                                    selected = tableMode == TabellineMode.GAPS,
-                                    onClick = { tableMode = TabellineMode.GAPS }
-                                )
+                                Box(modifier = Modifier.weight(1f)) {
+                                    SourceChip(
+                                        label = "Classica",
+                                        selected = tableMode == TabellineMode.CLASSIC,
+                                        onClick = { tableMode = TabellineMode.CLASSIC }
+                                    )
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    SourceChip(
+                                        label = "Buchi",
+                                        selected = tableMode == TabellineMode.GAPS,
+                                        onClick = { tableMode = TabellineMode.GAPS }
+                                    )
+                                }
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SourceChip(
-                                    label = "Scelta multipla",
-                                    selected = tableMode == TabellineMode.MULTIPLE_CHOICE,
-                                    onClick = { tableMode = TabellineMode.MULTIPLE_CHOICE }
-                                )
+                                Box(modifier = Modifier.weight(1f)) {
+                                    SourceChip(
+                                        label = "Scelta multipla",
+                                        selected = tableMode == TabellineMode.MULTIPLE_CHOICE,
+                                        onClick = { tableMode = TabellineMode.MULTIPLE_CHOICE }
+                                    )
+                                }
                             }
                         }
                         HelpConfigSection(
@@ -865,11 +877,13 @@ private fun RandomSourceRow(
     onSourceChange: (ExerciseSourceConfig) -> Unit
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SourceChip(
-            label = "Random",
-            selected = source is ExerciseSourceConfig.Random,
-            onClick = { onSourceChange(ExerciseSourceConfig.Random) }
-        )
+        Box(modifier = Modifier.weight(1f)) {
+            SourceChip(
+                label = "Random",
+                selected = source is ExerciseSourceConfig.Random,
+                onClick = { onSourceChange(ExerciseSourceConfig.Random) }
+            )
+        }
     }
 }
 
@@ -894,11 +908,13 @@ private fun ManualExerciseSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SourceChip(
-                label = "Manuale",
-                selected = source is ExerciseSourceConfig.Manual,
-                onClick = { onSourceChange(ExerciseSourceConfig.Manual(manualOps.toList())) }
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                SourceChip(
+                    label = "Manuale",
+                    selected = source is ExerciseSourceConfig.Manual,
+                    onClick = { onSourceChange(ExerciseSourceConfig.Manual(manualOps.toList())) }
+                )
+            }
         }
     }
 
@@ -986,9 +1002,26 @@ private fun SourceChip(
     }
     Button(
         onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(0.dp),
         colors = colors,
         border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-    ) { Text(label) }
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                label,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 6.dp, bottom = 6.dp)
+            )
+        }
+    }
 }
 
 @Composable
@@ -1287,7 +1320,7 @@ private fun HomeworkReportScreen(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
                 Text("Corretto: $perfectCount")
-                Text("Completato con passaggi da rinforzare: $withErrorsCount")
+                Text("Completato con errori: $withErrorsCount")
                 Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
             }
         }
@@ -1366,7 +1399,7 @@ private fun HomeworkReportScreen(
                             if (result.stepErrors.isNotEmpty()) {
                                 Text("Passaggi da rinforzare:")
                                 result.stepErrors.forEach { err ->
-                                    Text("• ${err.stepLabel}: inserito ${err.actual}, corretto ${err.expected}")
+                                    Text("• ${stepErrorDescription(err)}")
                                 }
                             }
                             if (result.solutionUsed) {
@@ -1411,7 +1444,7 @@ fun HomeworkReportsScreen(
                     Text("📅 Giornaliero", fontWeight = FontWeight.Bold)
                     Text("Esercizi oggi: ${stats.today.total}")
                     Text("Corretto: ${stats.today.correct}")
-                    Text("Con passaggi da rinforzare: ${stats.today.withErrors}")
+                    Text("Con errori: ${stats.today.withErrors}")
                     Spacer(Modifier.height(8.dp))
                     Text("📊 Settimanale", fontWeight = FontWeight.Bold)
                     Text("Totale esercizi: ${stats.week.total}")
@@ -1447,7 +1480,7 @@ fun HomeworkReportsScreen(
                             val correctCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
                             val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
                             val wrongCount = report.results.size - correctCount - withErrorsCount
-                            Text("Risultati: $correctCount corretti, $withErrorsCount con passaggi da rinforzare, $wrongCount da ripassare")
+                            Text("Risultati: $correctCount corretti, $withErrorsCount con errori, $wrongCount da ripassare")
                             Divider(Modifier.padding(vertical = 4.dp))
                             report.results.forEachIndexed { rIdx, result ->
                                 val expected = expectedAnswer(result.instance)
@@ -1465,7 +1498,7 @@ fun HomeworkReportsScreen(
                                     if (result.stepErrors.isNotEmpty()) {
                                         Text("Passaggi da rinforzare:")
                                         result.stepErrors.forEach { err ->
-                                            Text("• ${err.stepLabel}: inserito ${err.actual}, corretto ${err.expected}")
+                                            Text("• ${stepErrorDescription(err)}")
                                         }
                                     }
                                     if (result.solutionUsed) {
@@ -1593,14 +1626,34 @@ private fun genericCategory(game: GameType): String {
 
 private fun classifyStepError(stepLabel: String, game: GameType): String {
     val label = stepLabel.lowercase(Locale.getDefault())
-    return when {
-        label.contains("riporto") -> "Riporti nelle addizioni"
-        label.contains("prestito") -> "Prestiti nelle sottrazioni"
-        label.contains("quoziente") -> "Cifre del quoziente nelle divisioni"
-        label.contains("prodotto") -> "Prodotti nelle divisioni"
-        label.contains("resto") -> "Resti nelle divisioni"
-        else -> genericCategory(game)
+    if (label.contains("borrow_chain_error")) {
+        return "Prestiti nelle sottrazioni"
     }
+    if (label.contains("borrow_value_error")) {
+        return "Prestiti nelle sottrazioni"
+    }
+    if (label.contains("borrow_target_error")) {
+        return "Prestiti nelle sottrazioni"
+    }
+    if (label.contains("subtraction_calculation_error")) {
+        return "Sottrazioni da ripassare"
+    }
+    if (label.contains("riporto")) {
+        return "Riporti nelle addizioni"
+    }
+    if (label.contains("prestito")) {
+        return "Prestiti nelle sottrazioni"
+    }
+    if (label.contains("quoziente")) {
+        return "Cifre del quoziente nelle divisioni"
+    }
+    if (label.contains("prodotto")) {
+        return "Prodotti nelle divisioni"
+    }
+    if (label.contains("resto")) {
+        return "Resti nelle divisioni"
+    }
+    return genericCategory(game)
 }
 
 private fun analyzeErrorPatterns(results: List<ExerciseResult>): List<ErrorPattern> {
@@ -1759,9 +1812,30 @@ private fun percentPerfect(results: List<ExerciseResult>): Int {
 private fun outcomeLabel(outcome: ExerciseOutcome): String {
     return when (outcome) {
         ExerciseOutcome.PERFECT -> "✅ Corretto"
-        ExerciseOutcome.COMPLETED_WITH_ERRORS -> "⚠️ Completato con passaggi da rinforzare"
+        ExerciseOutcome.COMPLETED_WITH_ERRORS -> "⚠️ Completato con errori"
         ExerciseOutcome.FAILED -> "❌ Da ripassare"
     }
+}
+
+private fun stepErrorDescription(error: StepError): String {
+    val label = error.stepLabel.lowercase(Locale.getDefault())
+    if (label.contains("borrow_chain_error")) {
+        val parts = error.expected.split("->")
+        if (parts.size == 2) {
+            return "Errore nel prestito dalle ${parts[0]} alle ${parts[1]}"
+        }
+        return "Errore nella catena del prestito"
+    }
+    if (label.contains("borrow_value_error")) {
+        return "Errore nella scrittura del prestito"
+    }
+    if (label.contains("borrow_target_error")) {
+        return "Errore nel calcolo del numero dopo il prestito (${error.expected})"
+    }
+    if (label.contains("subtraction_calculation_error")) {
+        return "Errore nel calcolo della sottrazione"
+    }
+    return "${error.stepLabel}: inserito ${error.actual}, corretto ${error.expected}"
 }
 
 private fun outcomeColor(outcome: ExerciseOutcome): Color {

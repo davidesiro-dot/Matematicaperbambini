@@ -156,7 +156,7 @@ private fun hmComputePlan2x2(a: Int, b: Int): HMPlan {
     for (col in columns - 1 downTo 1) {
         val s = p1d[col] + p2d[col] + carry
         carry = s / 10
-        if (carry > 0 && col - 1 >= 1) {
+        if (carry > 0 && col - 1 >= 0) {
             carrySUM[col - 1] = carry.toString()[0]
         }
     }
@@ -311,7 +311,7 @@ private fun hmComputePlan2x2(a: Int, b: Int): HMPlan {
             "Somma ${hmColLabel(col, columns)}: ${p1d[col]} + ${p2d[col]}${if (carryIn > 0) " + riporto $carryIn" else ""} → scrivi $digit",
             highlightsForSum(col, HMHighlightRow.SUM, col, carryHighlightCol)
         )
-        if (carryOut > 0 && col - 1 >= 0 && (col - 1) != 0) {
+        if (carryOut > 0 && col - 1 >= 0) {
             addCarry(
                 HMRowKey.CARRY_SUM,
                 col - 1,
@@ -328,12 +328,13 @@ private fun hmComputePlan2x2(a: Int, b: Int): HMPlan {
         if (sumStartCol <= col) {
             val s = p1d[col] + p2d[col] + cin
             if (col == 0) {
+                val carryCol = if (cin > 0 && carrySUM[0] != ' ') 0 else null
                 addDigit(
                     HMRowKey.SUM,
                     0,
                     (s % 10).toString()[0],
                     "Ultima colonna a sinistra: ${p1d[0]} + ${p2d[0]}${if (cin > 0) " + riporto $cin" else ""} → scrivi ${s % 10}",
-                    highlightsForSum(0, HMHighlightRow.SUM, 0)
+                    highlightsForSum(0, HMHighlightRow.SUM, 0, carryCol)
                 )
             } else {
                 addSum(col, cin, s / 10, s % 10)
@@ -536,7 +537,7 @@ private fun hmComputePlan3x1(a: Int, b: Int): HMPlan {
             "Somma ${hmColLabel(col, columns)}: ${p1d[col]} + ${p2d[col]}${if (carryIn > 0) " + riporto $carryIn" else ""} → scrivi $digit",
             highlightsForSum(col, HMHighlightRow.SUM, col, carryHighlightCol)
         )
-        if (carryOut > 0 && col - 1 >= 0 && (col - 1) != 0) {
+        if (carryOut > 0 && col - 1 >= 0) {
             addCarry(
                 HMRowKey.CARRY_SUM,
                 col - 1,
@@ -553,12 +554,13 @@ private fun hmComputePlan3x1(a: Int, b: Int): HMPlan {
         if (sumStartCol <= col) {
             val s = p1d[col] + p2d[col] + cin
             if (col == 0) {
+                val carryCol = if (cin > 0 && carrySUM[0] != ' ') 0 else null
                 addDigit(
                     HMRowKey.SUM,
                     0,
                     (s % 10).toString()[0],
                     "Ultima colonna a sinistra: ${p1d[0]} + ${p2d[0]}${if (cin > 0) " + riporto $cin" else ""} → scrivi ${s % 10}",
-                    highlightsForSum(0, HMHighlightRow.SUM, 0)
+                    highlightsForSum(0, HMHighlightRow.SUM, 0, carryCol)
                 )
             } else {
                 addSum(col, cin, s / 10, s % 10)
@@ -659,7 +661,7 @@ private fun hmComputePlan3x2(a: Int, b: Int): HMPlan {
     for (col in columns - 1 downTo 1) {
         val s = p1d[col] + p2d[col] + carry
         carry = s / 10
-        if (carry > 0 && col - 1 >= 1) {
+        if (carry > 0 && col - 1 >= 0) {
             carrySUM[col - 1] = carry.toString()[0]
         }
     }
@@ -862,7 +864,7 @@ private fun hmComputePlan3x2(a: Int, b: Int): HMPlan {
             "Somma ${hmColLabel(col, columns)}: ${p1d[col]} + ${p2d[col]}${if (carryIn > 0) " + riporto $carryIn" else ""} → scrivi $digit",
             highlightsForSum(col, HMHighlightRow.SUM, col, carryHighlightCol)
         )
-        if (carryOut > 0 && col - 1 >= 0 && (col - 1) != 0) {
+        if (carryOut > 0 && col - 1 >= 0) {
             addCarry(
                 HMRowKey.CARRY_SUM,
                 col - 1,
@@ -879,12 +881,13 @@ private fun hmComputePlan3x2(a: Int, b: Int): HMPlan {
         if (sumStartCol <= col) {
             val s = p1d[col] + p2d[col] + cin
             if (col == 0) {
+                val carryCol = if (cin > 0 && carrySUM[0] != ' ') 0 else null
                 addDigit(
                     HMRowKey.SUM,
                     0,
                     (s % 10).toString()[0],
                     "Ultima colonna a sinistra: ${p1d[0]} + ${p2d[0]}${if (cin > 0) " + riporto $cin" else ""} → scrivi ${s % 10}",
-                    highlightsForSum(0, HMHighlightRow.SUM, 0)
+                    highlightsForSum(0, HMHighlightRow.SUM, 0, carryCol)
                 )
             } else {
                 addSum(col, cin, s / 10, s % 10)

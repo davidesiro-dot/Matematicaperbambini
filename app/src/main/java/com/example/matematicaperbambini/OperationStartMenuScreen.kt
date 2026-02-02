@@ -14,16 +14,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -42,7 +48,9 @@ fun OperationStartMenuScreen(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
-    onSelectStartMode: (StartMode) -> Unit
+    onSelectStartMode: (StartMode) -> Unit,
+    selectedHelpPreset: HelpPreset,
+    onSelectHelpPreset: (HelpPreset) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -86,6 +94,36 @@ fun OperationStartMenuScreen(
                     onClick = { onSelectStartMode(StartMode.MANUAL) }
                 )
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                "Modalità di gioco",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF374151)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                HelpPreset.values().forEach { preset ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        ModeSegmentedButton(
+                            label = when (preset) {
+                                HelpPreset.GUIDED -> "Guidato"
+                                HelpPreset.TRAINING -> "Allenamento"
+                                HelpPreset.CHALLENGE -> "Sfida"
+                            },
+                            selected = preset == selectedHelpPreset,
+                            onClick = { onSelectHelpPreset(preset) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
+            AiutiAttiviInfo(selectedHelpPreset)
         }
 
         Spacer(Modifier.weight(1f))
@@ -173,6 +211,98 @@ private fun StartModeButton(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeSegmentedButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = if (selected) {
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = Color.White
+        )
+    } else {
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
+    }
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = colors,
+        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            ModeButtonText(label)
+        }
+    }
+}
+
+@Composable
+private fun ModeButtonText(
+    text: String
+) {
+    val textSizeState = remember(text) { mutableStateOf(16.sp) }
+
+    Text(
+        text = text,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        fontSize = textSizeState.value,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        onTextLayout = { result ->
+            if (result.hasVisualOverflow && textSizeState.value > 12.sp) {
+                textSizeState.value = (textSizeState.value.value - 1).sp
+            }
+        }
+    )
+}
+
+@Composable
+private fun AiutiAttiviInfo(selectedHelpPreset: HelpPreset) {
+    val helps = selectedHelpPreset.toHelpSettings()
+    val activeHelps = buildList {
+        if (helps.hintsEnabled) add("Suggerimenti")
+        if (helps.highlightsEnabled) add("Evidenziazioni")
+        if (helps.allowSolution) add("Soluzione disponibile")
+        if (helps.autoCheck) add("Controllo automatico")
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            "Aiuti attivi",
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF374151)
+        )
+        if (activeHelps.isEmpty()) {
+            Text(
+                "Nessun aiuto attivo.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            activeHelps.forEach { help ->
+                Text(
+                    text = "• $help",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

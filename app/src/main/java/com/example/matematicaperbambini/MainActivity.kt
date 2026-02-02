@@ -504,6 +504,8 @@ private fun AppShell() {
     var mode by remember { mutableStateOf(GameMode.ADD) }
     var digits by remember { mutableStateOf(2) }
     var startMode by remember { mutableStateOf(StartMode.RANDOM) }
+    var helpPreset by remember { mutableStateOf(HelpPreset.GUIDED) }
+    var sessionHelpSettings by remember { mutableStateOf(helpPreset.toHelpSettings()) }
 
     var pendingDigitsMode by remember { mutableStateOf<GameMode?>(null) }
     var pendingStartMenuMode by remember { mutableStateOf<GameMode?>(null) }
@@ -525,6 +527,7 @@ private fun AppShell() {
         mode = m
         digits = d
         startMode = startModeValue
+        sessionHelpSettings = helpPreset.toHelpSettings()
         navAnim = NavAnim.EXPAND
         screen = Screen.GAME
     }
@@ -590,6 +593,7 @@ private fun AppShell() {
                     onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                     onSelectStartMode = { chosenMode ->
                         startMode = chosenMode
+                        sessionHelpSettings = helpPreset.toHelpSettings()
                         when (startMenuMode) {
                             GameMode.ADD, GameMode.SUB -> {
                                 if (chosenMode == StartMode.MANUAL) {
@@ -605,7 +609,9 @@ private fun AppShell() {
                             GameMode.DIV -> { navAnim = NavAnim.SLIDE; screen = Screen.DIV_STEP_GAME }
                             GameMode.MONEY -> openGame(startMenuMode, digits, startMode)
                         }
-                    }
+                    },
+                    selectedHelpPreset = helpPreset,
+                    onSelectHelpPreset = { helpPreset = it }
                 )
             }
 
@@ -719,7 +725,8 @@ private fun AppShell() {
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenLeaderboard = { openLb() },
-                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
+                helps = sessionHelpSettings
             )
 
             // ✅ NUOVA SCHERMATA: DIVISIONI PASSO-PASSO
@@ -730,13 +737,15 @@ private fun AppShell() {
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenLeaderboard = { openLb() },
-                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
+                helps = sessionHelpSettings
             )
 
             Screen.GAME -> GameRouter(
                 mode = mode,
                 digits = digits,
                 startMode = startMode,
+                helps = sessionHelpSettings,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
@@ -1327,16 +1336,18 @@ fun MultTablePickerScreen(
                         for (col in 0 until 3) {
                             val n = row * 3 + col + 1
                             if (n <= 10) {
-                                Button(
-                                    onClick = { onPickTable(n) },
-                                    modifier = Modifier.weight(1f).height(64.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFF59E0B),
-                                        contentColor = Color.White
-                                    )
-                                ) {
-                                    Text("× $n", fontSize = 22.sp, fontWeight = FontWeight.Black)
+                                Box(modifier = Modifier.weight(1f)) {
+                                    Button(
+                                        onClick = { onPickTable(n) },
+                                        modifier = Modifier.fillMaxWidth().height(64.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFF59E0B),
+                                            contentColor = Color.White
+                                        )
+                                    ) {
+                                        Text("× $n", fontSize = 22.sp, fontWeight = FontWeight.Black)
+                                    }
                                 }
                             } else {
                                 Spacer(Modifier.weight(1f))
@@ -1359,6 +1370,7 @@ fun GameRouter(
     mode: GameMode,
     digits: Int,
     startMode: StartMode,
+    helps: HelpSettings,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
@@ -1375,7 +1387,8 @@ fun GameRouter(
             fx = fx,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            helps = helps
         )
 
 
@@ -1387,7 +1400,8 @@ fun GameRouter(
             fx = fx,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            helps = helps
         )
 
         // ✅ anche se dal menu vai alla schermata dedicata, qui lo gestiamo uguale
@@ -1398,7 +1412,8 @@ fun GameRouter(
             fx = fx,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            helps = helps
         )
 
         GameMode.MONEY -> MoneyCountGame(
