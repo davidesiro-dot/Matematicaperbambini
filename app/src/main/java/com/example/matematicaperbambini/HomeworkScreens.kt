@@ -1600,6 +1600,9 @@ private fun classifyStepError(stepLabel: String, game: GameType): String {
     if (label.contains("borrow_value_error")) {
         return "Prestiti nelle sottrazioni"
     }
+    if (label.contains("borrow_target_error")) {
+        return "Prestiti nelle sottrazioni"
+    }
     if (label.contains("subtraction_calculation_error")) {
         return "Sottrazioni da ripassare"
     }
@@ -1785,10 +1788,17 @@ private fun outcomeLabel(outcome: ExerciseOutcome): String {
 private fun stepErrorDescription(error: StepError): String {
     val label = error.stepLabel.lowercase(Locale.getDefault())
     if (label.contains("borrow_chain_error")) {
+        val parts = error.expected.split("->")
+        if (parts.size == 2) {
+            return "Errore nel prestito dalle ${parts[0]} alle ${parts[1]}"
+        }
         return "Errore nella catena del prestito"
     }
     if (label.contains("borrow_value_error")) {
         return "Errore nella scrittura del prestito"
+    }
+    if (label.contains("borrow_target_error")) {
+        return "Errore nel calcolo del numero dopo il prestito (${error.expected})"
     }
     if (label.contains("subtraction_calculation_error")) {
         return "Errore nel calcolo della sottrazione"
