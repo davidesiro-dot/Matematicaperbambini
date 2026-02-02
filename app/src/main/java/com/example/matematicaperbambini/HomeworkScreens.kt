@@ -342,33 +342,37 @@ fun HomeworkBuilderScreen(
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 (1..5).forEach { table ->
                                     val selected = tableSelectedTables.contains(table)
-                                    SourceChip(
-                                        label = table.toString(),
-                                        selected = selected,
-                                        onClick = {
-                                            if (selected) {
-                                                tableSelectedTables.remove(table)
-                                            } else {
-                                                tableSelectedTables.add(table)
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SourceChip(
+                                            label = table.toString(),
+                                            selected = selected,
+                                            onClick = {
+                                                if (selected) {
+                                                    tableSelectedTables.remove(table)
+                                                } else {
+                                                    tableSelectedTables.add(table)
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 (6..10).forEach { table ->
                                     val selected = tableSelectedTables.contains(table)
-                                    SourceChip(
-                                        label = table.toString(),
-                                        selected = selected,
-                                        onClick = {
-                                            if (selected) {
-                                                tableSelectedTables.remove(table)
-                                            } else {
-                                                tableSelectedTables.add(table)
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SourceChip(
+                                            label = table.toString(),
+                                            selected = selected,
+                                            onClick = {
+                                                if (selected) {
+                                                    tableSelectedTables.remove(table)
+                                                } else {
+                                                    tableSelectedTables.add(table)
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
                             }
                             if (tableSelectedTables.isNotEmpty()) {
@@ -386,23 +390,29 @@ fun HomeworkBuilderScreen(
                         Text("Modalità tabelline", fontWeight = FontWeight.Bold)
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SourceChip(
-                                    label = "Classica",
-                                    selected = tableMode == TabellineMode.CLASSIC,
-                                    onClick = { tableMode = TabellineMode.CLASSIC }
-                                )
-                                SourceChip(
-                                    label = "Buchi",
-                                    selected = tableMode == TabellineMode.GAPS,
-                                    onClick = { tableMode = TabellineMode.GAPS }
-                                )
+                                Box(modifier = Modifier.weight(1f)) {
+                                    SourceChip(
+                                        label = "Classica",
+                                        selected = tableMode == TabellineMode.CLASSIC,
+                                        onClick = { tableMode = TabellineMode.CLASSIC }
+                                    )
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    SourceChip(
+                                        label = "Buchi",
+                                        selected = tableMode == TabellineMode.GAPS,
+                                        onClick = { tableMode = TabellineMode.GAPS }
+                                    )
+                                }
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SourceChip(
-                                    label = "Scelta multipla",
-                                    selected = tableMode == TabellineMode.MULTIPLE_CHOICE,
-                                    onClick = { tableMode = TabellineMode.MULTIPLE_CHOICE }
-                                )
+                                Box(modifier = Modifier.weight(1f)) {
+                                    SourceChip(
+                                        label = "Scelta multipla",
+                                        selected = tableMode == TabellineMode.MULTIPLE_CHOICE,
+                                        onClick = { tableMode = TabellineMode.MULTIPLE_CHOICE }
+                                    )
+                                }
                             }
                         }
                         HelpConfigSection(
@@ -866,11 +876,13 @@ private fun RandomSourceRow(
     onSourceChange: (ExerciseSourceConfig) -> Unit
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SourceChip(
-            label = "Random",
-            selected = source is ExerciseSourceConfig.Random,
-            onClick = { onSourceChange(ExerciseSourceConfig.Random) }
-        )
+        Box(modifier = Modifier.weight(1f)) {
+            SourceChip(
+                label = "Random",
+                selected = source is ExerciseSourceConfig.Random,
+                onClick = { onSourceChange(ExerciseSourceConfig.Random) }
+            )
+        }
     }
 }
 
@@ -895,11 +907,13 @@ private fun ManualExerciseSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SourceChip(
-                label = "Manuale",
-                selected = source is ExerciseSourceConfig.Manual,
-                onClick = { onSourceChange(ExerciseSourceConfig.Manual(manualOps.toList())) }
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                SourceChip(
+                    label = "Manuale",
+                    selected = source is ExerciseSourceConfig.Manual,
+                    onClick = { onSourceChange(ExerciseSourceConfig.Manual(manualOps.toList())) }
+                )
+            }
         }
     }
 
@@ -988,8 +1002,16 @@ private fun SourceChip(
     Button(
         onClick = onClick,
         colors = colors,
-        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-    ) { Text(label) }
+        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            label,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
+        )
+    }
 }
 
 @Composable

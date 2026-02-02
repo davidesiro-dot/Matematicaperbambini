@@ -197,70 +197,74 @@ fun MoneyCountGame(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(ui.spacing)
                             ) {
-                                Button(
-                                    onClick = {
-                                        val parsed = parseInputToCents(input)
-                                        val stepId = "money-count-$expectedTotalCents"
-                                        val validation = if (parsed == null) {
-                                            ValidationResult.invalid(ValidationFailure.NON_NUMERIC)
-                                        } else {
-                                            validateUserInput(
-                                                stepId = stepId,
-                                                value = parsed.toString(),
-                                                expectedRange = 0..10000,
-                                                gameState = gameState,
-                                                guard = inputGuard,
-                                                onInit = {
-                                                    gameState = GameState.AWAITING_INPUT
-                                                    inputGuard.reset()
+                                Box(modifier = Modifier.weight(1f)) {
+                                    Button(
+                                        onClick = {
+                                            val parsed = parseInputToCents(input)
+                                            val stepId = "money-count-$expectedTotalCents"
+                                            val validation = if (parsed == null) {
+                                                ValidationResult.invalid(ValidationFailure.NON_NUMERIC)
+                                            } else {
+                                                validateUserInput(
+                                                    stepId = stepId,
+                                                    value = parsed.toString(),
+                                                    expectedRange = 0..10000,
+                                                    gameState = gameState,
+                                                    guard = inputGuard,
+                                                    onInit = {
+                                                        gameState = GameState.AWAITING_INPUT
+                                                        inputGuard.reset()
+                                                    }
+                                                )
+                                            }
+                                            if (!validation.isValid) {
+                                                if (validation.failure == ValidationFailure.TOO_FAST ||
+                                                    validation.failure == ValidationFailure.NOT_AWAITING_INPUT
+                                                ) {
+                                                    return@Button
                                                 }
-                                            )
-                                        }
-                                        if (!validation.isValid) {
-                                            if (validation.failure == ValidationFailure.TOO_FAST ||
-                                                validation.failure == ValidationFailure.NOT_AWAITING_INPUT
-                                            ) {
+                                                if (soundEnabled) fx.wrong()
+                                                message = "Scrivi un importo valido (esempio ${formatEuro(350)})"
                                                 return@Button
                                             }
-                                            if (soundEnabled) fx.wrong()
-                                            message = "Scrivi un importo valido (esempio ${formatEuro(350)})"
-                                            return@Button
-                                        }
-                                        if (parsed == null) return@Button
+                                            if (parsed == null) return@Button
 
-                                        if (parsed == expectedTotalCents) {
-                                            correctCount += 1
-                                            message = "Bravo! Totale ${formatEuro(expectedTotalCents)}"
-                                            if (soundEnabled) fx.correct()
-                                            if (!showSuccessDialog) {
-                                                showSuccessDialog = true
-                                            }
-                                            gameState = GameState.STEP_COMPLETED
-                                        } else {
-                                            wrongAttempts += 1
-                                            val locked = inputGuard.registerAttempt(stepId)
-                                            message = "Riprova. Hai scritto ${formatEuro(parsed)}"
-                                            if (soundEnabled) fx.wrong()
-                                            gameState = GameState.AWAITING_INPUT
-                                            if (locked) {
-                                                message = "Vediamo insieme il totale corretto."
-                                                revealSolution = true
+                                            if (parsed == expectedTotalCents) {
+                                                correctCount += 1
+                                                message = "Bravo! Totale ${formatEuro(expectedTotalCents)}"
+                                                if (soundEnabled) fx.correct()
+                                                if (!showSuccessDialog) {
+                                                    showSuccessDialog = true
+                                                }
                                                 gameState = GameState.STEP_COMPLETED
+                                            } else {
+                                                wrongAttempts += 1
+                                                val locked = inputGuard.registerAttempt(stepId)
+                                                message = "Riprova. Hai scritto ${formatEuro(parsed)}"
+                                                if (soundEnabled) fx.wrong()
+                                                gameState = GameState.AWAITING_INPUT
+                                                if (locked) {
+                                                    message = "Vediamo insieme il totale corretto."
+                                                    revealSolution = true
+                                                    gameState = GameState.STEP_COMPLETED
+                                                }
                                             }
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f).height(actionHeight)
-                                ) {
-                                    Text("Verifica")
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(actionHeight)
+                                    ) {
+                                        Text("Verifica")
+                                    }
                                 }
 
-                                OutlinedButton(
-                                    onClick = {
-                                        generateRound(clearMessage = true)
-                                    },
-                                    modifier = Modifier.weight(1f).height(actionHeight)
-                                ) {
-                                    Text("Nuovo")
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            generateRound(clearMessage = true)
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(actionHeight)
+                                    ) {
+                                        Text("Nuovo")
+                                    }
                                 }
                             }
 
