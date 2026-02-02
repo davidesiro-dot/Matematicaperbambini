@@ -1,6 +1,8 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -1359,59 +1362,75 @@ private fun HomeworkReportScreen(
             buildEducationalBadges(results, previousReports, now)
         }
 
-        if (errorPatterns.isNotEmpty()) {
-            SeaGlassPanel(title = "🔍 Difficoltà principali") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    errorPatterns.take(3).forEach { pattern ->
-                        Text("• ${pattern.category}")
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (errorPatterns.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "🔍 Difficoltà principali") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            errorPatterns.take(3).forEach { pattern ->
+                                Text("• ${pattern.category}")
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        if (suggestions.isNotEmpty()) {
-            SeaGlassPanel(title = "💡 Suggerimenti") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    suggestions.take(2).forEach { suggestion ->
-                        Text("• $suggestion")
+            if (suggestions.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "💡 Suggerimenti") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            suggestions.take(2).forEach { suggestion ->
+                                Text("• $suggestion")
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        if (progressInsights.isNotEmpty()) {
-            SeaGlassPanel(title = "📈 Progressi") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    progressInsights.forEach { insight ->
-                        Text(insight)
+            if (progressInsights.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "📈 Progressi") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            progressInsights.forEach { insight ->
+                                Text(insight)
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        if (badges.isNotEmpty()) {
-            SeaGlassPanel(title = "🏅 Riconoscimenti") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    badges.forEach { badge ->
-                        Text("• $badge")
+            if (badges.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "🏅 Riconoscimenti") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            badges.forEach { badge ->
+                                Text("• $badge")
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        SeaGlassPanel(title = "Dettaglio") {
+            item {
+                Text("Dettaglio esercizi", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            }
+
             if (results.isEmpty()) {
-                Text("Nessun risultato disponibile.")
+                item {
+                    Text("Nessun risultato disponibile.")
+                }
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    itemsIndexed(results) { idx, result ->
-                        val expected = expectedAnswer(result.instance)
-                        val outcome = result.outcome()
+                itemsIndexed(results) { idx, result ->
+                    val expected = expectedAnswer(result.instance)
+                    val outcome = result.outcome()
+                    SeaGlassPanel(title = "Esercizio ${idx + 1}") {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                "Esercizio ${idx + 1}: ${exerciseLabel(result.instance)}",
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text(exerciseLabel(result.instance), fontWeight = FontWeight.Bold)
                             val statusText = outcomeLabel(outcome)
                             Text(statusText)
                             expected?.let { Text("Risposta corretta: $it") }
@@ -1430,9 +1449,6 @@ private fun HomeworkReportScreen(
                                 Text("Soluzione guidata usata")
                             }
                         }
-                        if (idx < results.lastIndex) {
-                            Divider(Modifier.padding(vertical = 6.dp))
-                        }
                     }
                 }
             }
@@ -1448,6 +1464,29 @@ fun HomeworkReportsScreen(
     reports: List<HomeworkReport>
 ) {
     val context = LocalContext.current
+    var selectedKeys by remember { mutableStateOf(setOf<String>()) }
+    var multiSelectEnabled by remember { mutableStateOf(false) }
+    val selectedReports = remember(reports, selectedKeys) {
+        reports.filter { report ->
+            val key = "${report.childName}_${report.createdAt}"
+            key in selectedKeys
+        }
+    }
+
+    LaunchedEffect(selectedKeys) {
+        if (selectedKeys.isEmpty()) {
+            multiSelectEnabled = false
+        }
+    }
+
+    fun toggleSelection(key: String) {
+        selectedKeys = if (key in selectedKeys) {
+            selectedKeys - key
+        } else {
+            selectedKeys + key
+        }
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -1491,6 +1530,27 @@ fun HomeworkReportsScreen(
             }
         }
 
+        if (reports.isNotEmpty()) {
+            SeaGlassPanel(title = "Stampa selezionati") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (selectedReports.isEmpty()) {
+                            "Seleziona uno o più report per stampare o esportare."
+                        } else {
+                            "Report selezionati: ${selectedReports.size}"
+                        }
+                    )
+                    Button(
+                        onClick = { printHomeworkReports(context, selectedReports) },
+                        enabled = selectedReports.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Stampa o esporta PDF")
+                    }
+                }
+            }
+        }
+
         if (reports.isEmpty()) {
             SeaGlassPanel(title = "Nessun report") {
                 Text("Non ci sono report salvati.")
@@ -1498,16 +1558,36 @@ fun HomeworkReportsScreen(
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 itemsIndexed(reports) { idx, report ->
-                    SeaGlassPanel(title = "Report ${idx + 1}") {
+                    val key = "${report.childName}_${report.createdAt}"
+                    val selected = key in selectedKeys
+                    SeaGlassPanel(
+                        title = "Report ${idx + 1}",
+                        modifier = Modifier
+                            .combinedClickable(
+                                onClick = {
+                                    if (multiSelectEnabled) {
+                                        toggleSelection(key)
+                                    } else {
+                                        selectedKeys = if (selected) emptySet() else setOf(key)
+                                    }
+                                },
+                                onLongClick = {
+                                    multiSelectEnabled = true
+                                    toggleSelection(key)
+                                }
+                            )
+                            .border(
+                                width = if (selected) 3.dp else 1.dp,
+                                color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                shape = RoundedCornerShape(26.dp)
+                            )
+                    ) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (selected) {
+                                Text("✅ Selezionato", fontWeight = FontWeight.Bold)
+                            }
                             Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
                             Text("Data: ${formatTimestamp(report.createdAt)}")
-                            Button(
-                                onClick = { printHomeworkReport(context, report) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Stampa o esporta PDF")
-                            }
                             val correctCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
                             val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
                             val wrongCount = report.results.size - correctCount - withErrorsCount
