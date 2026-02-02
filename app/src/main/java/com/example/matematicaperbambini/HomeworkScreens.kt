@@ -41,11 +41,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun HomeworkBuilderScreen(
@@ -1279,9 +1277,11 @@ private fun HomeworkReportScreen(
     val perfectCount = results.count { it.outcome() == ExerciseOutcome.PERFECT }
     val withErrorsCount = results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
     val total = results.size
+    val context = LocalContext.current
     var childName by remember { mutableStateOf("") }
     var showNameDialog by remember { mutableStateOf(true) }
     var reportSaved by remember { mutableStateOf(false) }
+    var currentReport by remember { mutableStateOf<HomeworkReport?>(null) }
 
     if (showNameDialog && !reportSaved) {
         androidx.compose.material3.AlertDialog(
@@ -1300,13 +1300,13 @@ private fun HomeworkReportScreen(
                 Button(
                     onClick = {
                         val safeName = childName.trim().ifBlank { "Senza nome" }
-                        onSaveReport(
-                            HomeworkReport(
-                                childName = safeName,
-                                createdAt = System.currentTimeMillis(),
-                                results = results
-                            )
+                        val report = HomeworkReport(
+                            childName = safeName,
+                            createdAt = System.currentTimeMillis(),
+                            results = results
                         )
+                        onSaveReport(report)
+                        currentReport = report
                         reportSaved = true
                         showNameDialog = false
                     },
@@ -1329,6 +1329,17 @@ private fun HomeworkReportScreen(
             onBack = onBack,
             onLeaderboard = {}
         )
+
+        currentReport?.let { report ->
+            SeaGlassPanel(title = "Stampa") {
+                Button(
+                    onClick = { printHomeworkReport(context, report) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Stampa o esporta PDF")
+                }
+            }
+        }
 
         SeaGlassPanel(title = "Riepilogo") {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1437,6 +1448,7 @@ fun HomeworkReportsScreen(
     onBack: () -> Unit,
     reports: List<HomeworkReport>
 ) {
+    val context = LocalContext.current
     Column(
         Modifier
             .fillMaxSize()
@@ -1491,6 +1503,12 @@ fun HomeworkReportsScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
                             Text("Data: ${formatTimestamp(report.createdAt)}")
+                            Button(
+                                onClick = { printHomeworkReport(context, report) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Stampa o esporta PDF")
+                            }
                             val correctCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
                             val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
                             val wrongCount = report.results.size - correctCount - withErrorsCount
@@ -1528,44 +1546,6 @@ fun HomeworkReportsScreen(
                 }
             }
         }
-    }
-}
-
-private fun exerciseLabel(instance: ExerciseInstance): String {
-    val a = instance.a ?: "?"
-    val b = instance.b ?: "?"
-    return when (instance.game) {
-        GameType.ADDITION -> "$a + $b"
-        GameType.SUBTRACTION -> "$a - $b"
-        GameType.MULTIPLICATION_TABLE,
-        GameType.MULTIPLICATION_GAPS -> "Tabellina del ${instance.table ?: a}"
-        GameType.MULTIPLICATION_REVERSE,
-        GameType.MULTIPLICATION_MULTIPLE_CHOICE -> "${instance.table ?: a} × $b"
-        GameType.DIVISION_STEP -> "$a ÷ $b"
-        else -> "$a × $b"
-    }
-}
-
-private fun expectedAnswer(instance: ExerciseInstance): String? {
-    val a = instance.a
-    val b = instance.b
-    return when (instance.game) {
-        GameType.ADDITION -> if (a != null && b != null) (a + b).toString() else null
-        GameType.SUBTRACTION -> if (a != null && b != null) (a - b).toString() else null
-        GameType.MULTIPLICATION_TABLE,
-        GameType.MULTIPLICATION_GAPS,
-        GameType.MULTIPLICATION_REVERSE,
-        GameType.MULTIPLICATION_MULTIPLE_CHOICE,
-        GameType.MULTIPLICATION_MIXED,
-        GameType.MULTIPLICATION_HARD -> if (a != null && b != null) (a * b).toString() else null
-        GameType.DIVISION_STEP -> {
-            if (a != null && b != null && b != 0) {
-                "Quoziente ${a / b}, resto ${a % b}"
-            } else {
-                null
-            }
-        }
-        GameType.MONEY_COUNT -> null
     }
 }
 
@@ -1626,131 +1606,6 @@ private fun computeReportStats(results: List<ExerciseResult>): ReportStats {
         withErrors = withErrors,
         wrong = wrong
     )
-}
-
-private fun genericCategory(game: GameType): String {
-    return when (game) {
-        GameType.ADDITION -> "Addizioni da ripassare"
-        GameType.SUBTRACTION -> "Sottrazioni da ripassare"
-        GameType.DIVISION_STEP -> "Divisioni da ripassare"
-        GameType.MONEY_COUNT -> "Conta dei soldi da ripassare"
-        else -> "Moltiplicazioni e tabelline da ripassare"
-    }
-}
-
-private fun classifyStepError(stepLabel: String, game: GameType): String {
-    val label = stepLabel.lowercase(Locale.getDefault())
-    if (label.contains("borrow_chain_error")) {
-        return "Prestiti nelle sottrazioni"
-    }
-    if (label.contains("borrow_value_error")) {
-        return "Prestiti nelle sottrazioni"
-    }
-    if (label.contains("borrow_target_error")) {
-        return "Prestiti nelle sottrazioni"
-    }
-    if (label.contains("subtraction_calculation_error")) {
-        return "Sottrazioni da ripassare"
-    }
-    if (label.contains("riporto")) {
-        return "Riporti nelle addizioni"
-    }
-    if (label.contains("prestito")) {
-        return "Prestiti nelle sottrazioni"
-    }
-    if (label.contains("quoziente")) {
-        return "Cifre del quoziente nelle divisioni"
-    }
-    if (label.contains("prodotto")) {
-        return "Prodotti nelle divisioni"
-    }
-    if (label.contains("resto")) {
-        return "Resti nelle divisioni"
-    }
-    return genericCategory(game)
-}
-
-private fun analyzeErrorPatterns(results: List<ExerciseResult>): List<ErrorPattern> {
-    if (results.isEmpty()) return emptyList()
-    val patterns = mutableMapOf<String, Pair<Int, MutableSet<GameType>>>()
-    results.forEach { result ->
-        if (!result.hasErrors()) return@forEach
-        val categories = mutableSetOf<String>()
-        if (result.stepErrors.isNotEmpty()) {
-            result.stepErrors.forEach { step ->
-                categories += classifyStepError(step.stepLabel, result.instance.game)
-            }
-        } else {
-            categories += genericCategory(result.instance.game)
-        }
-        categories.forEach { category ->
-            val current = patterns[category]
-            val count = (current?.first ?: 0) + 1
-            val games = current?.second ?: mutableSetOf()
-            games += result.instance.game
-            patterns[category] = count to games
-        }
-    }
-    return patterns.entries
-        .sortedByDescending { it.value.first }
-        .map { (category, data) ->
-            ErrorPattern(
-                category = category,
-                occurrences = data.first,
-                games = data.second.sortedBy { it.name }
-            )
-        }
-}
-
-private fun suggestionsForPatterns(patterns: List<ErrorPattern>): List<String> {
-    if (patterns.isEmpty()) return emptyList()
-    val suggestionMap = mapOf(
-        "Riporti nelle addizioni" to listOf(
-            "Potrebbe essere utile ripassare le addizioni con riporto",
-            "Consigliati esercizi guidati con numeri a due cifre"
-        ),
-        "Prestiti nelle sottrazioni" to listOf(
-            "Potrebbe aiutare ripassare le sottrazioni con prestito",
-            "Utile lavorare su esempi passo-passo"
-        ),
-        "Cifre del quoziente nelle divisioni" to listOf(
-            "Potrebbe essere utile ripassare la scelta del quoziente",
-            "Consigliati esercizi guidati con divisori semplici"
-        ),
-        "Prodotti nelle divisioni" to listOf(
-            "Potrebbe essere utile ripassare le moltiplicazioni collegate alle divisioni",
-            "Utile esercitarsi su prodotti entro le tabelline base"
-        ),
-        "Resti nelle divisioni" to listOf(
-            "Potrebbe essere utile ripassare il concetto di resto",
-            "Consigliati esercizi guidati con resto semplice"
-        ),
-        "Addizioni da ripassare" to listOf(
-            "Potrebbe essere utile ripassare le addizioni di base",
-            "Utile usare esercizi con numeri piccoli e graduali"
-        ),
-        "Sottrazioni da ripassare" to listOf(
-            "Potrebbe essere utile ripassare le sottrazioni di base",
-            "Utile partire da esempi senza prestito"
-        ),
-        "Divisioni da ripassare" to listOf(
-            "Potrebbe essere utile ripassare le divisioni con quozienti semplici",
-            "Consigliati esercizi guidati con resti piccoli"
-        ),
-        "Conta dei soldi da ripassare" to listOf(
-            "Potrebbe essere utile esercitarsi con somme di monete semplici",
-            "Utile usare esempi con pochi valori alla volta"
-        ),
-        "Moltiplicazioni e tabelline da ripassare" to listOf(
-            "Potrebbe essere utile ripassare le tabelline principali",
-            "Consigliati esercizi guidati sulle moltiplicazioni di base"
-        )
-    )
-    return patterns.asSequence()
-        .flatMap { pattern -> suggestionMap[pattern.category].orEmpty().asSequence() }
-        .distinct()
-        .take(2)
-        .toList()
 }
 
 private fun buildProgressInsights(
@@ -1823,46 +1678,12 @@ private fun percentPerfect(results: List<ExerciseResult>): Int {
     return (perfectCount.toFloat() / results.size.toFloat() * 100).toInt()
 }
 
-private fun outcomeLabel(outcome: ExerciseOutcome): String {
-    return when (outcome) {
-        ExerciseOutcome.PERFECT -> "✅ Corretto"
-        ExerciseOutcome.COMPLETED_WITH_ERRORS -> "⚠️ Completato con errori"
-        ExerciseOutcome.FAILED -> "❌ Da ripassare"
-    }
-}
-
-private fun stepErrorDescription(error: StepError): String {
-    val label = error.stepLabel.lowercase(Locale.getDefault())
-    if (label.contains("borrow_chain_error")) {
-        val parts = error.expected.split("->")
-        if (parts.size == 2) {
-            return "Errore nel prestito dalle ${parts[0]} alle ${parts[1]}"
-        }
-        return "Errore nella catena del prestito"
-    }
-    if (label.contains("borrow_value_error")) {
-        return "Errore nella scrittura del prestito"
-    }
-    if (label.contains("borrow_target_error")) {
-        return "Errore nel calcolo del numero dopo il prestito (${error.expected})"
-    }
-    if (label.contains("subtraction_calculation_error")) {
-        return "Errore nel calcolo della sottrazione"
-    }
-    return "${error.stepLabel}: inserito ${error.actual}, corretto ${error.expected}"
-}
-
 private fun outcomeColor(outcome: ExerciseOutcome): Color {
     return when (outcome) {
         ExerciseOutcome.PERFECT -> Color(0xFF16A34A)
         ExerciseOutcome.COMPLETED_WITH_ERRORS -> Color(0xFFF59E0B)
         ExerciseOutcome.FAILED -> Color(0xFFDC2626)
     }
-}
-
-private fun formatTimestamp(timestamp: Long): String {
-    val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-    return formatter.format(Date(timestamp))
 }
 
 @Composable
