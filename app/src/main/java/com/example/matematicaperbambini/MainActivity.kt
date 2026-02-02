@@ -1336,16 +1336,18 @@ fun MultTablePickerScreen(
                         for (col in 0 until 3) {
                             val n = row * 3 + col + 1
                             if (n <= 10) {
-                                Button(
-                                    onClick = { onPickTable(n) },
-                                    modifier = Modifier.weight(1f).height(64.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFF59E0B),
-                                        contentColor = Color.White
-                                    )
-                                ) {
-                                    Text("× $n", fontSize = 22.sp, fontWeight = FontWeight.Black)
+                                Box(modifier = Modifier.weight(1f)) {
+                                    Button(
+                                        onClick = { onPickTable(n) },
+                                        modifier = Modifier.fillMaxWidth().height(64.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFF59E0B),
+                                            contentColor = Color.White
+                                        )
+                                    ) {
+                                        Text("× $n", fontSize = 22.sp, fontWeight = FontWeight.Black)
+                                    }
                                 }
                             } else {
                                 Spacer(Modifier.weight(1f))

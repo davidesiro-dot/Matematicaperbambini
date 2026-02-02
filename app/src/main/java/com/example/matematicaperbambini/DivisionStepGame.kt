@@ -422,27 +422,35 @@ fun DivisionStepGame(
                                 val twoDigitSelected = mode == DivMode.TWO_DIGIT
 
                                 if (oneDigitSelected) {
-                                    androidx.compose.material3.Button(
-                                        onClick = { mode = DivMode.ONE_DIGIT; resetNew() },
-                                        modifier = Modifier.weight(1f)
-                                    ) { Text("Divisore 1 cifra") }
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        androidx.compose.material3.Button(
+                                            onClick = { mode = DivMode.ONE_DIGIT; resetNew() },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) { Text("Divisore 1 cifra") }
+                                    }
                                 } else {
-                                    OutlinedButton(
-                                        onClick = { mode = DivMode.ONE_DIGIT; resetNew() },
-                                        modifier = Modifier.weight(1f)
-                                    ) { Text("Divisore 1 cifra") }
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        OutlinedButton(
+                                            onClick = { mode = DivMode.ONE_DIGIT; resetNew() },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) { Text("Divisore 1 cifra") }
+                                    }
                                 }
 
                                 if (twoDigitSelected) {
-                                    androidx.compose.material3.Button(
-                                        onClick = { mode = DivMode.TWO_DIGIT; resetNew() },
-                                        modifier = Modifier.weight(1f)
-                                    ) { Text("Divisore 2 cifre") }
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        androidx.compose.material3.Button(
+                                            onClick = { mode = DivMode.TWO_DIGIT; resetNew() },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) { Text("Divisore 2 cifre") }
+                                    }
                                 } else {
-                                    OutlinedButton(
-                                        onClick = { mode = DivMode.TWO_DIGIT; resetNew() },
-                                        modifier = Modifier.weight(1f)
-                                    ) { Text("Divisore 2 cifre") }
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        OutlinedButton(
+                                            onClick = { mode = DivMode.TWO_DIGIT; resetNew() },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) { Text("Divisore 2 cifre") }
+                                    }
                                 }
                             }
                         }

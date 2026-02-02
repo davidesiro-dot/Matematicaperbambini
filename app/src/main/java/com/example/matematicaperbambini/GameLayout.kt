@@ -186,14 +186,15 @@ private fun CompactHud(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = hintText,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = fontSize,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = hintText,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = fontSize,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             TextButton(
                 onClick = { showHintDialog = true },
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
@@ -242,36 +243,40 @@ fun GameBottomActions(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Button(
-            onClick = onLeft,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Text(
-                leftText,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip,
-                fontSize = leftFont
-            )
+        Box(modifier = Modifier.weight(1f)) {
+            Button(
+                onClick = onLeft,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    leftText,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    fontSize = leftFont
+                )
+            }
         }
 
         if (center != null) {
             Box(Modifier.weight(1f)) { center() }
         }
 
-        Button(
-            onClick = onRight,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Text(
-                rightText,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip,
-                fontSize = rightFont
-            )
+        Box(modifier = Modifier.weight(1f)) {
+            Button(
+                onClick = onRight,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    rightText,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    fontSize = rightFont
+                )
+            }
         }
     }
 }
