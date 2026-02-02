@@ -338,6 +338,7 @@ fun DivisionStepGame(
         helps?.hintsEnabled == false -> "Completa i passaggi della divisione."
         else -> currentTarget?.hint.orEmpty()
     }
+    val showCellHelper = helps?.showCellHelper == true
 
     LaunchedEffect(done) {
         if (done && p != null && !solutionUsed) showSuccessDialog = true
@@ -608,7 +609,7 @@ fun DivisionStepGame(
                                                         active = active,
                                                         isError = quotientErrors[col].value,
                                                         highlight = highlightQuotient,
-                                                        microLabel = target.microLabel,
+                                                        microLabel = if (showCellHelper) target.microLabel else null,
                                                         onValueChange = { onDigitInput(target, it) },
                                                         w = quotientDigitW,
                                                         h = digitH,
@@ -661,7 +662,7 @@ fun DivisionStepGame(
                                                         active = active,
                                                         isError = productErrors[si][target.idx].value,
                                                         highlight = isHL(HLZone.PRODUCT, si, col),
-                                                        microLabel = target.microLabel,
+                                                        microLabel = if (showCellHelper) target.microLabel else null,
                                                         onValueChange = { onDigitInput(target, it) },
                                                         w = digitSmallW,
                                                         h = digitSmallH,
@@ -695,7 +696,7 @@ fun DivisionStepGame(
                                                                 active = active,
                                                                 isError = remainderErrors[si][target.idx].value,
                                                                 highlight = isHL(HLZone.REMAINDER, si, col),
-                                                                microLabel = target.microLabel,
+                                                                microLabel = if (showCellHelper) target.microLabel else null,
                                                                 onValueChange = { onDigitInput(target, it) },
                                                                 w = digitSmallW,
                                                                 h = digitSmallH,
@@ -711,7 +712,7 @@ fun DivisionStepGame(
                                                             DivisionActionDigit(
                                                                 text = step.bringDownDigit.toString(),
                                                                 active = active,
-                                                                microLabel = bringDownTarget.microLabel,
+                                                                microLabel = if (showCellHelper) bringDownTarget.microLabel else null,
                                                                 w = digitSmallW,
                                                                 h = digitSmallH,
                                                                 fontSize = fontSmall,
