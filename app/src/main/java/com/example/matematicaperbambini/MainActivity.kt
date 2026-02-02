@@ -847,11 +847,6 @@ private fun HomeMenuKids(
             MenuSizeProfile.Normal -> 18.dp
             MenuSizeProfile.Large -> 22.dp
         }
-        val titleFont = when (sizeProfile) {
-            MenuSizeProfile.Small -> 14.sp
-            MenuSizeProfile.Normal -> 16.sp
-            MenuSizeProfile.Large -> 18.sp
-        }
         val buttonTextSize = when (sizeProfile) {
             MenuSizeProfile.Small -> 16.sp
             MenuSizeProfile.Normal -> 18.sp
@@ -913,35 +908,12 @@ private fun HomeMenuKids(
                 .fillMaxSize()
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(12.dp)
         ) {
-
-
-        Box(
+            Box(
                 modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.TopCenter
+                contentAlignment = Alignment.TopEnd
             ) {
-                if (logoPainter != null) {
-                    Image(
-                        painter = logoPainter,
-                        contentDescription = "Math Kids",
-                        modifier = Modifier
-                            .padding(top = 18.dp)
-                            .fillMaxWidth(1.02f),
-                        contentScale = ContentScale.Fit
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.HelpOutline,
-                        contentDescription = "Logo mancante",
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier
-                            .padding(top = 18.dp)
-                            .size(48.dp)
-                    )
-                }
-
                 TopActionsPill(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -954,6 +926,31 @@ private fun HomeMenuKids(
                 }
             }
 
+            Spacer(modifier = Modifier.weight(1f))
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (logoPainter != null) {
+                    Image(
+                        painter = logoPainter,
+                        contentDescription = "Math Kids",
+                        modifier = Modifier.fillMaxWidth(1.02f),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.HelpOutline,
+                        contentDescription = "Logo mancante",
+                        tint = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
             // ✅ BOTTONI SENZA PANNELLO "GLASSCARD" + alzati di 20dp
             val offsetPx = with(LocalDensity.current) {
                 when (sizeProfile) {
@@ -964,17 +961,9 @@ private fun HomeMenuKids(
             }
 
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .offset(y = (-10).dp),   // ✅ 20px/20dp più in alto
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(buttonSpacing)
             ) {
-                TitlePill(
-                    text = "Scegli un gioco!",
-                    fontSize = titleFont
-                )
-
                 buttons.forEachIndexed { index, data ->
                     val alpha by animateFloatAsState(
                         targetValue = if (animationsReady.value) 1f else 0f,
