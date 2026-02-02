@@ -165,7 +165,7 @@ fun HomeworkBuilderScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
                         Text("Corretto: $perfectCount")
-                        Text("Completato con passaggi da rinforzare: $withErrorsCount")
+                        Text("Completato con errori: $withErrorsCount")
                         Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
                     }
                 }
@@ -1288,7 +1288,7 @@ private fun HomeworkReportScreen(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
                 Text("Corretto: $perfectCount")
-                Text("Completato con passaggi da rinforzare: $withErrorsCount")
+                Text("Completato con errori: $withErrorsCount")
                 Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
             }
         }
@@ -1367,7 +1367,7 @@ private fun HomeworkReportScreen(
                             if (result.stepErrors.isNotEmpty()) {
                                 Text("Passaggi da rinforzare:")
                                 result.stepErrors.forEach { err ->
-                                    Text("• ${err.stepLabel}: inserito ${err.actual}, corretto ${err.expected}")
+                                    Text("• ${stepErrorDescription(err)}")
                                 }
                             }
                             if (result.solutionUsed) {
@@ -1412,7 +1412,7 @@ fun HomeworkReportsScreen(
                     Text("📅 Giornaliero", fontWeight = FontWeight.Bold)
                     Text("Esercizi oggi: ${stats.today.total}")
                     Text("Corretto: ${stats.today.correct}")
-                    Text("Con passaggi da rinforzare: ${stats.today.withErrors}")
+                    Text("Con errori: ${stats.today.withErrors}")
                     Spacer(Modifier.height(8.dp))
                     Text("📊 Settimanale", fontWeight = FontWeight.Bold)
                     Text("Totale esercizi: ${stats.week.total}")
@@ -1448,7 +1448,7 @@ fun HomeworkReportsScreen(
                             val correctCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
                             val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
                             val wrongCount = report.results.size - correctCount - withErrorsCount
-                            Text("Risultati: $correctCount corretti, $withErrorsCount con passaggi da rinforzare, $wrongCount da ripassare")
+                            Text("Risultati: $correctCount corretti, $withErrorsCount con errori, $wrongCount da ripassare")
                             Divider(Modifier.padding(vertical = 4.dp))
                             report.results.forEachIndexed { rIdx, result ->
                                 val expected = expectedAnswer(result.instance)
@@ -1466,7 +1466,7 @@ fun HomeworkReportsScreen(
                                     if (result.stepErrors.isNotEmpty()) {
                                         Text("Passaggi da rinforzare:")
                                         result.stepErrors.forEach { err ->
-                                            Text("• ${err.stepLabel}: inserito ${err.actual}, corretto ${err.expected}")
+                                            Text("• ${stepErrorDescription(err)}")
                                         }
                                     }
                                     if (result.solutionUsed) {
@@ -1595,6 +1595,9 @@ private fun genericCategory(game: GameType): String {
 private fun classifyStepError(stepLabel: String, game: GameType): String {
     val label = stepLabel.lowercase(Locale.getDefault())
     return when {
+        label.contains("borrow_decision_error") -> "Prestiti nelle sottrazioni"
+        label.contains("borrow_value_error") -> "Prestiti nelle sottrazioni"
+        label.contains("subtraction_calculation_error") -> "Sottrazioni da ripassare"
         label.contains("riporto") -> "Riporti nelle addizioni"
         label.contains("prestito") -> "Prestiti nelle sottrazioni"
         label.contains("quoziente") -> "Cifre del quoziente nelle divisioni"
@@ -1760,8 +1763,18 @@ private fun percentPerfect(results: List<ExerciseResult>): Int {
 private fun outcomeLabel(outcome: ExerciseOutcome): String {
     return when (outcome) {
         ExerciseOutcome.PERFECT -> "✅ Corretto"
-        ExerciseOutcome.COMPLETED_WITH_ERRORS -> "⚠️ Completato con passaggi da rinforzare"
+        ExerciseOutcome.COMPLETED_WITH_ERRORS -> "⚠️ Completato con errori"
         ExerciseOutcome.FAILED -> "❌ Da ripassare"
+    }
+}
+
+private fun stepErrorDescription(error: StepError): String {
+    val label = error.stepLabel.lowercase(Locale.getDefault())
+    return when {
+        label.contains("borrow_decision_error") -> "Errore nel capire se serviva il prestito"
+        label.contains("borrow_value_error") -> "Errore nella scrittura del prestito"
+        label.contains("subtraction_calculation_error") -> "Errore nel calcolo della sottrazione"
+        else -> "${error.stepLabel}: inserito ${error.actual}, corretto ${error.expected}"
     }
 }
 
