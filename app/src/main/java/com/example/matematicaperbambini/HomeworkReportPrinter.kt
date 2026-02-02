@@ -15,22 +15,33 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 internal fun printHomeworkReport(context: Context, report: HomeworkReport) {
+    printHomeworkReports(context, listOf(report))
+}
+
+internal fun printHomeworkReports(context: Context, reports: List<HomeworkReport>) {
+    if (reports.isEmpty()) return
     val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
-    val jobName = "Report_${report.childName}_${report.createdAt}"
-    val adapter = HomeworkReportPrintAdapter(report)
+    val jobName = if (reports.size == 1) {
+        val report = reports.first()
+        "Report_${report.childName}_${report.createdAt}"
+    } else {
+        "Report_compiti_${reports.size}"
+    }
+    val adapter = HomeworkReportPrintAdapter(reports)
     printManager.print(jobName, adapter, PrintAttributes.Builder().build())
 }
 
 private enum class LineStyle {
     TITLE,
     SECTION,
-    BODY
+    BODY,
+    PAGE_BREAK
 }
 
 private data class PrintLine(val text: String, val style: LineStyle)
 
 private class HomeworkReportPrintAdapter(
-    private val report: HomeworkReport
+    private val reports: List<HomeworkReport>
 ) : PrintDocumentAdapter() {
     private var printAttributes: PrintAttributes? = null
 
@@ -46,7 +57,7 @@ private class HomeworkReportPrintAdapter(
             return
         }
         printAttributes = newAttributes
-        val info = PrintDocumentInfo.Builder("report_${report.createdAt}.pdf")
+        val info = PrintDocumentInfo.Builder("report_compiti.pdf")
             .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
             .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
             .build()
@@ -66,7 +77,7 @@ private class HomeworkReportPrintAdapter(
 
         val pdfDocument = PdfDocument()
         try {
-            val lines = buildReportLines(report)
+            val lines = buildReportLines(reports)
             renderLines(pdfDocument, lines, pageWidth, pageHeight, cancellationSignal)
             if (!cancellationSignal.isCanceled) {
                 FileOutputStream(destination.fileDescriptor).use { output ->
@@ -126,10 +137,22 @@ private class HomeworkReportPrintAdapter(
 
         lines.forEach { line ->
             if (cancellationSignal.isCanceled) return
+            if (line.style == LineStyle.PAGE_BREAK) {
+                pdfDocument.finishPage(page)
+                pageNumber += 1
+                page = pdfDocument.startPage(
+                    PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+                )
+                canvas = page.canvas
+                y = margin
+                return@forEach
+            }
+
             val paint = when (line.style) {
                 LineStyle.TITLE -> titlePaint
                 LineStyle.SECTION -> sectionPaint
                 LineStyle.BODY -> bodyPaint
+                LineStyle.PAGE_BREAK -> bodyPaint
             }
             val lineHeight = paint.fontSpacing
             if (line.text.isBlank()) {
@@ -147,14 +170,30 @@ private class HomeworkReportPrintAdapter(
     }
 }
 
-private fun buildReportLines(report: HomeworkReport): List<PrintLine> {
+private fun buildReportLines(reports: List<HomeworkReport>): List<PrintLine> {
+    val lines = mutableListOf<PrintLine>()
+    reports.forEachIndexed { index, report ->
+        lines += buildSingleReportLines(report, index, reports.size)
+        if (index < reports.lastIndex) {
+            lines += PrintLine("", LineStyle.PAGE_BREAK)
+        }
+    }
+    return lines
+}
+
+private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalReports: Int): List<PrintLine> {
     val lines = mutableListOf<PrintLine>()
     val perfectCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
     val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
     val wrongCount = report.results.size - perfectCount - withErrorsCount
     val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
 
-    lines += PrintLine("Report Compiti", LineStyle.TITLE)
+    val title = if (totalReports > 1) {
+        "Report Compiti ${index + 1} di $totalReports"
+    } else {
+        "Report Compiti"
+    }
+    lines += PrintLine(title, LineStyle.TITLE)
     lines += PrintLine("Bambino: ${report.childName}", LineStyle.BODY)
     lines += PrintLine("Data e ora: ${formatTimestamp(report.createdAt)}", LineStyle.BODY)
     lines += PrintLine("Titolo compito: Compito di matematica", LineStyle.BODY)
@@ -164,7 +203,7 @@ private fun buildReportLines(report: HomeworkReport): List<PrintLine> {
     lines += PrintLine("Riepilogo", LineStyle.SECTION)
     lines += PrintLine("Totale esercizi: ${report.results.size}", LineStyle.BODY)
     lines += PrintLine("Corretto: $perfectCount", LineStyle.BODY)
-    lines += PrintLine("Completato con errori: $withErrorsCount", LineStyle.BODY)
+    lines += PrintLine("Completato con errori (⚠️): $withErrorsCount", LineStyle.BODY)
     lines += PrintLine("Sbagliato: $wrongCount", LineStyle.BODY)
     lines += PrintLine("", LineStyle.BODY)
 
@@ -182,7 +221,7 @@ private fun buildReportLines(report: HomeworkReport): List<PrintLine> {
             lines += PrintLine("Risposte errate: ${result.wrongAnswers.joinToString(", ")}", LineStyle.BODY)
         }
         if (result.stepErrors.isNotEmpty()) {
-            lines += PrintLine("Passaggi da rinforzare:", LineStyle.BODY)
+            lines += PrintLine("Passaggi con errore da rinforzare:", LineStyle.BODY)
             result.stepErrors.forEach { error ->
                 lines += PrintLine("• ${stepErrorDescription(error)}", LineStyle.BODY)
             }
@@ -201,7 +240,7 @@ private fun buildReportLines(report: HomeworkReport): List<PrintLine> {
     val patterns = analyzeErrorPatterns(report.results)
     val suggestions = suggestionsForPatterns(patterns)
 
-    lines += PrintLine("Recurring difficulties detected", LineStyle.SECTION)
+    lines += PrintLine("Difficoltà ricorrenti rilevate", LineStyle.SECTION)
     if (patterns.isEmpty()) {
         lines += PrintLine("Nessuna difficoltà ricorrente rilevata.", LineStyle.BODY)
     } else {
@@ -211,7 +250,7 @@ private fun buildReportLines(report: HomeworkReport): List<PrintLine> {
     }
     lines += PrintLine("", LineStyle.BODY)
 
-    lines += PrintLine("Suggested focus for practice", LineStyle.SECTION)
+    lines += PrintLine("Suggerimenti per il ripasso", LineStyle.SECTION)
     if (suggestions.isEmpty()) {
         lines += PrintLine("Nessun suggerimento disponibile al momento.", LineStyle.BODY)
     } else {
