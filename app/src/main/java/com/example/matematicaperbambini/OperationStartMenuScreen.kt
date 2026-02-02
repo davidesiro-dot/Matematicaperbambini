@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -42,7 +45,9 @@ fun OperationStartMenuScreen(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
-    onSelectStartMode: (StartMode) -> Unit
+    onSelectStartMode: (StartMode) -> Unit,
+    selectedHelpPreset: HelpPreset,
+    onSelectHelpPreset: (HelpPreset) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -86,6 +91,34 @@ fun OperationStartMenuScreen(
                     onClick = { onSelectStartMode(StartMode.MANUAL) }
                 )
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                "Modalità di gioco",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF374151)
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HelpPreset.values().forEach { preset ->
+                    PresetChip(
+                        label = when (preset) {
+                            HelpPreset.GUIDED -> "Guidato"
+                            HelpPreset.TRAINING -> "Allenamento"
+                            HelpPreset.CHALLENGE -> "Sfida"
+                        },
+                        selected = preset == selectedHelpPreset,
+                        onClick = { onSelectHelpPreset(preset) }
+                    )
+                }
+            }
+
+            Text(
+                text = selectedHelpPreset.description(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         Spacer(Modifier.weight(1f))
@@ -176,5 +209,31 @@ private fun StartModeButton(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PresetChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = if (selected) {
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        )
+    } else {
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
+    }
+    Button(
+        onClick = onClick,
+        colors = colors,
+        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Text(label)
     }
 }

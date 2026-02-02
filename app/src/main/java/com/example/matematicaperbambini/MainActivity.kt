@@ -504,6 +504,8 @@ private fun AppShell() {
     var mode by remember { mutableStateOf(GameMode.ADD) }
     var digits by remember { mutableStateOf(2) }
     var startMode by remember { mutableStateOf(StartMode.RANDOM) }
+    var helpPreset by remember { mutableStateOf(HelpPreset.GUIDED) }
+    var sessionHelpSettings by remember { mutableStateOf(helpPreset.toHelpSettings()) }
 
     var pendingDigitsMode by remember { mutableStateOf<GameMode?>(null) }
     var pendingStartMenuMode by remember { mutableStateOf<GameMode?>(null) }
@@ -525,6 +527,7 @@ private fun AppShell() {
         mode = m
         digits = d
         startMode = startModeValue
+        sessionHelpSettings = helpPreset.toHelpSettings()
         navAnim = NavAnim.EXPAND
         screen = Screen.GAME
     }
@@ -590,6 +593,7 @@ private fun AppShell() {
                     onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                     onSelectStartMode = { chosenMode ->
                         startMode = chosenMode
+                        sessionHelpSettings = helpPreset.toHelpSettings()
                         when (startMenuMode) {
                             GameMode.ADD, GameMode.SUB -> {
                                 if (chosenMode == StartMode.MANUAL) {
@@ -605,7 +609,9 @@ private fun AppShell() {
                             GameMode.DIV -> { navAnim = NavAnim.SLIDE; screen = Screen.DIV_STEP_GAME }
                             GameMode.MONEY -> openGame(startMenuMode, digits, startMode)
                         }
-                    }
+                    },
+                    selectedHelpPreset = helpPreset,
+                    onSelectHelpPreset = { helpPreset = it }
                 )
             }
 
@@ -719,7 +725,8 @@ private fun AppShell() {
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenLeaderboard = { openLb() },
-                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
+                helps = sessionHelpSettings
             )
 
             // ✅ NUOVA SCHERMATA: DIVISIONI PASSO-PASSO
@@ -730,13 +737,15 @@ private fun AppShell() {
                 fx = fx,
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenLeaderboard = { openLb() },
-                onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
+                helps = sessionHelpSettings
             )
 
             Screen.GAME -> GameRouter(
                 mode = mode,
                 digits = digits,
                 startMode = startMode,
+                helps = sessionHelpSettings,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
@@ -1359,6 +1368,7 @@ fun GameRouter(
     mode: GameMode,
     digits: Int,
     startMode: StartMode,
+    helps: HelpSettings,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
@@ -1375,7 +1385,8 @@ fun GameRouter(
             fx = fx,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            helps = helps
         )
 
 
@@ -1387,7 +1398,8 @@ fun GameRouter(
             fx = fx,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            helps = helps
         )
 
         // ✅ anche se dal menu vai alla schermata dedicata, qui lo gestiamo uguale
@@ -1398,7 +1410,8 @@ fun GameRouter(
             fx = fx,
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
-            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus
+            onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
+            helps = helps
         )
 
         GameMode.MONEY -> MoneyCountGame(

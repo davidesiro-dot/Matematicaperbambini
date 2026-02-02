@@ -45,6 +45,42 @@ data class HelpSettings(
     val autoCheck: Boolean
 )
 
+enum class HelpPreset {
+    GUIDED,
+    TRAINING,
+    CHALLENGE
+}
+
+fun HelpPreset.toHelpSettings(): HelpSettings = when (this) {
+    HelpPreset.GUIDED -> HelpSettings(
+        hintsEnabled = true,
+        highlightsEnabled = true,
+        allowSolution = true,
+        autoCheck = true
+    )
+    HelpPreset.TRAINING -> HelpSettings(
+        hintsEnabled = true,
+        highlightsEnabled = true,
+        allowSolution = false,
+        autoCheck = true
+    )
+    HelpPreset.CHALLENGE -> HelpSettings(
+        hintsEnabled = false,
+        highlightsEnabled = false,
+        allowSolution = false,
+        autoCheck = false
+    )
+}
+
+fun HelpPreset.description(): String = when (this) {
+    HelpPreset.GUIDED ->
+        "Suggerimenti attivi, evidenziazioni attive, soluzione disponibile, controllo automatico."
+    HelpPreset.TRAINING ->
+        "Suggerimenti ed evidenziazioni attivi. Nessuna soluzione. Controllo automatico."
+    HelpPreset.CHALLENGE ->
+        "Nessun aiuto attivo. Risolvi tutto da solo, come in classe."
+}
+
 sealed class ExerciseSourceConfig {
     object Random : ExerciseSourceConfig()
     data class Manual(val ops: List<ManualOp>) : ExerciseSourceConfig()
