@@ -27,6 +27,7 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -232,13 +234,40 @@ private fun ModeSegmentedButton(
     }
     Button(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
+        modifier = modifier.height(50.dp),
         shape = RoundedCornerShape(12.dp),
         colors = colors,
-        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        contentPadding = ButtonDefaults.ContentPadding.copy(horizontal = 12.dp)
     ) {
-        Text(label, fontWeight = FontWeight.SemiBold)
+        ModeButtonText(
+            text = label,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
+}
+
+@Composable
+private fun ModeButtonText(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    var textSize by remember(text) { mutableStateOf(16.sp) }
+
+    Text(
+        text = text,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        fontSize = textSize,
+        fontWeight = FontWeight.SemiBold,
+        onTextLayout = { result ->
+            if (result.hasVisualOverflow && textSize > 12.sp) {
+                textSize -= 1.sp
+            }
+        },
+        modifier = modifier
+    )
 }
 
 @Composable
