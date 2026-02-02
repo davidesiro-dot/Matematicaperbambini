@@ -1003,11 +1003,10 @@ private fun SourceChip(
     }
     Button(
         onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(0.dp),
         colors = colors,
-        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 44.dp)
+        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -1015,10 +1014,12 @@ private fun SourceChip(
         ) {
             Text(
                 label,
-                modifier = Modifier.padding(vertical = 4.dp),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
-                softWrap = false
+                softWrap = false,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 6.dp, bottom = 6.dp)
             )
         }
     }
