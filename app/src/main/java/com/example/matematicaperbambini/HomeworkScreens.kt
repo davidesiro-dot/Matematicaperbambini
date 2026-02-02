@@ -1594,17 +1594,31 @@ private fun genericCategory(game: GameType): String {
 
 private fun classifyStepError(stepLabel: String, game: GameType): String {
     val label = stepLabel.lowercase(Locale.getDefault())
-    return when {
-        label.contains("borrow_decision_error") -> "Prestiti nelle sottrazioni"
-        label.contains("borrow_value_error") -> "Prestiti nelle sottrazioni"
-        label.contains("subtraction_calculation_error") -> "Sottrazioni da ripassare"
-        label.contains("riporto") -> "Riporti nelle addizioni"
-        label.contains("prestito") -> "Prestiti nelle sottrazioni"
-        label.contains("quoziente") -> "Cifre del quoziente nelle divisioni"
-        label.contains("prodotto") -> "Prodotti nelle divisioni"
-        label.contains("resto") -> "Resti nelle divisioni"
-        else -> genericCategory(game)
+    if (label.contains("borrow_chain_error")) {
+        return "Prestiti nelle sottrazioni"
     }
+    if (label.contains("borrow_value_error")) {
+        return "Prestiti nelle sottrazioni"
+    }
+    if (label.contains("subtraction_calculation_error")) {
+        return "Sottrazioni da ripassare"
+    }
+    if (label.contains("riporto")) {
+        return "Riporti nelle addizioni"
+    }
+    if (label.contains("prestito")) {
+        return "Prestiti nelle sottrazioni"
+    }
+    if (label.contains("quoziente")) {
+        return "Cifre del quoziente nelle divisioni"
+    }
+    if (label.contains("prodotto")) {
+        return "Prodotti nelle divisioni"
+    }
+    if (label.contains("resto")) {
+        return "Resti nelle divisioni"
+    }
+    return genericCategory(game)
 }
 
 private fun analyzeErrorPatterns(results: List<ExerciseResult>): List<ErrorPattern> {
@@ -1770,12 +1784,16 @@ private fun outcomeLabel(outcome: ExerciseOutcome): String {
 
 private fun stepErrorDescription(error: StepError): String {
     val label = error.stepLabel.lowercase(Locale.getDefault())
-    return when {
-        label.contains("borrow_decision_error") -> "Errore nel capire se serviva il prestito"
-        label.contains("borrow_value_error") -> "Errore nella scrittura del prestito"
-        label.contains("subtraction_calculation_error") -> "Errore nel calcolo della sottrazione"
-        else -> "${error.stepLabel}: inserito ${error.actual}, corretto ${error.expected}"
+    if (label.contains("borrow_chain_error")) {
+        return "Errore nella catena del prestito"
     }
+    if (label.contains("borrow_value_error")) {
+        return "Errore nella scrittura del prestito"
+    }
+    if (label.contains("subtraction_calculation_error")) {
+        return "Errore nel calcolo della sottrazione"
+    }
+    return "${error.stepLabel}: inserito ${error.actual}, corretto ${error.expected}"
 }
 
 private fun outcomeColor(outcome: ExerciseOutcome): Color {
