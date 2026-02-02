@@ -1004,14 +1004,21 @@ private fun SourceChip(
         onClick = onClick,
         colors = colors,
         border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 44.dp)
     ) {
-        Text(
-            label,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            softWrap = false
-        )
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                label,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
     }
 }
 
