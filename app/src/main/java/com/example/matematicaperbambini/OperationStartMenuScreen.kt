@@ -100,25 +100,25 @@ fun OperationStartMenuScreen(
                 color = Color(0xFF374151)
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 HelpPreset.values().forEach { preset ->
-                    PresetChip(
+                    ModeSegmentedButton(
                         label = when (preset) {
                             HelpPreset.GUIDED -> "Guidato"
                             HelpPreset.TRAINING -> "Allenamento"
                             HelpPreset.CHALLENGE -> "Sfida"
                         },
                         selected = preset == selectedHelpPreset,
-                        onClick = { onSelectHelpPreset(preset) }
+                        onClick = { onSelectHelpPreset(preset) },
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            Text(
-                text = selectedHelpPreset.description(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            AiutiAttiviInfo(selectedHelpPreset)
         }
 
         Spacer(Modifier.weight(1f))
@@ -213,15 +213,16 @@ private fun StartModeButton(
 }
 
 @Composable
-private fun PresetChip(
+private fun ModeSegmentedButton(
     label: String,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val colors = if (selected) {
         ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
+            contentColor = Color.White
         )
     } else {
         ButtonDefaults.buttonColors(
@@ -231,9 +232,45 @@ private fun PresetChip(
     }
     Button(
         onClick = onClick,
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = colors,
         border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
-        Text(label)
+        Text(label, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun AiutiAttiviInfo(selectedHelpPreset: HelpPreset) {
+    val helps = selectedHelpPreset.toHelpSettings()
+    val activeHelps = buildList {
+        if (helps.hintsEnabled) add("Suggerimenti")
+        if (helps.highlightsEnabled) add("Evidenziazioni")
+        if (helps.allowSolution) add("Soluzione disponibile")
+        if (helps.autoCheck) add("Controllo automatico")
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            "Aiuti attivi",
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF374151)
+        )
+        if (activeHelps.isEmpty()) {
+            Text(
+                "Nessun aiuto attivo.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            activeHelps.forEach { help ->
+                Text(
+                    text = "• $help",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
