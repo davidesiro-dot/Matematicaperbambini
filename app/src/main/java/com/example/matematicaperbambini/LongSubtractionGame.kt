@@ -53,7 +53,7 @@ private enum class SubStepType {
     COMPARE,
     BORROW_DECISION,
     BORROW_VALUE,
-    RESULT_DIGIT
+    WRITE_RESULT
 }
 private data class SubStep(val type: SubStepType, val colIndexFromLeft: Int)
 
@@ -195,7 +195,7 @@ private fun buildStepsSub(expected: ExpectedSub): List<SubStep> {
             steps += SubStep(SubStepType.BORROW_DECISION, i)
             steps += SubStep(SubStepType.BORROW_VALUE, i)
         }
-        steps += SubStep(SubStepType.RESULT_DIGIT, i)
+        steps += SubStep(SubStepType.WRITE_RESULT, i)
     }
     return steps
 }
@@ -228,7 +228,7 @@ private fun instructionSub(
             val top = expected.topDigitsBeforeBorrow[col]
             "Scrivi il prestito sopra il $top nelle $colName."
         }
-        SubStepType.RESULT_DIGIT -> {
+        SubStepType.WRITE_RESULT -> {
             val topAfterBorrow = expected.topDigitsAfterBorrow[col]
             val bottom = expected.bottomDigits[col]
             val result = (topAfterBorrow - bottom) % 10
@@ -471,7 +471,7 @@ fun LongSubtractionGame(
 
     fun resEnabled(col: Int): Boolean {
         if (waitTapToContinue) return false
-        return currentStep?.type == SubStepType.RESULT_DIGIT && currentStep.colIndexFromLeft == col
+        return currentStep?.type == SubStepType.WRITE_RESULT && currentStep.colIndexFromLeft == col
     }
 
     fun tryValidateBorrow() {
@@ -540,7 +540,10 @@ fun LongSubtractionGame(
         message = null
 
         when (s.type) {
-            SubStepType.RESULT_DIGIT -> {
+            SubStepType.COMPARE -> return
+            SubStepType.BORROW_DECISION -> return
+            SubStepType.BORROW_VALUE -> return
+            SubStepType.WRITE_RESULT -> {
                 val col = s.colIndexFromLeft
                 val effectiveADigit = expectedValues.topDigitsAfterBorrow[col]
                 val bDigit = expectedValues.bottomDigits[col]
@@ -921,9 +924,16 @@ fun LongSubtractionGame(
                                         Text("Conferma prestito")
                                     }
                                 }
-                                else -> {
+                                SubStepType.WRITE_RESULT -> {
                                     Text(
-                                        "Le caselle grigie sono per il risultato.",
+                                        "Scrivi il risultato nella casella grigia.",
+                                        color = Color(0xFF6B7280),
+                                        fontSize = hintFont
+                                    )
+                                }
+                                null -> {
+                                    Text(
+                                        "Segui le istruzioni per continuare.",
                                         color = Color(0xFF6B7280),
                                         fontSize = hintFont
                                     )
