@@ -42,7 +42,8 @@ data class HelpSettings(
     val hintsEnabled: Boolean,
     val highlightsEnabled: Boolean,
     val allowSolution: Boolean,
-    val autoCheck: Boolean
+    val autoCheck: Boolean,
+    val showCellHelper: Boolean
 )
 
 enum class HelpPreset {
@@ -56,19 +57,22 @@ fun HelpPreset.toHelpSettings(): HelpSettings = when (this) {
         hintsEnabled = true,
         highlightsEnabled = true,
         allowSolution = true,
-        autoCheck = true
+        autoCheck = true,
+        showCellHelper = true
     )
     HelpPreset.TRAINING -> HelpSettings(
         hintsEnabled = true,
         highlightsEnabled = true,
         allowSolution = false,
-        autoCheck = true
+        autoCheck = true,
+        showCellHelper = true
     )
     HelpPreset.CHALLENGE -> HelpSettings(
         hintsEnabled = false,
         highlightsEnabled = false,
         allowSolution = false,
-        autoCheck = false
+        autoCheck = false,
+        showCellHelper = false
     )
 }
 
