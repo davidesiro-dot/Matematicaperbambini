@@ -1330,26 +1330,6 @@ private fun HomeworkReportScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        currentReport?.let { report ->
-            SeaGlassPanel(
-                title = "Stampa",
-                modifier = Modifier.padding(horizontal = 16.dp)
-            ) {
-                Button(
-                    onClick = { printHomeworkReport(context, report) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Stampa o esporta PDF")
-                }
-            }
-        }
-
-        if (currentReport != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
         val errorPatterns = remember(results) { analyzeErrorPatterns(results) }
         val suggestions = remember(errorPatterns) { suggestionsForPatterns(errorPatterns) }
         val now = remember { System.currentTimeMillis() }
@@ -1361,12 +1341,23 @@ private fun HomeworkReportScreen(
         }
 
         LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            currentReport?.let { report ->
+                item {
+                    SeaGlassPanel(title = "Stampa") {
+                        Button(
+                            onClick = { printHomeworkReport(context, report) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Stampa o esporta PDF")
+                        }
+                    }
+                }
+            }
+
             item {
                 SeaGlassPanel(title = "Riepilogo") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
