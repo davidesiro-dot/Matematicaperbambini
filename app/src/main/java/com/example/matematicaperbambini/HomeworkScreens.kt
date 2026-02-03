@@ -1318,8 +1318,12 @@ private fun HomeworkReportScreen(
         )
     }
 
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.padding(16.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
             GameHeader(
                 title = "Report Compito",
                 soundEnabled = soundEnabled,
@@ -1329,128 +1333,120 @@ private fun HomeworkReportScreen(
             )
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                currentReport?.let { report ->
-                    SeaGlassPanel(title = "Stampa") {
-                        Button(
-                            onClick = { printHomeworkReport(context, report) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Stampa o esporta PDF")
-                        }
-                    }
+        item {
+            SeaGlassPanel(title = "Riepilogo") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
+                    Text("Corretto: $perfectCount")
+                    Text("Completato con errori: $withErrorsCount")
+                    Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
                 }
             }
+        }
 
-            item {
-                SeaGlassPanel(title = "Riepilogo") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
-                        Text("Corretto: $perfectCount")
-                        Text("Completato con errori: $withErrorsCount")
-                        Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
-                    }
-                }
+        item {
+            val errorPatterns = remember(results) { analyzeErrorPatterns(results) }
+            val suggestions = remember(errorPatterns) { suggestionsForPatterns(errorPatterns) }
+            val now = remember { System.currentTimeMillis() }
+            val progressInsights = remember(results, previousReports, now) {
+                buildProgressInsights(results, previousReports, now)
+            }
+            val badges = remember(results, previousReports, now) {
+                buildEducationalBadges(results, previousReports, now)
             }
 
-            item {
-                val errorPatterns = remember(results) { analyzeErrorPatterns(results) }
-                val suggestions = remember(errorPatterns) { suggestionsForPatterns(errorPatterns) }
-                val now = remember { System.currentTimeMillis() }
-                val progressInsights = remember(results, previousReports, now) {
-                    buildProgressInsights(results, previousReports, now)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (errorPatterns.isNotEmpty()) {
+                    SeaGlassPanel(title = "🔍 Difficoltà principali") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            errorPatterns.take(3).forEach { pattern ->
+                                Text("• ${pattern.category}")
+                            }
+                        }
+                    }
                 }
-                val badges = remember(results, previousReports, now) {
-                    buildEducationalBadges(results, previousReports, now)
+
+                if (suggestions.isNotEmpty()) {
+                    SeaGlassPanel(title = "💡 Suggerimenti") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            suggestions.take(2).forEach { suggestion ->
+                                Text("• $suggestion")
+                            }
+                        }
+                    }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (errorPatterns.isNotEmpty()) {
-                        SeaGlassPanel(title = "🔍 Difficoltà principali") {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                errorPatterns.take(3).forEach { pattern ->
-                                    Text("• ${pattern.category}")
-                                }
+                if (progressInsights.isNotEmpty()) {
+                    SeaGlassPanel(title = "📈 Progressi") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            progressInsights.forEach { insight ->
+                                Text(insight)
                             }
                         }
                     }
+                }
 
-                    if (suggestions.isNotEmpty()) {
-                        SeaGlassPanel(title = "💡 Suggerimenti") {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                suggestions.take(2).forEach { suggestion ->
-                                    Text("• $suggestion")
-                                }
-                            }
-                        }
-                    }
-
-                    if (progressInsights.isNotEmpty()) {
-                        SeaGlassPanel(title = "📈 Progressi") {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                progressInsights.forEach { insight ->
-                                    Text(insight)
-                                }
-                            }
-                        }
-                    }
-
-                    if (badges.isNotEmpty()) {
-                        SeaGlassPanel(title = "🏅 Riconoscimenti") {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                badges.forEach { badge ->
-                                    Text("• $badge")
-                                }
+                if (badges.isNotEmpty()) {
+                    SeaGlassPanel(title = "🏅 Riconoscimenti") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            badges.forEach { badge ->
+                                Text("• $badge")
                             }
                         }
                     }
                 }
             }
+        }
 
-            item {
-                SeaGlassPanel(title = "Dettaglio") {
-                    if (results.isEmpty()) {
-                        Text("Nessun risultato disponibile.")
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            results.forEachIndexed { idx, result ->
-                                val expected = expectedAnswer(result.instance)
-                                val outcome = result.outcome()
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        "Esercizio ${idx + 1}: ${exerciseLabel(result.instance)}",
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    val statusText = outcomeLabel(outcome)
-                                    Text(statusText)
-                                    expected?.let { Text("Risposta corretta: $it") }
-                                    Text("Tentativi: ${result.attempts}")
-                                    val wrongAnswers = result.wrongAnswers
-                                    if (wrongAnswers.isNotEmpty()) {
-                                        Text("Risposte da rivedere: ${wrongAnswers.joinToString()}")
-                                    }
-                                    if (result.stepErrors.isNotEmpty()) {
-                                        Text("Passaggi da rinforzare:")
-                                        result.stepErrors.forEach { err ->
-                                            Text("• ${stepErrorDescription(err)}")
-                                        }
-                                    }
-                                    if (result.solutionUsed) {
-                                        Text("Soluzione guidata usata")
+        item {
+            SeaGlassPanel(title = "Dettaglio") {
+                if (results.isEmpty()) {
+                    Text("Nessun risultato disponibile.")
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        results.forEachIndexed { idx, result ->
+                            val expected = expectedAnswer(result.instance)
+                            val outcome = result.outcome()
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    "Esercizio ${idx + 1}: ${exerciseLabel(result.instance)}",
+                                    fontWeight = FontWeight.Bold
+                                )
+                                val statusText = outcomeLabel(outcome)
+                                Text(statusText)
+                                expected?.let { Text("Risposta corretta: $it") }
+                                Text("Tentativi: ${result.attempts}")
+                                val wrongAnswers = result.wrongAnswers
+                                if (wrongAnswers.isNotEmpty()) {
+                                    Text("Risposte da rivedere: ${wrongAnswers.joinToString()}")
+                                }
+                                if (result.stepErrors.isNotEmpty()) {
+                                    Text("Passaggi da rinforzare:")
+                                    result.stepErrors.forEach { err ->
+                                        Text("• ${stepErrorDescription(err)}")
                                     }
                                 }
-                                if (idx < results.lastIndex) {
-                                    Divider(Modifier.padding(vertical = 6.dp))
+                                if (result.solutionUsed) {
+                                    Text("Soluzione guidata usata")
                                 }
                             }
+                            if (idx < results.lastIndex) {
+                                Divider(Modifier.padding(vertical = 6.dp))
+                            }
                         }
+                    }
+                }
+            }
+        }
+
+        item {
+            currentReport?.let { report ->
+                SeaGlassPanel(title = "Stampa") {
+                    Button(
+                        onClick = { printHomeworkReport(context, report) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Stampa o esporta PDF")
                     }
                 }
             }
