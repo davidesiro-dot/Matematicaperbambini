@@ -272,6 +272,7 @@ fun SeaGlassPanel(
         tonalElevation = 0.dp,
         modifier = modifier
             .fillMaxWidth()
+            .wrapContentHeight()
             .shadow(12.dp, RoundedCornerShape(26.dp))
             .border(2.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(26.dp))
     ) {
