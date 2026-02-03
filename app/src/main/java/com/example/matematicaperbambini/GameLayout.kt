@@ -58,66 +58,70 @@ fun GameScreenFrame(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing),
-            contentPadding = PaddingValues(ui.pad),
-            verticalArrangement = Arrangement.spacedBy(contentSpacing)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            item {
-                SeaGlassPanel {
-                    GameHeader(
-                        title = title,
-                        soundEnabled = soundEnabled,
-                        onToggleSound = onToggleSound,
-                        onBack = onBack,
-                        onLeaderboard = onOpenLeaderboard,
-                        ui = ui,
-                        bonusTarget = bonusTarget,
-                        showBack = false
-                    )
-                }
+            SeaGlassPanel(modifier = Modifier.padding(horizontal = ui.pad, vertical = ui.pad)) {
+                GameHeader(
+                    title = title,
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onBack = onBack,
+                    onLeaderboard = onOpenLeaderboard,
+                    ui = ui,
+                    bonusTarget = bonusTarget,
+                    showBack = false
+                )
             }
 
-            item {
-                SeaGlassPanel {
-                    CompactHud(
-                        correctCount = correctCount,
-                        bonusTarget = bonusTarget,
-                        hintText = hintText,
-                        ui = ui,
-                        bonusLabelOverride = bonusLabelOverride,
-                        bonusProgressOverride = bonusProgressOverride
-                    )
-                }
-            }
-
-            item { content() }
-
-            item {
-                AnimatedVisibility(visible = !message.isNullOrBlank()) {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(ui.pad),
+                verticalArrangement = Arrangement.spacedBy(contentSpacing)
+            ) {
+                item {
                     SeaGlassPanel {
-                        Text(
-                            text = message.orEmpty(),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                        CompactHud(
+                            correctCount = correctCount,
+                            bonusTarget = bonusTarget,
+                            hintText = hintText,
+                            ui = ui,
+                            bonusLabelOverride = bonusLabelOverride,
+                            bonusProgressOverride = bonusProgressOverride
                         )
                     }
                 }
-            }
 
-            if (bottomBar != null) {
+                item { content() }
+
                 item {
-                    SeaGlassPanel {
-                        bottomBar()
+                    AnimatedVisibility(visible = !message.isNullOrBlank()) {
+                        SeaGlassPanel {
+                            Text(
+                                text = message.orEmpty(),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
-            }
 
-            item { Spacer(Modifier.height(contentSpacing)) }
+                if (bottomBar != null) {
+                    item {
+                        SeaGlassPanel {
+                            bottomBar()
+                        }
+                    }
+                }
+
+                item { Spacer(Modifier.height(contentSpacing)) }
+            }
         }
 
         Box(
