@@ -1341,24 +1341,25 @@ private fun HomeworkReportScreen(
             buildEducationalBadges(results, previousReports, now)
         }
 
+        currentReport?.let { report ->
+            SeaGlassPanel(
+                title = "Stampa",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Button(
+                    onClick = { printHomeworkReport(context, report) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Stampa o esporta PDF")
+                }
+            }
+        }
+
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            currentReport?.let { report ->
-                item {
-                    SeaGlassPanel(title = "Stampa") {
-                        Button(
-                            onClick = { printHomeworkReport(context, report) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Stampa o esporta PDF")
-                        }
-                    }
-                }
-            }
-
             item {
                 SeaGlassPanel(title = "Riepilogo") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
