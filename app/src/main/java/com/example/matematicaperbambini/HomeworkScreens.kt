@@ -1320,22 +1320,24 @@ private fun HomeworkReportScreen(
         )
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        GameHeader(
-            title = "Report Compito",
-            soundEnabled = soundEnabled,
-            onToggleSound = onToggleSound,
-            onBack = onBack,
-            onLeaderboard = {}
-        )
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+            GameHeader(
+                title = "Report Compito",
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onBack = onBack,
+                onLeaderboard = {}
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         currentReport?.let { report ->
-            SeaGlassPanel(title = "Stampa") {
+            SeaGlassPanel(
+                title = "Stampa",
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
                 Button(
                     onClick = { printHomeworkReport(context, report) },
                     modifier = Modifier.fillMaxWidth()
@@ -1345,13 +1347,8 @@ private fun HomeworkReportScreen(
             }
         }
 
-        SeaGlassPanel(title = "Riepilogo") {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
-                Text("Corretto: $perfectCount")
-                Text("Completato con errori: $withErrorsCount")
-                Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
-            }
+        if (currentReport != null) {
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         val errorPatterns = remember(results) { analyzeErrorPatterns(results) }
@@ -1368,8 +1365,20 @@ private fun HomeworkReportScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item {
+                SeaGlassPanel(title = "Riepilogo") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
+                        Text("Corretto: $perfectCount")
+                        Text("Completato con errori: $withErrorsCount")
+                        Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
+                    }
+                }
+            }
+
             if (errorPatterns.isNotEmpty()) {
                 item {
                     SeaGlassPanel(title = "🔍 Difficoltà principali") {
@@ -1419,7 +1428,11 @@ private fun HomeworkReportScreen(
             }
 
             item {
-                Text("Dettaglio esercizi", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    "Dettaglio esercizi",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
             }
 
             if (results.isEmpty()) {
