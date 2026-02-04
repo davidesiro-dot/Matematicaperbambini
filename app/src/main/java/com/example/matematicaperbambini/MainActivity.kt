@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Spacer
@@ -870,252 +871,244 @@ private fun HomeMenuKids(
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        val sizeProfile = when {
-            maxHeight < 620.dp -> MenuSizeProfile.Small
-            maxHeight < 760.dp -> MenuSizeProfile.Normal
-            else -> MenuSizeProfile.Large
-        }
+    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val sizeProfile = when {
+                maxHeight < 620.dp -> MenuSizeProfile.Small
+                maxHeight < 760.dp -> MenuSizeProfile.Normal
+                else -> MenuSizeProfile.Large
+            }
 
-        val baseButtonHeight = when (sizeProfile) {
-        MenuSizeProfile.Small -> 56.dp
-        MenuSizeProfile.Normal -> 64.dp
-        MenuSizeProfile.Large -> 72.dp
-    }
-        val buttonHeight = baseButtonHeight * 0.75f
+            val baseButtonHeight = when (sizeProfile) {
+                MenuSizeProfile.Small -> 56.dp
+                MenuSizeProfile.Normal -> 64.dp
+                MenuSizeProfile.Large -> 72.dp
+            }
+            val buttonHeight = baseButtonHeight * 0.75f
 
-        val buttonSpacing = when (sizeProfile) {
-            MenuSizeProfile.Small -> 10.dp
-            MenuSizeProfile.Normal -> 12.dp
-            MenuSizeProfile.Large -> 16.dp
-        }
-        val cardPadding = when (sizeProfile) {
-            MenuSizeProfile.Small -> 14.dp
-            MenuSizeProfile.Normal -> 18.dp
-            MenuSizeProfile.Large -> 22.dp
-        }
-        val buttonTextSize = when (sizeProfile) {
-            MenuSizeProfile.Small -> 16.sp
-            MenuSizeProfile.Normal -> 18.sp
-            MenuSizeProfile.Large -> 20.sp
-        }
-        val bonusTextSize = when (sizeProfile) {
-            MenuSizeProfile.Small -> 11.sp
-            MenuSizeProfile.Normal -> 12.sp
-            MenuSizeProfile.Large -> 13.sp
-        }
+            val buttonSpacing = when (sizeProfile) {
+                MenuSizeProfile.Small -> 10.dp
+                MenuSizeProfile.Normal -> 12.dp
+                MenuSizeProfile.Large -> 16.dp
+            }
+            val buttonTextSize = when (sizeProfile) {
+                MenuSizeProfile.Small -> 16.sp
+                MenuSizeProfile.Normal -> 18.sp
+                MenuSizeProfile.Large -> 20.sp
+            }
+            val bonusTextSize = when (sizeProfile) {
+                MenuSizeProfile.Small -> 11.sp
+                MenuSizeProfile.Normal -> 12.sp
+                MenuSizeProfile.Large -> 13.sp
+            }
 
-        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+            val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
 
-
-        val buttons = listOf(
-            MenuButtonData(
-                title = "Addizioni",
-                baseColor = Color(0xFFE74C3C),
-                iconText = "＋",
-                onClick = { onPickDigitsFor(GameMode.ADD) }
-            ),
-            MenuButtonData(
-                title = "Sottrazioni",
-                baseColor = Color(0xFF2ECC71),
-                iconText = "−",
-                onClick = { onPickDigitsFor(GameMode.SUB) }
-            ),
-            MenuButtonData(
-                title = "Moltiplicazioni",
-                baseColor = Color(0xFF8B5CF6),
-                iconText = "××",
-                onClick = { onPlayDirect(GameMode.MULT_HARD) }
-            ),
-            MenuButtonData(
-                title = "Divisioni",
-                baseColor = Color(0xFF3498DB),
-                iconText = "÷",
-                onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
-            ),
-            MenuButtonData(
-                title = "Tabelline",
-                baseColor = Color(0xFFF39C12),
-                iconText = "×",
-                onClick = { onPlayDirect(GameMode.MULT) }
-            ),
-            MenuButtonData(
-                title = "Conta i soldi",
-                baseColor = Color(0xFFF1C40F),
-                iconText = "€",
-                onClick = { onPlayDirect(GameMode.MONEY) }
+            val buttons = listOf(
+                MenuButtonData(
+                    title = "Addizioni",
+                    baseColor = Color(0xFFE74C3C),
+                    iconText = "＋",
+                    onClick = { onPickDigitsFor(GameMode.ADD) }
+                ),
+                MenuButtonData(
+                    title = "Sottrazioni",
+                    baseColor = Color(0xFF2ECC71),
+                    iconText = "−",
+                    onClick = { onPickDigitsFor(GameMode.SUB) }
+                ),
+                MenuButtonData(
+                    title = "Moltiplicazioni",
+                    baseColor = Color(0xFF8B5CF6),
+                    iconText = "××",
+                    onClick = { onPlayDirect(GameMode.MULT_HARD) }
+                ),
+                MenuButtonData(
+                    title = "Divisioni",
+                    baseColor = Color(0xFF3498DB),
+                    iconText = "÷",
+                    onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
+                ),
+                MenuButtonData(
+                    title = "Tabelline",
+                    baseColor = Color(0xFFF39C12),
+                    iconText = "×",
+                    onClick = { onPlayDirect(GameMode.MULT) }
+                ),
+                MenuButtonData(
+                    title = "Conta i soldi",
+                    baseColor = Color(0xFFF1C40F),
+                    iconText = "€",
+                    onClick = { onPlayDirect(GameMode.MONEY) }
+                )
             )
-        )
 
-        val animationsReady = remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) { animationsReady.value = true }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
-                .padding(12.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.TopEnd
-            ) {
-                TopActionsPill(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 6.dp)
-                ) {
-                    SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-                    SmallCircleButton("📋") { onOpenHomework() }
-                    SmallCircleButton("🗂️") { onOpenReports() }
-                    SmallCircleButton("🏆") { onOpenLeaderboard() }
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                if (logoPainter != null) {
-                    Image(
-                        painter = logoPainter,
-                        contentDescription = "Math Kids",
-                        modifier = Modifier.fillMaxWidth(1.02f),
-                        contentScale = ContentScale.Fit
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.HelpOutline,
-                        contentDescription = "Logo mancante",
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            val assignedCount = savedHomeworks.size
-            if (assignedCount > 0) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    AssignedHomeworkBanner(count = assignedCount, onOpen = onOpenAssignedHomeworks)
-                }
-            }
-
-            // ✅ BOTTONI SENZA PANNELLO "GLASSCARD" + alzati di 20dp
-            val offsetPx = with(LocalDensity.current) {
-                when (sizeProfile) {
-                    MenuSizeProfile.Small -> 12.dp.toPx()
-                    MenuSizeProfile.Normal -> 16.dp.toPx()
-                    MenuSizeProfile.Large -> 18.dp.toPx()
-                }
-            }
+            val animationsReady = remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { animationsReady.value = true }
 
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(buttonSpacing)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
+                    .padding(12.dp)
             ) {
-                buttons.forEachIndexed { index, data ->
-                    val alpha by animateFloatAsState(
-                        targetValue = if (animationsReady.value) 1f else 0f,
-                        animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
-                        label = "menuAlpha$index"
-                    )
-                    val offsetY by animateFloatAsState(
-                        targetValue = if (animationsReady.value) 0f else offsetPx,
-                        animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
-                        label = "menuOffset$index"
-                    )
-
-                    KidsMenuButton(
-                        title = data.title,
-                        baseColor = data.baseColor,
-                        icon = {
-                            Text(
-                                data.iconText,
-                                color = Color.White,
-                                fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        },
-                        onClick = data.onClick,
-                        height = buttonHeight,
-                        textSize = buttonTextSize,
-                        modifier = Modifier.graphicsLayer {
-                            this.alpha = alpha
-                            translationY = offsetY
-                        }
-                    )
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.TopEnd
+                ) {
+                    TopActionsPill(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 6.dp)
+                    ) {
+                        SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+                        SmallCircleButton("📋") { onOpenHomework() }
+                        SmallCircleButton("🗂️") { onOpenReports() }
+                        SmallCircleButton("🏆") { onOpenLeaderboard() }
+                    }
                 }
 
-                BonusPill(
-                    text = "Completa gli esercizi e vinci il BONUS! 🎈",
-                    fontSize = bonusTextSize
-                )
-            }
+                Spacer(modifier = Modifier.weight(1f))
 
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (logoPainter != null) {
+                        Image(
+                            painter = logoPainter,
+                            contentDescription = "Math Kids",
+                            modifier = Modifier.fillMaxWidth(1.02f),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.HelpOutline,
+                            contentDescription = "Logo mancante",
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
 
+                Spacer(modifier = Modifier.weight(1f))
 
+                // ✅ BOTTONI SENZA PANNELLO "GLASSCARD" + alzati di 20dp
+                val offsetPx = with(LocalDensity.current) {
+                    when (sizeProfile) {
+                        MenuSizeProfile.Small -> 12.dp.toPx()
+                        MenuSizeProfile.Normal -> 16.dp.toPx()
+                        MenuSizeProfile.Large -> 18.dp.toPx()
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(buttonSpacing)
+                ) {
+                    buttons.forEachIndexed { index, data ->
+                        val alpha by animateFloatAsState(
+                            targetValue = if (animationsReady.value) 1f else 0f,
+                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                            label = "menuAlpha$index"
+                        )
+                        val offsetY by animateFloatAsState(
+                            targetValue = if (animationsReady.value) 0f else offsetPx,
+                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                            label = "menuOffset$index"
+                        )
+
+                        KidsMenuButton(
+                            title = data.title,
+                            baseColor = data.baseColor,
+                            icon = {
+                                Text(
+                                    data.iconText,
+                                    color = Color.White,
+                                    fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            },
+                            onClick = data.onClick,
+                            height = buttonHeight,
+                            textSize = buttonTextSize,
+                            modifier = Modifier.graphicsLayer {
+                                this.alpha = alpha
+                                translationY = offsetY
+                            }
+                        )
+                    }
+
+                    BonusPill(
+                        text = "Completa gli esercizi e vinci il BONUS! 🎈",
+                        fontSize = bonusTextSize
+                    )
                 }
             }
         }
-
+        if (savedHomeworks.isNotEmpty()) {
+            AssignedHomeworkOverlay(
+                count = savedHomeworks.size,
+                onOpen = onOpenAssignedHomeworks,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .zIndex(1f)
+            )
+        }
+    }
+}
 
 @Composable
-fun AssignedHomeworkBanner(count: Int, onOpen: () -> Unit) {
+fun AssignedHomeworkOverlay(
+    count: Int,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     if (count <= 0) return
 
     val transition = rememberInfiniteTransition(label = "assignedHomeworkPulse")
-    val badgeScale by transition.animateFloat(
+    val pulseScale by transition.animateFloat(
         initialValue = 1f,
         targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
             animation = tween(1000),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "assignedHomeworkBadgeScale"
+        label = "assignedHomeworkOverlayScale"
     )
 
-    SeaGlassPanel(modifier = Modifier.clickable { onOpen() }) {
+    Surface(
+        modifier = modifier
+            .height(28.dp)
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+            }
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { onOpen() },
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        tonalElevation = 2.dp
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = "🎒",
-                fontSize = 24.sp
+                fontSize = 14.sp
             )
             Text(
                 text = "Hai $count compiti assegnati",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+                fontWeight = FontWeight.SemiBold
             )
-            Box(
-                modifier = Modifier
-                    .size(16.dp)
-                    .scale(badgeScale)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "$count",
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(0.dp)
-                )
-            }
-            TextButton(onClick = onOpen) {
-                Text("Apri")
-            }
         }
     }
 }
