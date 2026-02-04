@@ -525,6 +525,7 @@ private fun AppShell() {
     var homeworkReports by remember { mutableStateOf<List<HomeworkReport>>(emptyList()) }
     var savedHomeworks by remember { mutableStateOf<List<SavedHomework>>(emptyList()) }
     var homeworkReturnScreen by remember { mutableStateOf(Screen.HOMEWORK_BUILDER) }
+    var runningHomeworkId by remember { mutableStateOf<String?>(null) }
     val reportStorage = remember(context) { HomeworkReportStorage(context) }
     val reportScope = rememberCoroutineScope()
     val savedHomeworkRepository = remember(context) { SavedHomeworkRepository(context) }
@@ -788,6 +789,7 @@ private fun AppShell() {
                 onStartHomework = { configs ->
                     homeworkQueue = buildExerciseQueue(configs)
                     homeworkReturnScreen = Screen.HOMEWORK_BUILDER
+                    runningHomeworkId = null
                     navAnim = NavAnim.SLIDE
                     screen = Screen.HOMEWORK_RUNNER
                 },
@@ -809,6 +811,7 @@ private fun AppShell() {
                 previousReports = homeworkReports,
                 onExit = { results ->
                     lastHomeworkResults = results
+                    runningHomeworkId = null
                     navAnim = NavAnim.SLIDE
                     screen = homeworkReturnScreen
                 },
@@ -816,6 +819,14 @@ private fun AppShell() {
                     reportScope.launch {
                         reportStorage.saveReport(report)
                         homeworkReports = listOf(report) + homeworkReports
+                    }
+                },
+                homeworkId = runningHomeworkId,
+                onHomeworkCompleted = { homeworkId ->
+                    savedHomeworks = savedHomeworks.filterNot { it.id == homeworkId }
+                    savedHomeworkScope.launch {
+                        savedHomeworkRepository.delete(homeworkId)
+                        savedHomeworks = savedHomeworkRepository.getAll()
                     }
                 }
             )
@@ -835,6 +846,7 @@ private fun AppShell() {
                 onStartHomework = { savedHomework ->
                     homeworkQueue = buildExerciseQueue(savedHomework.tasks)
                     homeworkReturnScreen = Screen.ASSIGNED_HOMEWORKS
+                    runningHomeworkId = savedHomework.id
                     navAnim = NavAnim.SLIDE
                     screen = Screen.HOMEWORK_RUNNER
                 }
