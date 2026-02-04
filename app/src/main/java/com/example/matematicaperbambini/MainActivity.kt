@@ -410,7 +410,7 @@ fun GameHeader(
     val spacing = if (isCompact) 6.dp else 10.dp
 
     Row(
-        Modifier.fillMaxWidth(),
+        Modifier.fillMaxWidth().statusBarsPadding(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
