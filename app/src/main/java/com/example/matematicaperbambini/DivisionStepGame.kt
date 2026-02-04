@@ -69,6 +69,20 @@ fun DivisionStepGame(
     val rng = remember { Random(System.currentTimeMillis()) }
     var mode by remember { mutableStateOf(DivMode.ONE_DIGIT) }
     val isHomeworkMode = exercise != null || onExerciseFinished != null
+    val highlightsEnabled = helps?.highlightsEnabled != false
+    val isChallengeMode = isChallengeMode(isHomeworkMode, helps)
+    val guideHighlightsAllowed = shouldHighlightGuideCell(
+        isInputCell = false,
+        isChallengeMode = isChallengeMode,
+        isHomeworkMode = isHomeworkMode,
+        highlightsEnabled = highlightsEnabled
+    )
+    val inputHighlightsAllowed = shouldHighlightGuideCell(
+        isInputCell = true,
+        isChallengeMode = isChallengeMode,
+        isHomeworkMode = isHomeworkMode,
+        highlightsEnabled = highlightsEnabled
+    )
 
     fun newPlan(): DivisionPlan {
         val (dividend, divisor) = generateDivision(rng, mode)
@@ -394,7 +408,7 @@ fun DivisionStepGame(
     val divisorOffset = if (columns > divisorDigits.length) gap else 0.dp
 
     fun isHL(zone: HLZone, step: Int, col: Int): Boolean =
-        currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
+        guideHighlightsAllowed && currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
 
     // ✅ FIX: misuro altezza reale del contenuto e disegno la barra con height(...) (NO fillMaxHeight)
     var calcContentHeightPx by remember { mutableIntStateOf(0) }
@@ -608,7 +622,7 @@ fun DivisionStepGame(
                                                         enabled = active,
                                                         active = active,
                                                         isError = quotientErrors[col].value,
-                                                        highlight = highlightQuotient,
+                                                        highlight = inputHighlightsAllowed,
                                                         microLabel = if (showCellHelper) target.microLabel else null,
                                                         onValueChange = { onDigitInput(target, it) },
                                                         w = quotientDigitW,
@@ -661,7 +675,7 @@ fun DivisionStepGame(
                                                         enabled = active,
                                                         active = active,
                                                         isError = productErrors[si][target.idx].value,
-                                                        highlight = isHL(HLZone.PRODUCT, si, col),
+                                                        highlight = inputHighlightsAllowed,
                                                         microLabel = if (showCellHelper) target.microLabel else null,
                                                         onValueChange = { onDigitInput(target, it) },
                                                         w = digitSmallW,
@@ -695,7 +709,7 @@ fun DivisionStepGame(
                                                                 enabled = active,
                                                                 active = active,
                                                                 isError = remainderErrors[si][target.idx].value,
-                                                                highlight = isHL(HLZone.REMAINDER, si, col),
+                                                                highlight = inputHighlightsAllowed,
                                                                 microLabel = if (showCellHelper) target.microLabel else null,
                                                                 onValueChange = { onDigitInput(target, it) },
                                                                 w = digitSmallW,
@@ -711,7 +725,7 @@ fun DivisionStepGame(
                                                             val active = bringDownTarget == currentTarget
                                                             DivisionActionDigit(
                                                                 text = step.bringDownDigit.toString(),
-                                                                active = active,
+                                                                active = active && guideHighlightsAllowed,
                                                                 microLabel = if (showCellHelper) bringDownTarget.microLabel else null,
                                                                 w = digitSmallW,
                                                                 h = digitSmallH,
