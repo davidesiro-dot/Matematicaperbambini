@@ -23,8 +23,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -35,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +53,9 @@ import java.util.Calendar
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.platform.LocalContext
+import java.text.DateFormat
+import java.util.Date
+import java.util.UUID
 
 @Composable
 fun HomeworkBuilderScreen(
@@ -56,8 +63,14 @@ fun HomeworkBuilderScreen(
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
     lastResults: List<ExerciseResult>,
-    onStartHomework: (List<HomeworkTaskConfig>) -> Unit
+    onStartHomework: (List<HomeworkTaskConfig>) -> Unit,
+    onSaveHomework: (SavedHomework) -> Unit
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var saveNameInput by remember { mutableStateOf("") }
+    var pendingConfigs by remember { mutableStateOf<List<HomeworkTaskConfig>>(emptyList()) }
     var additionEnabled by remember { mutableStateOf(false) }
     var additionDigitsInput by remember { mutableStateOf("2") }
     var additionExercisesCountInput by remember { mutableStateOf("5") }
@@ -162,7 +175,8 @@ fun HomeworkBuilderScreen(
                 onBack = onBack,
                 onLeaderboard = {}
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -658,175 +672,321 @@ fun HomeworkBuilderScreen(
         }
 
         val anyEnabled = additionEnabled || subtractionEnabled || tableEnabled || divisionEnabled || hardEnabled
+        fun buildConfigs(): List<HomeworkTaskConfig> = buildList {
+            if (additionEnabled) {
+                val digits = additionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
+                val exercisesCount = additionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 5
+                val repeats = additionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                val helpSettings = HelpSettings(
+                    hintsEnabled = additionHintsEnabled,
+                    highlightsEnabled = additionHighlightsEnabled,
+                    allowSolution = additionAllowSolution,
+                    autoCheck = additionAutoCheck,
+                    showCellHelper = false
+                )
+                // why: manualOps is the single source of truth for manual exercises.
+                val sourceConfig = if (additionManualOps.isNotEmpty()) {
+                    ExerciseSourceConfig.Manual(additionManualOps.toList())
+                } else {
+                    ExerciseSourceConfig.Random
+                }
+                add(
+                    HomeworkTaskConfig(
+                        game = GameType.ADDITION,
+                        difficulty = DifficultyConfig(digits = digits),
+                        helps = helpSettings,
+                        source = sourceConfig,
+                        amount = AmountConfig(
+                            exercisesCount = exercisesCount,
+                            repeatsPerExercise = repeats
+                        )
+                    )
+                )
+            }
+            if (subtractionEnabled) {
+                val digits = subtractionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
+                val exercisesCount = subtractionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 5
+                val repeats = subtractionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                val helpSettings = HelpSettings(
+                    hintsEnabled = subtractionHintsEnabled,
+                    highlightsEnabled = subtractionHighlightsEnabled,
+                    allowSolution = subtractionAllowSolution,
+                    autoCheck = subtractionAutoCheck,
+                    showCellHelper = false
+                )
+                val sourceConfig = if (subtractionManualOps.isNotEmpty()) {
+                    ExerciseSourceConfig.Manual(subtractionManualOps.toList())
+                } else {
+                    ExerciseSourceConfig.Random
+                }
+                add(
+                    HomeworkTaskConfig(
+                        game = GameType.SUBTRACTION,
+                        difficulty = DifficultyConfig(digits = digits),
+                        helps = helpSettings,
+                        source = sourceConfig,
+                        amount = AmountConfig(
+                            exercisesCount = exercisesCount,
+                            repeatsPerExercise = repeats
+                        )
+                    )
+                )
+            }
+            if (tableEnabled) {
+                val tables = tableSelectedTables.sorted()
+                val tableGame = when (tableMode) {
+                    TabellineMode.CLASSIC -> GameType.MULTIPLICATION_TABLE
+                    TabellineMode.GAPS -> GameType.MULTIPLICATION_GAPS
+                    TabellineMode.REVERSE -> GameType.MULTIPLICATION_REVERSE
+                    TabellineMode.MULTIPLE_CHOICE -> GameType.MULTIPLICATION_MULTIPLE_CHOICE
+                    TabellineMode.MIXED -> GameType.MULTIPLICATION_MIXED
+                }
+                val repeats = tableRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                val sourceConfig = if (tables.isEmpty()) {
+                    ExerciseSourceConfig.Random
+                } else {
+                    ExerciseSourceConfig.Manual(tables.map { ManualOp.Table(it) })
+                }
+                val helpSettings = HelpSettings(
+                    hintsEnabled = tableHintsEnabled,
+                    highlightsEnabled = tableHighlightsEnabled,
+                    allowSolution = tableAllowSolution,
+                    autoCheck = tableAutoCheck,
+                    showCellHelper = false
+                )
+                add(
+                    HomeworkTaskConfig(
+                        game = tableGame,
+                        difficulty = DifficultyConfig(tables = tables.takeIf { it.isNotEmpty() }),
+                        helps = helpSettings,
+                        source = sourceConfig,
+                        amount = AmountConfig(
+                            exercisesCount = tables.size.coerceAtLeast(1),
+                            repeatsPerExercise = repeats
+                        )
+                    )
+                )
+            }
+            if (divisionEnabled) {
+                val digits = divisionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
+                val divisorDigits = divisionDivisorDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 1
+                val exercisesCount = divisionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 4
+                val repeats = divisionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                val helpSettings = HelpSettings(
+                    hintsEnabled = divisionHintsEnabled,
+                    highlightsEnabled = divisionHighlightsEnabled,
+                    allowSolution = divisionAllowSolution,
+                    autoCheck = divisionAutoCheck,
+                    showCellHelper = divisionShowCellHelper
+                )
+                val sourceConfig = if (divisionManualOps.isNotEmpty()) {
+                    ExerciseSourceConfig.Manual(divisionManualOps.toList())
+                } else {
+                    ExerciseSourceConfig.Random
+                }
+                add(
+                    HomeworkTaskConfig(
+                        game = GameType.DIVISION_STEP,
+                        difficulty = DifficultyConfig(digits = digits, divisorDigits = divisorDigits),
+                        helps = helpSettings,
+                        source = sourceConfig,
+                        amount = AmountConfig(
+                            exercisesCount = exercisesCount,
+                            repeatsPerExercise = repeats
+                        )
+                    )
+                )
+            }
+            if (hardEnabled) {
+                val multiplicandDigits = hardMaxAInput.toIntOrNull()?.coerceIn(2, 3) ?: 2
+                val multiplierDigits = hardMaxBInput.toIntOrNull()?.coerceIn(1, 2) ?: 1
+                val exercisesCount = hardExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 4
+                val repeats = hardRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
+                val helpSettings = HelpSettings(
+                    hintsEnabled = hardHintsEnabled,
+                    highlightsEnabled = hardHighlightsEnabled,
+                    allowSolution = hardAllowSolution,
+                    autoCheck = hardAutoCheck,
+                    showCellHelper = false
+                )
+                val sourceConfig = if (hardManualOps.isNotEmpty()) {
+                    ExerciseSourceConfig.Manual(hardManualOps.toList())
+                } else {
+                    ExerciseSourceConfig.Random
+                }
+                add(
+                    HomeworkTaskConfig(
+                        game = GameType.MULTIPLICATION_HARD,
+                        difficulty = DifficultyConfig(maxA = multiplicandDigits, maxB = multiplierDigits),
+                        helps = helpSettings,
+                        source = sourceConfig,
+                        amount = AmountConfig(
+                            exercisesCount = exercisesCount,
+                            repeatsPerExercise = repeats
+                        )
+                    )
+                )
+            }
+        }
 
         item {
             Button(
                 onClick = {
-                    val configs = buildList {
-                        if (additionEnabled) {
-                            val digits = additionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
-                            val exercisesCount = additionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 5
-                            val repeats = additionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
-                            val helpSettings = HelpSettings(
-                                hintsEnabled = additionHintsEnabled,
-                                highlightsEnabled = additionHighlightsEnabled,
-                                allowSolution = additionAllowSolution,
-                                autoCheck = additionAutoCheck,
-                                showCellHelper = false
-                            )
-                            // why: manualOps is the single source of truth for manual exercises.
-                            val sourceConfig = if (additionManualOps.isNotEmpty()) {
-                                ExerciseSourceConfig.Manual(additionManualOps.toList())
-                            } else {
-                                ExerciseSourceConfig.Random
-                            }
-                            add(
-                                HomeworkTaskConfig(
-                                    game = GameType.ADDITION,
-                                    difficulty = DifficultyConfig(digits = digits),
-                                    helps = helpSettings,
-                                    source = sourceConfig,
-                                    amount = AmountConfig(
-                                        exercisesCount = exercisesCount,
-                                        repeatsPerExercise = repeats
-                                    )
-                                )
-                            )
-                        }
-                        if (subtractionEnabled) {
-                            val digits = subtractionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
-                            val exercisesCount = subtractionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 5
-                            val repeats = subtractionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
-                            val helpSettings = HelpSettings(
-                                hintsEnabled = subtractionHintsEnabled,
-                                highlightsEnabled = subtractionHighlightsEnabled,
-                                allowSolution = subtractionAllowSolution,
-                                autoCheck = subtractionAutoCheck,
-                                showCellHelper = false
-                            )
-                            val sourceConfig = if (subtractionManualOps.isNotEmpty()) {
-                                ExerciseSourceConfig.Manual(subtractionManualOps.toList())
-                            } else {
-                                ExerciseSourceConfig.Random
-                            }
-                            add(
-                                HomeworkTaskConfig(
-                                    game = GameType.SUBTRACTION,
-                                    difficulty = DifficultyConfig(digits = digits),
-                                    helps = helpSettings,
-                                    source = sourceConfig,
-                                    amount = AmountConfig(
-                                        exercisesCount = exercisesCount,
-                                        repeatsPerExercise = repeats
-                                    )
-                                )
-                            )
-                        }
-                        if (tableEnabled) {
-                            val tables = tableSelectedTables.sorted()
-                            val tableGame = when (tableMode) {
-                                TabellineMode.CLASSIC -> GameType.MULTIPLICATION_TABLE
-                                TabellineMode.GAPS -> GameType.MULTIPLICATION_GAPS
-                                TabellineMode.REVERSE -> GameType.MULTIPLICATION_REVERSE
-                                TabellineMode.MULTIPLE_CHOICE -> GameType.MULTIPLICATION_MULTIPLE_CHOICE
-                                TabellineMode.MIXED -> GameType.MULTIPLICATION_MIXED
-                            }
-                            val repeats = tableRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
-                            val sourceConfig = if (tables.isEmpty()) {
-                                ExerciseSourceConfig.Random
-                            } else {
-                                ExerciseSourceConfig.Manual(tables.map { ManualOp.Table(it) })
-                            }
-                            val helpSettings = HelpSettings(
-                                hintsEnabled = tableHintsEnabled,
-                                highlightsEnabled = tableHighlightsEnabled,
-                                allowSolution = tableAllowSolution,
-                                autoCheck = tableAutoCheck,
-                                showCellHelper = false
-                            )
-                            add(
-                                HomeworkTaskConfig(
-                                    game = tableGame,
-                                    difficulty = DifficultyConfig(tables = tables.takeIf { it.isNotEmpty() }),
-                                    helps = helpSettings,
-                                    source = sourceConfig,
-                                    amount = AmountConfig(
-                                        exercisesCount = tables.size.coerceAtLeast(1),
-                                        repeatsPerExercise = repeats
-                                    )
-                                )
-                            )
-                        }
-                        if (divisionEnabled) {
-                            val digits = divisionDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 2
-                            val divisorDigits = divisionDivisorDigitsInput.toIntOrNull()?.coerceIn(1, 3) ?: 1
-                            val exercisesCount = divisionExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 4
-                            val repeats = divisionRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
-                            val helpSettings = HelpSettings(
-                                hintsEnabled = divisionHintsEnabled,
-                                highlightsEnabled = divisionHighlightsEnabled,
-                                allowSolution = divisionAllowSolution,
-                                autoCheck = divisionAutoCheck,
-                                showCellHelper = divisionShowCellHelper
-                            )
-                            val sourceConfig = if (divisionManualOps.isNotEmpty()) {
-                                ExerciseSourceConfig.Manual(divisionManualOps.toList())
-                            } else {
-                                ExerciseSourceConfig.Random
-                            }
-                            add(
-                                HomeworkTaskConfig(
-                                    game = GameType.DIVISION_STEP,
-                                    difficulty = DifficultyConfig(digits = digits, divisorDigits = divisorDigits),
-                                    helps = helpSettings,
-                                    source = sourceConfig,
-                                    amount = AmountConfig(
-                                        exercisesCount = exercisesCount,
-                                        repeatsPerExercise = repeats
-                                    )
-                                )
-                            )
-                        }
-                        if (hardEnabled) {
-                            val multiplicandDigits = hardMaxAInput.toIntOrNull()?.coerceIn(2, 3) ?: 2
-                            val multiplierDigits = hardMaxBInput.toIntOrNull()?.coerceIn(1, 2) ?: 1
-                            val exercisesCount = hardExercisesCountInput.toIntOrNull()?.coerceIn(1, 99) ?: 4
-                            val repeats = hardRepeatsInput.toIntOrNull()?.coerceIn(1, 20) ?: 1
-                            val helpSettings = HelpSettings(
-                                hintsEnabled = hardHintsEnabled,
-                                highlightsEnabled = hardHighlightsEnabled,
-                                allowSolution = hardAllowSolution,
-                                autoCheck = hardAutoCheck,
-                                showCellHelper = false
-                            )
-                            val sourceConfig = if (hardManualOps.isNotEmpty()) {
-                                ExerciseSourceConfig.Manual(hardManualOps.toList())
-                            } else {
-                                ExerciseSourceConfig.Random
-                            }
-                            add(
-                                HomeworkTaskConfig(
-                                    game = GameType.MULTIPLICATION_HARD,
-                                    difficulty = DifficultyConfig(maxA = multiplicandDigits, maxB = multiplierDigits),
-                                    helps = helpSettings,
-                                    source = sourceConfig,
-                                    amount = AmountConfig(
-                                        exercisesCount = exercisesCount,
-                                        repeatsPerExercise = repeats
-                                    )
-                                )
-                            )
-                        }
-                    }
+                    val configs = buildConfigs()
                     onStartHomework(configs)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = anyEnabled
             ) { Text("Avvia Compito") }
         }
+
+        item {
+            Button(
+                onClick = {
+                    pendingConfigs = buildConfigs()
+                    showSaveDialog = true
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = anyEnabled
+            ) { Text("Salva compito per dopo") }
+        }
+    }
+
+    if (showSaveDialog) {
+        val trimmedName = saveNameInput.trim()
+        AlertDialog(
+            onDismissRequest = {
+                showSaveDialog = false
+                saveNameInput = ""
+            },
+            title = { Text("Nome compito") },
+            text = {
+                OutlinedTextField(
+                    value = saveNameInput,
+                    onValueChange = { input ->
+                        if (input.length <= 32) {
+                            saveNameInput = input
+                        }
+                    },
+                    placeholder = { Text("Es. Ripasso divisioni") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val savedHomework = SavedHomework(
+                            id = UUID.randomUUID().toString(),
+                            name = trimmedName,
+                            createdAt = System.currentTimeMillis(),
+                            tasks = pendingConfigs
+                        )
+                        onSaveHomework(savedHomework)
+                        showSaveDialog = false
+                        saveNameInput = ""
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Compito salvato")
+                        }
+                    },
+                    enabled = trimmedName.isNotEmpty()
+                ) { Text("Salva") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showSaveDialog = false
+                        saveNameInput = ""
+                    }
+                ) { Text("Annulla") }
+            }
+        )
     }
 }
 
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun AssignedHomeworksScreen(
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onBack: () -> Unit,
+    savedHomeworks: List<SavedHomework>,
+    onStartHomework: (SavedHomework) -> Unit
+) {
+    val formatter = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
+    val sortedHomeworks = remember(savedHomeworks) { savedHomeworks.sortedByDescending { it.createdAt } }
+
+    Scaffold(
+        topBar = {
+            GameHeader(
+                title = "Compiti assegnati",
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onBack = onBack,
+                onLeaderboard = {}
+            )
+        }
+    ) { padding ->
+        if (sortedHomeworks.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                SeaGlassPanel {
+                    Text(
+                        "Nessun compito assegnato",
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "Chiedi al genitore di creare un compito",
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                itemsIndexed(sortedHomeworks, key = { _, item -> item.id }) { _, homework ->
+                    val totalExercises = homework.tasks.sumOf {
+                        it.amount.exercisesCount * it.amount.repeatsPerExercise
+                    }
+                    SeaGlassPanel(
+                        title = homework.name,
+                        modifier = Modifier.combinedClickable(onClick = { onStartHomework(homework) })
+                    ) {
+                        Text(
+                            formatter.format(Date(homework.createdAt)),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            if (totalExercises > 0) {
+                                "Esercizi previsti: $totalExercises"
+                            } else {
+                                "Task: ${homework.tasks.size}"
+                            },
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Button(
+                            onClick = { onStartHomework(homework) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Inizia") }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
