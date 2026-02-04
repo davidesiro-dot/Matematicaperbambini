@@ -1065,7 +1065,6 @@ fun HomeworkRunnerScreen(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     fx: SoundFx,
-    onBack: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     queue: List<HomeworkExerciseEntry>,
@@ -1076,6 +1075,7 @@ fun HomeworkRunnerScreen(
     var index by remember { mutableStateOf(0) }
     val results = remember { mutableStateListOf<ExerciseResult>() }
     var startAt by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showExitDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(index) {
         startAt = System.currentTimeMillis()
@@ -1087,10 +1087,49 @@ fun HomeworkRunnerScreen(
             onToggleSound = onToggleSound,
             onBack = { onExit(results.toList()) },
             results = results,
+            totalExercises = queue.size,
+            interrupted = false,
             previousReports = previousReports,
             onSaveReport = onSaveReport
         )
         return
+    }
+
+    if (showExitDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Stai svolgendo un compito") },
+            text = { Text("Se esci ora, il compito verrà salvato come interrotto.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExitDialog = false
+                        val completedExercises = results.size
+                        val totalExercises = queue.size
+                        val interrupted = completedExercises < totalExercises
+                        if (interrupted) {
+                            val defaultName = previousReports.firstOrNull()?.childName?.ifBlank { null }
+                                ?: "Senza nome"
+                            val report = HomeworkReport(
+                                childName = defaultName,
+                                createdAt = System.currentTimeMillis(),
+                                results = results.toList(),
+                                interrupted = true,
+                                completedExercises = completedExercises,
+                                totalExercises = totalExercises
+                            )
+                            onSaveReport(report)
+                        }
+                        onExit(results.toList())
+                    }
+                ) { Text("Esci") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text("Continua")
+                }
+            }
+        )
     }
 
     val current = queue[index]
@@ -1100,7 +1139,7 @@ fun HomeworkRunnerScreen(
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             fx = fx,
-            onBack = onBack,
+            onBack = { showExitDialog = true },
             onOpenLeaderboard = onOpenLeaderboard,
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             entry = current,
@@ -1295,6 +1334,8 @@ private fun HomeworkReportScreen(
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
     results: List<ExerciseResult>,
+    totalExercises: Int,
+    interrupted: Boolean,
     previousReports: List<HomeworkReport>,
     onSaveReport: (HomeworkReport) -> Unit
 ) {
@@ -1327,7 +1368,10 @@ private fun HomeworkReportScreen(
                         val report = HomeworkReport(
                             childName = safeName,
                             createdAt = System.currentTimeMillis(),
-                            results = results
+                            results = results,
+                            interrupted = interrupted,
+                            completedExercises = total,
+                            totalExercises = totalExercises
                         )
                         onSaveReport(report)
                         currentReport = report
@@ -1366,6 +1410,17 @@ private fun HomeworkReportScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (interrupted) {
+                item {
+                    SeaGlassPanel(title = "Avviso") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("⚠ Compito interrotto prima del completamento")
+                            Text("Esercizi completati: $total su $totalExercises")
+                        }
+                    }
+                }
+            }
+
             item {
                 SeaGlassPanel(title = "Riepilogo") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1547,17 +1602,30 @@ fun HomeworkReportsScreen(
                     val key = "${report.childName}_${report.createdAt}"
                     val selected = key in selectedKeys
                     val expanded = expandedKey == key
-                    val total = report.results.size
+                    val completedExercises = if (report.totalExercises > 0) {
+                        report.completedExercises
+                    } else {
+                        report.results.size
+                    }
+                    val plannedTotal = if (report.totalExercises > 0) {
+                        report.totalExercises
+                    } else {
+                        completedExercises
+                    }
                     val correct = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
                     val withErrors = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-                    val wrong = total - correct - withErrors
+                    val wrong = completedExercises - correct - withErrors
                     val durationMillis = report.results.sumOf { (it.endedAt - it.startedAt).coerceAtLeast(0) }
                     val errorPatterns = analyzeErrorPatterns(report.results)
                     val solutionUsedCount = report.results.count { it.solutionUsed }
                     val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
 
                     SeaGlassPanel(
-                        title = "Report ${idx + 1}",
+                        title = if (report.interrupted) {
+                            "Report ${idx + 1} – ⚠ Compito interrotto"
+                        } else {
+                            "Report ${idx + 1}"
+                        },
                         modifier = Modifier
                             .combinedClickable(
                                 onClick = {
@@ -1584,10 +1652,14 @@ fun HomeworkReportsScreen(
                             if (selected) {
                                 Text("✅ Selezionato", fontWeight = FontWeight.Bold)
                             }
+                            if (report.interrupted) {
+                                Text("⚠ Compito interrotto", fontWeight = FontWeight.SemiBold)
+                                Text("Esercizi completati: $completedExercises su $plannedTotal")
+                            }
                             Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
                             Text("Data e ora: ${formatTimestamp(report.createdAt)}")
                             Text("Durata: ${formatDurationMillis(durationMillis)}")
-                            Text("Totale esercizi: $total")
+                            Text("Totale esercizi: $completedExercises")
                             Text("Corretti: $correct • Con errori: $withErrors • Da ripassare: $wrong")
                             Text(
                                 if (multiSelectEnabled) {
@@ -1609,8 +1681,13 @@ fun HomeworkReportsScreen(
                                 Text("Tipi esercizi: ${homeworkTypes.joinToString(", ")}")
 
                                 Spacer(Modifier.height(8.dp))
+                                if (report.interrupted) {
+                                    Text("⚠ Compito interrotto prima del completamento", fontWeight = FontWeight.SemiBold)
+                                    Text("Esercizi completati: $completedExercises su $plannedTotal")
+                                    Spacer(Modifier.height(8.dp))
+                                }
                                 Text("Riepilogo sessione", fontWeight = FontWeight.Bold)
-                                Text("Totale esercizi: $total")
+                                Text("Totale esercizi: $completedExercises")
                                 Text("Corretti: $correct")
                                 Text("Completati con errori: $withErrors")
                                 Text("Da ripassare: $wrong")
