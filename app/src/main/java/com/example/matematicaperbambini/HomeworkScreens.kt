@@ -820,6 +820,8 @@ fun HomeworkBuilderScreen(
     }
 }
 
+}
+
 @Composable
 fun GameToggleRow(
     title: String,
