@@ -414,6 +414,18 @@ fun DivisionStepGame(
     fun isHL(zone: HLZone, step: Int, col: Int): Boolean =
         guideHighlightsAllowed && currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
 
+    fun resolveHighlight(
+        isInputCell: Boolean,
+        isCurrentStepInput: Boolean,
+        isCurrentStepOperand: Boolean
+    ): Boolean {
+        return when {
+            isInputCell && isCurrentStepInput -> shouldHighlightInputCell(isCurrentStepInput)
+            isCurrentStepOperand -> isCurrentStepOperand
+            else -> false
+        }
+    }
+
     // ✅ FIX: misuro altezza reale del contenuto e disegno la barra con height(...) (NO fillMaxHeight)
     var calcContentHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
@@ -621,12 +633,17 @@ fun DivisionStepGame(
 
                                                 if (target != null) {
                                                     val active = target == currentTarget
+                                                    val highlight = resolveHighlight(
+                                                        isInputCell = true,
+                                                        isCurrentStepInput = active,
+                                                        isCurrentStepOperand = highlightQuotient
+                                                    )
                                                     DivisionDigitBox(
                                                         value = quotientInputs[col].value,
                                                         enabled = active,
                                                         active = active,
                                                         isError = quotientErrors[col].value,
-                                                        highlight = shouldHighlightInputCell(active),
+                                                        highlight = highlight,
                                                         microLabel = if (showCellHelper) target.microLabel else null,
                                                         onValueChange = { onDigitInput(target, it) },
                                                         w = quotientDigitW,
@@ -674,12 +691,17 @@ fun DivisionStepGame(
                                                 val target = productTargets.firstOrNull { it.gridCol == col }
                                                 if (target != null) {
                                                     val active = target == currentTarget
+                                                    val highlight = resolveHighlight(
+                                                        isInputCell = true,
+                                                        isCurrentStepInput = active,
+                                                        isCurrentStepOperand = isHL(HLZone.PRODUCT, si, col)
+                                                    )
                                                     DivisionDigitBox(
                                                         value = productInputs[si][target.idx].value,
                                                         enabled = active,
                                                         active = active,
                                                         isError = productErrors[si][target.idx].value,
-                                                        highlight = shouldHighlightInputCell(active),
+                                                        highlight = highlight,
                                                         microLabel = if (showCellHelper) target.microLabel else null,
                                                         onValueChange = { onDigitInput(target, it) },
                                                         w = digitSmallW,
@@ -708,12 +730,17 @@ fun DivisionStepGame(
                                                     when {
                                                         target != null -> {
                                                             val active = target == currentTarget
+                                                            val highlight = resolveHighlight(
+                                                                isInputCell = true,
+                                                                isCurrentStepInput = active,
+                                                                isCurrentStepOperand = isHL(HLZone.REMAINDER, si, col)
+                                                            )
                                                             DivisionDigitBox(
                                                                 value = remainderInputs[si][target.idx].value,
                                                                 enabled = active,
                                                                 active = active,
                                                                 isError = remainderErrors[si][target.idx].value,
-                                                                highlight = shouldHighlightInputCell(active),
+                                                                highlight = highlight,
                                                                 microLabel = if (showCellHelper) target.microLabel else null,
                                                                 onValueChange = { onDigitInput(target, it) },
                                                                 w = digitSmallW,
