@@ -1476,6 +1476,7 @@ fun HomeworkReportsScreen(
     val context = LocalContext.current
     var selectedKeys by remember { mutableStateOf(setOf<String>()) }
     var multiSelectEnabled by remember { mutableStateOf(false) }
+    var expandedKey by remember { mutableStateOf<String?>(null) }
 
     val selectedReports = remember(reports, selectedKeys) {
         reports.filter {
@@ -1484,8 +1485,12 @@ fun HomeworkReportsScreen(
     }
 
     fun toggleSelection(key: String) {
-        selectedKeys =
+        val updated =
             if (key in selectedKeys) selectedKeys - key else selectedKeys + key
+        selectedKeys = updated
+        if (updated.isEmpty()) {
+            multiSelectEnabled = false
+        }
     }
 
     Column(
@@ -1510,70 +1515,6 @@ fun HomeworkReportsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            /* ───── STATISTICHE ───── */
-            if (reports.isNotEmpty()) {
-                item {
-                    val stats = remember(reports) { buildReportStatistics(reports) }
-                    SeaGlassPanel(title = "Statistiche") {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("📅 Giornaliero", fontWeight = FontWeight.Bold)
-                            Text("Esercizi oggi: ${stats.today.total}")
-                            Text("Corretto: ${stats.today.correct}")
-                            Text("Con errori: ${stats.today.withErrors}")
-
-                            Spacer(Modifier.height(8.dp))
-
-                            Text("📊 Settimanale", fontWeight = FontWeight.Bold)
-                            Text("Totale esercizi: ${stats.week.total}")
-
-                            val percent =
-                                if (stats.week.total > 0)
-                                    (stats.week.correct * 100 / stats.week.total)
-                                else 0
-
-                            Text("Percentuale corretti: $percent%")
-                            Text(
-                                "Passaggio da rinforzare più frequente: ${
-                                    stats.topWeeklyError ?: "Nessuno"
-                                }"
-                            )
-
-                            if (stats.recurringErrors.isNotEmpty()) {
-                                Spacer(Modifier.height(8.dp))
-                                Text("⭐ Difficoltà ricorrenti", fontWeight = FontWeight.Bold)
-                                stats.recurringErrors.forEach {
-                                    Text("• $it")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            /* ───── STAMPA ───── */
-            if (reports.isNotEmpty()) {
-                item {
-                    SeaGlassPanel(title = "Stampa selezionati") {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                if (selectedReports.isEmpty())
-                                    "Seleziona uno o più report per stampare o esportare."
-                                else
-                                    "Report selezionati: ${selectedReports.size}"
-                            )
-
-                            Button(
-                                onClick = { printHomeworkReports(context, selectedReports) },
-                                enabled = selectedReports.isNotEmpty(),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Stampa o esporta PDF")
-                            }
-                        }
-                    }
-                }
-            }
-
             /* ───── LISTA REPORT ───── */
             if (reports.isEmpty()) {
                 item {
@@ -1585,15 +1526,26 @@ fun HomeworkReportsScreen(
                 itemsIndexed(reports) { idx, report ->
                     val key = "${report.childName}_${report.createdAt}"
                     val selected = key in selectedKeys
+                    val expanded = expandedKey == key
+                    val total = report.results.size
+                    val correct = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
+                    val withErrors = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
+                    val wrong = total - correct - withErrors
+                    val durationMillis = report.results.sumOf { (it.endedAt - it.startedAt).coerceAtLeast(0) }
+                    val errorPatterns = analyzeErrorPatterns(report.results)
+                    val solutionUsedCount = report.results.count { it.solutionUsed }
+                    val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
 
                     SeaGlassPanel(
                         title = "Report ${idx + 1}",
                         modifier = Modifier
                             .combinedClickable(
                                 onClick = {
-                                    if (multiSelectEnabled) toggleSelection(key)
-                                    else selectedKeys =
-                                        if (selected) emptySet() else setOf(key)
+                                    if (multiSelectEnabled) {
+                                        toggleSelection(key)
+                                    } else {
+                                        expandedKey = if (expanded) null else key
+                                    }
                                 },
                                 onLongClick = {
                                     multiSelectEnabled = true
@@ -1613,8 +1565,114 @@ fun HomeworkReportsScreen(
                                 Text("✅ Selezionato", fontWeight = FontWeight.Bold)
                             }
                             Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
-                            Text("Data: ${formatTimestamp(report.createdAt)}")
+                            Text("Data e ora: ${formatTimestamp(report.createdAt)}")
+                            Text("Durata: ${formatDurationMillis(durationMillis)}")
+                            Text("Totale esercizi: $total")
+                            Text("Corretti: $correct • Con errori: $withErrors • Da ripassare: $wrong")
+                            Text(
+                                if (multiSelectEnabled) {
+                                    "Tocca per selezionare"
+                                } else {
+                                    "Tocca per aprire il dettaglio • Tieni premuto per selezionare"
+                                },
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+
+                            if (expanded) {
+                                Spacer(Modifier.height(8.dp))
+                                Text("Testata sessione", fontWeight = FontWeight.Bold)
+                                Text("Bambino: ${report.childName}")
+                                Text("Data e ora: ${formatTimestamp(report.createdAt)}")
+                                Text("Durata: ${formatDurationMillis(durationMillis)}")
+                                Text("Modalità: Compiti")
+                                Text("Tipi esercizi: ${homeworkTypes.joinToString(", ")}")
+
+                                Spacer(Modifier.height(8.dp))
+                                Text("Riepilogo sessione", fontWeight = FontWeight.Bold)
+                                Text("Totale esercizi: $total")
+                                Text("Corretti: $correct")
+                                Text("Completati con errori: $withErrors")
+                                Text("Da ripassare: $wrong")
+
+                                Spacer(Modifier.height(8.dp))
+                                Text("Aiuti usati durante la sessione", fontWeight = FontWeight.Bold)
+                                Text("Suggerimenti: non registrati nei report salvati")
+                                Text("Evidenziazioni: non registrate nei report salvati")
+                                Text("Soluzione guidata: $solutionUsedCount utilizzi")
+                                Text("Auto-check: non registrato nei report salvati")
+
+                                Spacer(Modifier.height(8.dp))
+                                SeaGlassPanel(title = "Errori della sessione") {
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("Errori commessi nella sessione", fontWeight = FontWeight.Bold)
+                                        if (errorPatterns.isEmpty()) {
+                                            Text("Nessun errore rilevato.")
+                                        } else {
+                                            errorPatterns.forEach { pattern ->
+                                                Text("• ${pattern.category} (${pattern.occurrences})")
+                                            }
+                                        }
+                                        Spacer(Modifier.height(6.dp))
+                                        Text("Errori più frequenti", fontWeight = FontWeight.Bold)
+                                        if (errorPatterns.isEmpty()) {
+                                            Text("Nessun errore frequente rilevato.")
+                                        } else {
+                                            errorPatterns.take(3).forEach { pattern ->
+                                                Text("• ${pattern.category} (${pattern.occurrences})")
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+                                Text("Dettaglio esercizi", fontWeight = FontWeight.Bold)
+                                report.results.forEachIndexed { index, result ->
+                                    val outcome = outcomeLabel(result.outcome())
+                                    val exerciseDuration = formatDurationMillis(result.endedAt - result.startedAt)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text("Esercizio ${index + 1}", fontWeight = FontWeight.SemiBold)
+                                    Text("Tipo di gioco: ${result.instance.game.title}")
+                                    Text("Operazione: ${exerciseLabel(result.instance)}")
+                                    Text("Esito: $outcome")
+                                    Text("Tentativi: ${result.attempts}")
+                                    Text("Tempo impiegato: $exerciseDuration")
+                                    Text(
+                                        if (result.solutionUsed) {
+                                            "Soluzione guidata: sì"
+                                        } else {
+                                            "Soluzione guidata: no"
+                                        }
+                                    )
+                                }
+                            }
                         }
+                    }
+                }
+            }
+        }
+
+        if (reports.isNotEmpty()) {
+            SeaGlassPanel(
+                title = "Stampa report selezionati",
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .fillMaxWidth()
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (selectedReports.isEmpty())
+                            "Seleziona uno o più report con una pressione prolungata."
+                        else
+                            "Report selezionati: ${selectedReports.size}"
+                    )
+
+                    Button(
+                        onClick = { printHomeworkReports(context, selectedReports) },
+                        enabled = selectedReports.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Stampa o esporta PDF")
                     }
                 }
             }
