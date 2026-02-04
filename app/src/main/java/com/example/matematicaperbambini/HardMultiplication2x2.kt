@@ -947,12 +947,7 @@ fun HardMultiplication2x2Game(
     val isChallengeMode = isChallengeMode(isHomeworkMode, helps)
     val guideHighlightsAllowed = shouldHighlightGuideCell(
         isInputCell = false,
-        isChallengeMode = isChallengeMode,
-        isHomeworkMode = isHomeworkMode,
-        highlightsEnabled = highlightsEnabled
-    )
-    val inputHighlightsAllowed = shouldHighlightGuideCell(
-        isInputCell = true,
+        isCurrentStepInput = false,
         isChallengeMode = isChallengeMode,
         isHomeworkMode = isHomeworkMode,
         highlightsEnabled = highlightsEnabled
@@ -1097,6 +1092,16 @@ fun HardMultiplication2x2Game(
     fun isActive(row: HMRowKey, col: Int, kind: HMCellKind): Boolean {
         val t = current ?: return false
         return t.row == row && t.col == col && t.kind == kind
+    }
+
+    fun shouldHighlightInputCell(row: HMRowKey, col: Int, kind: HMCellKind): Boolean {
+        return shouldHighlightGuideCell(
+            isInputCell = true,
+            isCurrentStepInput = isActive(row, col, kind),
+            isChallengeMode = isChallengeMode,
+            isHomeworkMode = isHomeworkMode,
+            highlightsEnabled = highlightsEnabled
+        )
     }
 
     fun stageIndex(r: HMRowKey): Int = when (r) {
@@ -1362,7 +1367,7 @@ fun HardMultiplication2x2Game(
                                     columns = activePlan.columns,
                                     enabled = { c -> enabled(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
                                     isActive = { c -> isActive(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
-                                    highlight = { inputHighlightsAllowed },
+                                    highlight = { c -> shouldHighlightInputCell(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
                                     shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P1, c) },
                                     onChange = { c, v -> onTyped(HMRowKey.CARRY_P1, c, HMCellKind.CARRY, v) },
                                     fontSize = carryFont
@@ -1376,7 +1381,7 @@ fun HardMultiplication2x2Game(
                                     columns = activePlan.columns,
                                     enabled = { c -> enabled(HMRowKey.P1, c, HMCellKind.DIGIT) },
                                     isActive = { c -> isActive(HMRowKey.P1, c, HMCellKind.DIGIT) },
-                                    highlight = { inputHighlightsAllowed },
+                                    highlight = { c -> shouldHighlightInputCell(HMRowKey.P1, c, HMCellKind.DIGIT) },
                                     onChange = { c, v -> onTyped(HMRowKey.P1, c, HMCellKind.DIGIT, v) },
                                     fontSize = digitFont
                                 )
@@ -1389,7 +1394,7 @@ fun HardMultiplication2x2Game(
                                     columns = activePlan.columns,
                                     enabled = { c -> enabled(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
                                     isActive = { c -> isActive(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
-                                    highlight = { inputHighlightsAllowed },
+                                    highlight = { c -> shouldHighlightInputCell(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
                                     shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P2, c) },
                                     onChange = { c, v -> onTyped(HMRowKey.CARRY_P2, c, HMCellKind.CARRY, v) },
                                     fontSize = carryFont
@@ -1403,7 +1408,7 @@ fun HardMultiplication2x2Game(
                                     columns = activePlan.columns,
                                     enabled = { c -> enabled(HMRowKey.P2, c, HMCellKind.DIGIT) },
                                     isActive = { c -> isActive(HMRowKey.P2, c, HMCellKind.DIGIT) },
-                                    highlight = { inputHighlightsAllowed },
+                                    highlight = { c -> shouldHighlightInputCell(HMRowKey.P2, c, HMCellKind.DIGIT) },
                                     onChange = { c, v -> onTyped(HMRowKey.P2, c, HMCellKind.DIGIT, v) },
                                     fixedUnitDash = true,
                                     fontSize = digitFont
@@ -1419,7 +1424,7 @@ fun HardMultiplication2x2Game(
                                     columns = activePlan.columns,
                                     enabled = { c -> enabled(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
                                     isActive = { c -> isActive(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
-                                    highlight = { inputHighlightsAllowed },
+                                    highlight = { c -> shouldHighlightInputCell(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
                                     shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_SUM, c) },
                                     onChange = { c, v -> onTyped(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY, v) },
                                     fontSize = carryFont
@@ -1433,7 +1438,7 @@ fun HardMultiplication2x2Game(
                                     columns = activePlan.columns,
                                     enabled = { c -> enabled(HMRowKey.SUM, c, HMCellKind.DIGIT) },
                                     isActive = { c -> isActive(HMRowKey.SUM, c, HMCellKind.DIGIT) },
-                                    highlight = { inputHighlightsAllowed },
+                                    highlight = { c -> shouldHighlightInputCell(HMRowKey.SUM, c, HMCellKind.DIGIT) },
                                     onChange = { c, v -> onTyped(HMRowKey.SUM, c, HMCellKind.DIGIT, v) },
                                     fontSize = digitFont
                                 )
