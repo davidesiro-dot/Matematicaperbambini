@@ -1071,7 +1071,7 @@ fun AssignedHomeworkBanner(count: Int, onOpen: () -> Unit) {
     val transition = rememberInfiniteTransition(label = "assignedHomeworkPulse")
     val badgeScale by transition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.08f,
+        targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
             animation = tween(900),
             repeatMode = RepeatMode.Reverse
@@ -1099,7 +1099,7 @@ fun AssignedHomeworkBanner(count: Int, onOpen: () -> Unit) {
             )
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(16.dp)
                     .scale(badgeScale)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary),
@@ -1109,7 +1109,7 @@ fun AssignedHomeworkBanner(count: Int, onOpen: () -> Unit) {
                     text = "$count",
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 10.sp
                 )
             }
             TextButton(onClick = onOpen) {
