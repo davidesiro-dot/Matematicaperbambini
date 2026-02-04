@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
@@ -194,7 +195,13 @@ private fun StartModeButton(
                     .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("▶", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                Text(
+                    "▶",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.offset(y = 1.dp)
+                )
             }
 
             Column {
