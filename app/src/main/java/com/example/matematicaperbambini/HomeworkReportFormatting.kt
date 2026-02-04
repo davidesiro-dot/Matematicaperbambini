@@ -75,3 +75,16 @@ internal fun formatTimestamp(timestamp: Long): String {
     val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     return formatter.format(Date(timestamp))
 }
+
+internal fun formatDurationMillis(durationMillis: Long): String {
+    val safeMillis = durationMillis.coerceAtLeast(0)
+    val totalSeconds = safeMillis / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return when {
+        hours > 0 -> "${hours}h ${minutes}m"
+        minutes > 0 -> "${minutes}m ${seconds}s"
+        else -> "${seconds}s"
+    }
+}
