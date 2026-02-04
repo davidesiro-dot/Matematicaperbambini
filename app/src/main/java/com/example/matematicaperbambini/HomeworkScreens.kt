@@ -256,6 +256,7 @@ fun HomeworkBuilderScreen(
                             onManualBChange = { additionManualBInput = it },
                             opLabel = "A",
                             opLabelB = "B",
+                            infoText = "Limiti inserimento: 0-999 per A e B (max 3 cifre)",
                             onAddManual = {
                                 val a = additionManualAInput.toIntOrNull()
                                 val b = additionManualBInput.toIntOrNull()
@@ -318,6 +319,7 @@ fun HomeworkBuilderScreen(
                             onManualBChange = { subtractionManualBInput = it },
                             opLabel = "A",
                             opLabelB = "B",
+                            infoText = "Limiti inserimento: A 1-999, B 1-999 (A > B)",
                             onAddManual = {
                                 val a = subtractionManualAInput.toIntOrNull()
                                 val b = subtractionManualBInput.toIntOrNull()
@@ -495,6 +497,9 @@ fun HomeworkBuilderScreen(
                             opLabelB = "Divisore",
                             maxDigitsA = divisionManualDividendRange.last.toString().length,
                             maxDigitsB = divisionManualDivisorRange.last.toString().length,
+                            infoText = "Limiti inserimento: ${divisionManualDividendRange.first}-" +
+                                "${divisionManualDividendRange.last} ÷ ${divisionManualDivisorRange.first}-" +
+                                "${divisionManualDivisorRange.last} (dividendo > divisore)",
                             isAddEnabled = run {
                                 val dividend = divisionManualDividendInput.toIntOrNull()
                                 val divisor = divisionManualDivisorInput.toIntOrNull()
@@ -600,6 +605,8 @@ fun HomeworkBuilderScreen(
                             opLabelB = "Moltiplicatore",
                             maxDigitsA = hardManualARange.last.toString().length,
                             maxDigitsB = hardManualBRange.last.toString().length,
+                            infoText = "Limiti inserimento: ${hardManualARange.first}-${hardManualARange.last} " +
+                                "× ${hardManualBRange.first}-${hardManualBRange.last}",
                             manualError = run {
                                 val a = hardManualAInput.toIntOrNull()
                                 val b = hardManualBInput.toIntOrNull()
@@ -923,6 +930,7 @@ fun ManualExerciseSection(
     maxDigitsB: Int = 3,
     isAddEnabled: Boolean = true,
     manualError: String? = null,
+    infoText: String? = null,
     onAddManual: () -> Unit,
     onRemoveManual: (Int) -> Unit,
     manualItemText: (ManualOp.AB) -> String
@@ -956,6 +964,13 @@ fun ManualExerciseSection(
                     label = { Text(opLabelB) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
+                )
+            }
+            if (infoText != null) {
+                Text(
+                    text = infoText,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Button(

@@ -488,10 +488,12 @@ fun DivisionStepGame(
                     }
 
                     if (startMode == StartMode.MANUAL && !isHomeworkMode) {
+                        val manualDividendRange = 2..999
+                        val manualDivisorRange = 2..99
                         val dividendValue = manualDividend.toIntOrNull()
                         val divisorValue = manualDivisor.toIntOrNull()
-                        val manualValid = dividendValue in 2..999 &&
-                                divisorValue in 2..99 &&
+                        val manualValid = dividendValue in manualDividendRange &&
+                                divisorValue in manualDivisorRange &&
                                 (dividendValue ?: 0) > (divisorValue ?: 0)
 
                         val manualError = if (manualValid || (manualDividend.isBlank() && manualDivisor.isBlank())) null
@@ -512,6 +514,12 @@ fun DivisionStepGame(
                                     label = { Text("Divisore") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    text = "Limiti inserimento: ${manualDividendRange.first}-${manualDividendRange.last} " +
+                                        "÷ ${manualDivisorRange.first}-${manualDivisorRange.last} (dividendo > divisore)",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 androidx.compose.material3.Button(
                                     onClick = {

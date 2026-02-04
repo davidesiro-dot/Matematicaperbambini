@@ -444,9 +444,9 @@ fun LongAdditionGame(
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Text(
-                                "Limiti inserimento: $manualMinValue - $manualMaxValue",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF6B7280)
+                                text = "Limiti inserimento: $manualMinValue - $manualMaxValue",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Button(
                                 onClick = {
