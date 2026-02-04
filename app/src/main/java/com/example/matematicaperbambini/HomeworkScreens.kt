@@ -1330,20 +1330,23 @@ private fun HomeworkReportScreen(
         buildEducationalBadges(results, previousReports, now)
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                GameHeader(
-                    title = "Report Compito",
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onBack = onBack,
-                    onLeaderboard = {}
-                )
+    Column(modifier = Modifier.fillMaxSize()) {
+        GameHeader(
+            title = "Report Compito",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onLeaderboard = {}
+        )
+
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
                 SeaGlassPanel(title = "Riepilogo") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
@@ -1353,107 +1356,107 @@ private fun HomeworkReportScreen(
                     }
                 }
             }
-        }
 
-        if (errorPatterns.isNotEmpty()) {
-            item {
-                SeaGlassPanel(title = "🔍 Difficoltà principali") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        errorPatterns.take(3).forEach { pattern ->
-                            Text("• ${pattern.category}")
-                        }
-                    }
-                }
-            }
-        }
-
-        if (suggestions.isNotEmpty()) {
-            item {
-                SeaGlassPanel(title = "💡 Suggerimenti") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        suggestions.take(2).forEach { suggestion ->
-                            Text("• $suggestion")
-                        }
-                    }
-                }
-            }
-        }
-
-        if (progressInsights.isNotEmpty()) {
-            item {
-                SeaGlassPanel(title = "📈 Progressi") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        progressInsights.forEach { insight ->
-                            Text(insight)
-                        }
-                    }
-                }
-            }
-        }
-
-        if (badges.isNotEmpty()) {
-            item {
-                SeaGlassPanel(title = "🏅 Riconoscimenti") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        badges.forEach { badge ->
-                            Text("• $badge")
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            SeaGlassPanel(title = "Stampa") {
-                val report = currentReport
-                if (report == null) {
-                    Text("Inserisci il nome per abilitare la stampa del report.")
-                } else {
-                    Button(
-                        onClick = { printHomeworkReport(context, report) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Stampa o esporta PDF")
-                    }
-                }
-            }
-        }
-
-        item {
-            Text(
-                "Dettaglio esercizi",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold
-            )
-        }
-
-        if (results.isEmpty()) {
-            item {
-                Text("Nessun risultato disponibile.")
-            }
-        } else {
-            itemsIndexed(results) { idx, result ->
-                val expected = expectedAnswer(result.instance)
-                val outcome = result.outcome()
-                SeaGlassPanel(title = "Esercizio ${idx + 1}") {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(exerciseLabel(result.instance), fontWeight = FontWeight.Bold)
-                        val statusText = outcomeLabel(outcome)
-                        Text(statusText)
-                        expected?.let { Text("Risposta corretta: $it") }
-                        Text("Tentativi: ${result.attempts}")
-                        val wrongAnswers = result.wrongAnswers
-                        if (wrongAnswers.isNotEmpty()) {
-                            Text("Risposte da rivedere: ${wrongAnswers.joinToString()}")
-                        }
-                        if (result.stepErrors.isNotEmpty()) {
-                            Text("Passaggi da rinforzare:")
-                            result.stepErrors.forEach { err ->
-                                Text("• ${stepErrorDescription(err)}")
+            if (errorPatterns.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "🔍 Difficoltà principali") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            errorPatterns.take(3).forEach { pattern ->
+                                Text("• ${pattern.category}")
                             }
                         }
-                        if (result.solutionUsed) {
-                            Text("Soluzione guidata usata")
+                    }
+                }
+            }
+
+            if (suggestions.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "💡 Suggerimenti") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            suggestions.take(2).forEach { suggestion ->
+                                Text("• $suggestion")
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (progressInsights.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "📈 Progressi") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            progressInsights.forEach { insight ->
+                                Text(insight)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (badges.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "🏅 Riconoscimenti") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            badges.forEach { badge ->
+                                Text("• $badge")
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                SeaGlassPanel(title = "Stampa") {
+                    val report = currentReport
+                    if (report == null) {
+                        Text("Inserisci il nome per abilitare la stampa del report.")
+                    } else {
+                        Button(
+                            onClick = { printHomeworkReport(context, report) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Stampa o esporta PDF")
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    "Dettaglio esercizi",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+
+            if (results.isEmpty()) {
+                item {
+                    Text("Nessun risultato disponibile.")
+                }
+            } else {
+                itemsIndexed(results) { idx, result ->
+                    val expected = expectedAnswer(result.instance)
+                    val outcome = result.outcome()
+                    SeaGlassPanel(title = "Esercizio ${idx + 1}") {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(exerciseLabel(result.instance), fontWeight = FontWeight.Bold)
+                            val statusText = outcomeLabel(outcome)
+                            Text(statusText)
+                            expected?.let { Text("Risposta corretta: $it") }
+                            Text("Tentativi: ${result.attempts}")
+                            val wrongAnswers = result.wrongAnswers
+                            if (wrongAnswers.isNotEmpty()) {
+                                Text("Risposte da rivedere: ${wrongAnswers.joinToString()}")
+                            }
+                            if (result.stepErrors.isNotEmpty()) {
+                                Text("Passaggi da rinforzare:")
+                                result.stepErrors.forEach { err ->
+                                    Text("• ${stepErrorDescription(err)}")
+                                }
+                            }
+                            if (result.solutionUsed) {
+                                Text("Soluzione guidata usata")
+                            }
                         }
                     }
                 }
