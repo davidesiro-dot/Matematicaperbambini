@@ -186,6 +186,8 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
     val perfectCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
     val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
     val wrongCount = report.results.size - perfectCount - withErrorsCount
+    val durationMillis = report.results.sumOf { (it.endedAt - it.startedAt).coerceAtLeast(0) }
+    val solutionUsedCount = report.results.count { it.solutionUsed }
     val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
 
     val title = if (totalReports > 1) {
@@ -196,6 +198,8 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
     lines += PrintLine(title, LineStyle.TITLE)
     lines += PrintLine("Bambino: ${report.childName}", LineStyle.BODY)
     lines += PrintLine("Data e ora: ${formatTimestamp(report.createdAt)}", LineStyle.BODY)
+    lines += PrintLine("Durata sessione: ${formatDurationMillis(durationMillis)}", LineStyle.BODY)
+    lines += PrintLine("Modalità: Compiti", LineStyle.BODY)
     lines += PrintLine("Titolo compito: Compito di matematica", LineStyle.BODY)
     lines += PrintLine("Tipo di esercizi: ${homeworkTypes.joinToString(", ")}", LineStyle.BODY)
     lines += PrintLine("", LineStyle.BODY)
@@ -204,7 +208,14 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
     lines += PrintLine("Totale esercizi: ${report.results.size}", LineStyle.BODY)
     lines += PrintLine("Corretto: $perfectCount", LineStyle.BODY)
     lines += PrintLine("Completato con errori (⚠️): $withErrorsCount", LineStyle.BODY)
-    lines += PrintLine("Sbagliato: $wrongCount", LineStyle.BODY)
+    lines += PrintLine("Da ripassare: $wrongCount", LineStyle.BODY)
+    lines += PrintLine("", LineStyle.BODY)
+
+    lines += PrintLine("Aiuti usati durante la sessione", LineStyle.SECTION)
+    lines += PrintLine("Suggerimenti: non registrati nei report salvati", LineStyle.BODY)
+    lines += PrintLine("Evidenziazioni: non registrate nei report salvati", LineStyle.BODY)
+    lines += PrintLine("Soluzione guidata: $solutionUsedCount utilizzi", LineStyle.BODY)
+    lines += PrintLine("Auto-check: non registrato nei report salvati", LineStyle.BODY)
     lines += PrintLine("", LineStyle.BODY)
 
     lines += PrintLine("Dettaglio esercizi", LineStyle.SECTION)
@@ -215,8 +226,13 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
             ExerciseOutcome.FAILED -> "Sbagliato"
         }
         lines += PrintLine("Esercizio ${index + 1}: ${exerciseLabel(result.instance)}", LineStyle.BODY)
+        lines += PrintLine("Tipo di gioco: ${result.instance.game.title}", LineStyle.BODY)
         lines += PrintLine("Esito finale: $outcome", LineStyle.BODY)
         lines += PrintLine("Numero di tentativi: ${result.attempts}", LineStyle.BODY)
+        lines += PrintLine(
+            "Tempo impiegato: ${formatDurationMillis(result.endedAt - result.startedAt)}",
+            LineStyle.BODY
+        )
         if (result.wrongAnswers.isNotEmpty()) {
             lines += PrintLine("Risposte errate: ${result.wrongAnswers.joinToString(", ")}", LineStyle.BODY)
         }
@@ -238,24 +254,23 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
     }
 
     val patterns = analyzeErrorPatterns(report.results)
-    val suggestions = suggestionsForPatterns(patterns)
 
-    lines += PrintLine("Difficoltà ricorrenti rilevate", LineStyle.SECTION)
+    lines += PrintLine("Errori commessi nella sessione", LineStyle.SECTION)
     if (patterns.isEmpty()) {
-        lines += PrintLine("Nessuna difficoltà ricorrente rilevata.", LineStyle.BODY)
+        lines += PrintLine("Nessun errore rilevato.", LineStyle.BODY)
     } else {
-        patterns.take(3).forEach { pattern ->
-            lines += PrintLine("• ${pattern.category}", LineStyle.BODY)
+        patterns.forEach { pattern ->
+            lines += PrintLine("• ${pattern.category} (${pattern.occurrences})", LineStyle.BODY)
         }
     }
     lines += PrintLine("", LineStyle.BODY)
 
-    lines += PrintLine("Suggerimenti per il ripasso", LineStyle.SECTION)
-    if (suggestions.isEmpty()) {
-        lines += PrintLine("Nessun suggerimento disponibile al momento.", LineStyle.BODY)
+    lines += PrintLine("Errori più frequenti", LineStyle.SECTION)
+    if (patterns.isEmpty()) {
+        lines += PrintLine("Nessun errore frequente rilevato.", LineStyle.BODY)
     } else {
-        suggestions.forEach { suggestion ->
-            lines += PrintLine("• $suggestion", LineStyle.BODY)
+        patterns.take(3).forEach { pattern ->
+            lines += PrintLine("• ${pattern.category} (${pattern.occurrences})", LineStyle.BODY)
         }
     }
 
