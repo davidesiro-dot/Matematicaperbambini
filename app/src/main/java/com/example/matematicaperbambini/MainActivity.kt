@@ -203,7 +203,8 @@ private enum class Screen {
     LEADERBOARD,
     HOMEWORK_BUILDER,
     HOMEWORK_RUNNER,
-    HOMEWORK_REPORTS
+    HOMEWORK_REPORTS,
+    ASSIGNED_HOMEWORKS
 }
 
 private enum class NavAnim { SLIDE, EXPAND }
@@ -517,11 +518,16 @@ private fun AppShell() {
     var homeworkQueue by remember { mutableStateOf<List<HomeworkExerciseEntry>>(emptyList()) }
     var lastHomeworkResults by remember { mutableStateOf<List<ExerciseResult>>(emptyList()) }
     var homeworkReports by remember { mutableStateOf<List<HomeworkReport>>(emptyList()) }
+    var savedHomeworks by remember { mutableStateOf<List<SavedHomework>>(emptyList()) }
+    var homeworkReturnScreen by remember { mutableStateOf(Screen.HOMEWORK_BUILDER) }
     val reportStorage = remember(context) { HomeworkReportStorage(context) }
     val reportScope = rememberCoroutineScope()
+    val savedHomeworkRepository = remember(context) { SavedHomeworkRepository(context) }
+    val savedHomeworkScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         homeworkReports = reportStorage.loadReports()
+        savedHomeworks = savedHomeworkRepository.getAll()
     }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
@@ -570,6 +576,7 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
                 onOpenHomework = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
+                onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
                 onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
                 onPickDigitsFor = { m ->
                     openStartMenu(m)
@@ -774,8 +781,15 @@ private fun AppShell() {
                 lastResults = lastHomeworkResults,
                 onStartHomework = { configs ->
                     homeworkQueue = buildExerciseQueue(configs)
+                    homeworkReturnScreen = Screen.HOMEWORK_BUILDER
                     navAnim = NavAnim.SLIDE
                     screen = Screen.HOMEWORK_RUNNER
+                },
+                onSaveHomework = { savedHomework ->
+                    savedHomeworkScope.launch {
+                        savedHomeworkRepository.save(savedHomework)
+                        savedHomeworks = savedHomeworkRepository.getAll()
+                    }
                 }
             )
 
@@ -790,7 +804,7 @@ private fun AppShell() {
                 onExit = { results ->
                     lastHomeworkResults = results
                     navAnim = NavAnim.SLIDE
-                    screen = Screen.HOMEWORK_BUILDER
+                    screen = homeworkReturnScreen
                 },
                 onSaveReport = { report ->
                     reportScope.launch {
@@ -806,6 +820,19 @@ private fun AppShell() {
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 reports = homeworkReports
             )
+
+            Screen.ASSIGNED_HOMEWORKS -> AssignedHomeworksScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                savedHomeworks = savedHomeworks,
+                onStartHomework = { savedHomework ->
+                    homeworkQueue = buildExerciseQueue(savedHomework.tasks)
+                    homeworkReturnScreen = Screen.ASSIGNED_HOMEWORKS
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.HOMEWORK_RUNNER
+                }
+            )
         }
     }
 }
@@ -819,6 +846,7 @@ private fun HomeMenuKids(
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onOpenHomework: () -> Unit,
+    onOpenAssignedHomeworks: () -> Unit,
     onOpenReports: () -> Unit,
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
@@ -885,6 +913,12 @@ private fun HomeMenuKids(
                 baseColor = Color(0xFF3498DB),
                 iconText = "÷",
                 onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
+            ),
+            MenuButtonData(
+                title = "Compiti assegnati",
+                baseColor = Color(0xFF10B981),
+                iconText = "📘",
+                onClick = onOpenAssignedHomeworks
             ),
             MenuButtonData(
                 title = "Tabelline",

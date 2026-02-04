@@ -16,6 +16,7 @@ enum class GameType(val title: String) {
     MULTIPLICATION_HARD("Moltiplicazioni difficili")
 }
 
+@Serializable
 data class HomeworkTaskConfig(
     val game: GameType,
     val difficulty: DifficultyConfig,
@@ -29,6 +30,7 @@ data class HomeworkExerciseEntry(
     val helps: HelpSettings
 )
 
+@Serializable
 data class DifficultyConfig(
     val digits: Int? = null,
     val divisorDigits: Int? = null,
@@ -38,6 +40,7 @@ data class DifficultyConfig(
     val maxB: Int? = null
 )
 
+@Serializable
 data class HelpSettings(
     val hintsEnabled: Boolean,
     val highlightsEnabled: Boolean,
@@ -85,18 +88,27 @@ fun HelpPreset.description(): String = when (this) {
         "Nessun aiuto attivo. Risolvi tutto da solo, come in classe."
 }
 
+@Serializable
 sealed class ExerciseSourceConfig {
+    @Serializable
     object Random : ExerciseSourceConfig()
+
+    @Serializable
     data class Manual(val ops: List<ManualOp>) : ExerciseSourceConfig()
 }
 
+@Serializable
 data class AmountConfig(
     val exercisesCount: Int,
     val repeatsPerExercise: Int
 )
 
+@Serializable
 sealed class ManualOp {
+    @Serializable
     data class AB(val a: Int, val b: Int) : ManualOp()
+
+    @Serializable
     data class Table(val table: Int) : ManualOp()
 }
 
@@ -169,4 +181,12 @@ data class HomeworkReport(
     val interrupted: Boolean = false,
     val completedExercises: Int = 0,
     val totalExercises: Int = 0
+)
+
+@Serializable
+data class SavedHomework(
+    val id: String,
+    val name: String,
+    val createdAt: Long,
+    val tasks: List<HomeworkTaskConfig>
 )
