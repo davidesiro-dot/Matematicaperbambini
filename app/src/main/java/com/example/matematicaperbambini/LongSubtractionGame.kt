@@ -771,9 +771,9 @@ fun LongSubtractionGame(
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Text(
-                                "Limiti inserimento: $manualMinValue - $manualMaxValue (A > B)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF6B7280)
+                                text = "Limiti inserimento: $manualMinValue - $manualMaxValue (A > B)",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             androidx.compose.material3.Button(
                                 onClick = {
