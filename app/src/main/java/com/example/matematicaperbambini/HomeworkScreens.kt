@@ -1,12 +1,14 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.align
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -43,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Calendar
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
@@ -148,8 +152,13 @@ fun HomeworkBuilderScreen(
         ExerciseSourceConfig.Random
     }
 
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.padding(16.dp)) {
+    LazyColumn(
+        Modifier
+            .fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
             GameHeader(
                 title = "Compiti (genitore)",
                 soundEnabled = soundEnabled,
@@ -159,187 +168,181 @@ fun HomeworkBuilderScreen(
             )
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (lastResults.isNotEmpty()) {
-                item {
-                    val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
-                    val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-                    SeaGlassPanel(title = "Ultimo report") {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
-                            Text("Corretto: $perfectCount")
-                            Text("Completato con errori: $withErrorsCount")
-                            Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
-                        }
-                    }
-                }
-            }
-
+        if (lastResults.isNotEmpty()) {
             item {
-                SeaGlassPanel(title = "Seleziona giochi") {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        GameToggleRow(
-                            title = "Addizioni",
-                            subtitle = "Somme con numeri configurabili",
-                            checked = additionEnabled,
-                            onCheckedChange = { additionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Sottrazioni",
-                            subtitle = "Differenze con numeri configurabili",
-                            checked = subtractionEnabled,
-                            onCheckedChange = { subtractionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Tabellina",
-                            subtitle = "Esercizi su una tabellina specifica",
-                            checked = tableEnabled,
-                            onCheckedChange = { tableEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Divisioni passo-passo",
-                            subtitle = "Divisioni con resto",
-                            checked = divisionEnabled,
-                            onCheckedChange = { divisionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Moltiplicazioni difficili",
-                            subtitle = "Moltiplicazioni a due cifre",
-                            checked = hardEnabled,
-                            onCheckedChange = { hardEnabled = it }
-                        )
+                val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
+                val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
+                SeaGlassPanel(title = "Ultimo report") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
+                        Text("Corretto: $perfectCount")
+                        Text("Completato con errori: $withErrorsCount")
+                        Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
                     }
                 }
             }
+        }
 
-            if (additionEnabled) {
-                item {
-                    SeaGlassPanel(title = "Configurazione addizioni") {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            RandomSourceRow(
-                                source = additionSource,
-                                onSourceChange = { additionManualSelected = false }
-                            )
-                            OutlinedTextField(
-                                value = additionDigitsInput,
-                                onValueChange = {
-                                    additionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
-                                },
-                                label = { Text("Difficoltà (cifre)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            AmountConfigRow(
-                                exercisesCountInput = additionExercisesCountInput,
-                                repeatsInput = additionRepeatsInput,
-                                onExercisesCountChange = { additionExercisesCountInput = it },
-                                onRepeatsChange = { additionRepeatsInput = it }
-                            )
-                            ManualExerciseSection(
-                                source = additionSource,
-                                onSourceChange = { additionManualSelected = it is ExerciseSourceConfig.Manual },
-                                manualOps = additionManualOps,
-                                manualAInput = additionManualAInput,
-                                manualBInput = additionManualBInput,
-                                onManualAChange = { additionManualAInput = it },
-                                onManualBChange = { additionManualBInput = it },
-                                opLabel = "A",
-                                opLabelB = "B",
-                                onAddManual = {
-                                    val a = additionManualAInput.toIntOrNull()
-                                    val b = additionManualBInput.toIntOrNull()
-                                    if (a != null && b != null) {
-                                        additionManualOps += ManualOp.AB(a, b)
-                                        additionManualAInput = ""
-                                        additionManualBInput = ""
-                                    }
-                                },
-                                onRemoveManual = { index ->
-                                    additionManualOps.removeAt(index)
-                                },
-                                manualItemText = { op -> "• ${op.a} + ${op.b}" }
-                            )
-                            HelpConfigSection(
-                                hintsEnabled = additionHintsEnabled,
-                                highlightsEnabled = additionHighlightsEnabled,
-                                allowSolution = additionAllowSolution,
-                                autoCheck = additionAutoCheck,
-                                onHintsChange = { additionHintsEnabled = it },
-                                onHighlightsChange = { additionHighlightsEnabled = it },
-                                onAllowSolutionChange = { additionAllowSolution = it },
-                                onAutoCheckChange = { additionAutoCheck = it }
-                            )
-                    }
+        item {
+            SeaGlassPanel(title = "Seleziona giochi") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    GameToggleRow(
+                        title = "Addizioni",
+                        subtitle = "Somme con numeri configurabili",
+                        checked = additionEnabled,
+                        onCheckedChange = { additionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Sottrazioni",
+                        subtitle = "Differenze con numeri configurabili",
+                        checked = subtractionEnabled,
+                        onCheckedChange = { subtractionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Tabellina",
+                        subtitle = "Esercizi su una tabellina specifica",
+                        checked = tableEnabled,
+                        onCheckedChange = { tableEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Divisioni passo-passo",
+                        subtitle = "Divisioni con resto",
+                        checked = divisionEnabled,
+                        onCheckedChange = { divisionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Moltiplicazioni difficili",
+                        subtitle = "Moltiplicazioni a due cifre",
+                        checked = hardEnabled,
+                        onCheckedChange = { hardEnabled = it }
+                    )
                 }
             }
+        }
 
-            if (subtractionEnabled) {
-                item {
-                    SeaGlassPanel(title = "Configurazione sottrazioni") {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            RandomSourceRow(
-                                source = subtractionSource,
-                                onSourceChange = { subtractionManualSelected = false }
-                            )
-                            OutlinedTextField(
-                                value = subtractionDigitsInput,
-                                onValueChange = {
-                                    subtractionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
-                                },
-                                label = { Text("Difficoltà (cifre)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            AmountConfigRow(
-                                exercisesCountInput = subtractionExercisesCountInput,
-                                repeatsInput = subtractionRepeatsInput,
-                                onExercisesCountChange = { subtractionExercisesCountInput = it },
-                                onRepeatsChange = { subtractionRepeatsInput = it }
-                            )
-                            ManualExerciseSection(
-                                source = subtractionSource,
-                                onSourceChange = { subtractionManualSelected = it is ExerciseSourceConfig.Manual },
-                                manualOps = subtractionManualOps,
-                                manualAInput = subtractionManualAInput,
-                                manualBInput = subtractionManualBInput,
-                                onManualAChange = { subtractionManualAInput = it },
-                                onManualBChange = { subtractionManualBInput = it },
-                                opLabel = "A",
-                                opLabelB = "B",
-                                onAddManual = {
-                                    val a = subtractionManualAInput.toIntOrNull()
-                                    val b = subtractionManualBInput.toIntOrNull()
-                                    if (a != null && b != null && a in 1..999 && b in 1..999 && b < a) {
-                                        subtractionManualOps += ManualOp.AB(a, b)
-                                        subtractionManualAInput = ""
-                                        subtractionManualBInput = ""
-                                    }
-                                },
-                                onRemoveManual = { index ->
-                                    subtractionManualOps.removeAt(index)
-                                },
-                                manualItemText = { op -> "• ${op.a} - ${op.b}" }
-                            )
-                            HelpConfigSection(
-                                hintsEnabled = subtractionHintsEnabled,
-                                highlightsEnabled = subtractionHighlightsEnabled,
-                                allowSolution = subtractionAllowSolution,
-                                autoCheck = subtractionAutoCheck,
-                                onHintsChange = { subtractionHintsEnabled = it },
-                                onHighlightsChange = { subtractionHighlightsEnabled = it },
-                                onAllowSolutionChange = { subtractionAllowSolution = it },
-                                onAutoCheckChange = { subtractionAutoCheck = it }
-                            )
-                        }
+        if (additionEnabled) {
+            item {
+                SeaGlassPanel(title = "Configurazione addizioni") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RandomSourceRow(
+                            source = additionSource,
+                            onSourceChange = { additionManualSelected = false }
+                        )
+                        OutlinedTextField(
+                            value = additionDigitsInput,
+                            onValueChange = {
+                                additionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                            },
+                            label = { Text("Difficoltà (cifre)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        AmountConfigRow(
+                            exercisesCountInput = additionExercisesCountInput,
+                            repeatsInput = additionRepeatsInput,
+                            onExercisesCountChange = { additionExercisesCountInput = it },
+                            onRepeatsChange = { additionRepeatsInput = it }
+                        )
+                        ManualExerciseSection(
+                            source = additionSource,
+                            onSourceChange = { additionManualSelected = it is ExerciseSourceConfig.Manual },
+                            manualOps = additionManualOps,
+                            manualAInput = additionManualAInput,
+                            manualBInput = additionManualBInput,
+                            onManualAChange = { additionManualAInput = it },
+                            onManualBChange = { additionManualBInput = it },
+                            opLabel = "A",
+                            opLabelB = "B",
+                            onAddManual = {
+                                val a = additionManualAInput.toIntOrNull()
+                                val b = additionManualBInput.toIntOrNull()
+                                if (a != null && b != null) {
+                                    additionManualOps += ManualOp.AB(a, b)
+                                    additionManualAInput = ""
+                                    additionManualBInput = ""
+                                }
+                            },
+                            onRemoveManual = { index ->
+                                additionManualOps.removeAt(index)
+                            },
+                            manualItemText = { op -> "• ${op.a} + ${op.b}" }
+                        )
+                        HelpConfigSection(
+                            hintsEnabled = additionHintsEnabled,
+                            highlightsEnabled = additionHighlightsEnabled,
+                            allowSolution = additionAllowSolution,
+                            autoCheck = additionAutoCheck,
+                            onHintsChange = { additionHintsEnabled = it },
+                            onHighlightsChange = { additionHighlightsEnabled = it },
+                            onAllowSolutionChange = { additionAllowSolution = it },
+                            onAutoCheckChange = { additionAutoCheck = it }
+                        )
                     }
                 }
             }
+        }
+
+        if (subtractionEnabled) {
+            item {
+                SeaGlassPanel(title = "Configurazione sottrazioni") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RandomSourceRow(
+                            source = subtractionSource,
+                            onSourceChange = { subtractionManualSelected = false }
+                        )
+                        OutlinedTextField(
+                            value = subtractionDigitsInput,
+                            onValueChange = {
+                                subtractionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                            },
+                            label = { Text("Difficoltà (cifre)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        AmountConfigRow(
+                            exercisesCountInput = subtractionExercisesCountInput,
+                            repeatsInput = subtractionRepeatsInput,
+                            onExercisesCountChange = { subtractionExercisesCountInput = it },
+                            onRepeatsChange = { subtractionRepeatsInput = it }
+                        )
+                        ManualExerciseSection(
+                            source = subtractionSource,
+                            onSourceChange = { subtractionManualSelected = it is ExerciseSourceConfig.Manual },
+                            manualOps = subtractionManualOps,
+                            manualAInput = subtractionManualAInput,
+                            manualBInput = subtractionManualBInput,
+                            onManualAChange = { subtractionManualAInput = it },
+                            onManualBChange = { subtractionManualBInput = it },
+                            opLabel = "A",
+                            opLabelB = "B",
+                            onAddManual = {
+                                val a = subtractionManualAInput.toIntOrNull()
+                                val b = subtractionManualBInput.toIntOrNull()
+                                if (a != null && b != null && a in 1..999 && b in 1..999 && b < a) {
+                                    subtractionManualOps += ManualOp.AB(a, b)
+                                    subtractionManualAInput = ""
+                                    subtractionManualBInput = ""
+                                }
+                            },
+                            onRemoveManual = { index ->
+                                subtractionManualOps.removeAt(index)
+                            },
+                            manualItemText = { op -> "• ${op.a} - ${op.b}" }
+                        )
+                        HelpConfigSection(
+                            hintsEnabled = subtractionHintsEnabled,
+                            highlightsEnabled = subtractionHighlightsEnabled,
+                            allowSolution = subtractionAllowSolution,
+                            autoCheck = subtractionAutoCheck,
+                            onHintsChange = { subtractionHintsEnabled = it },
+                            onHighlightsChange = { subtractionHighlightsEnabled = it },
+                            onAllowSolutionChange = { subtractionAllowSolution = it },
+                            onAutoCheckChange = { subtractionAutoCheck = it }
+                        )
+                    }
+                }
+            }
+        }
 
         if (tableEnabled) {
             item {
@@ -493,8 +496,8 @@ fun HomeworkBuilderScreen(
                                 val dividend = divisionManualDividendInput.toIntOrNull()
                                 val divisor = divisionManualDivisorInput.toIntOrNull()
                                 dividend in divisionManualDividendRange &&
-                                    divisor in divisionManualDivisorRange &&
-                                    (dividend ?: 0) > (divisor ?: 0)
+                                        divisor in divisionManualDivisorRange &&
+                                        (dividend ?: 0) > (divisor ?: 0)
                             },
                             manualError = run {
                                 val dividend = divisionManualDividendInput.toIntOrNull()
@@ -1317,80 +1320,83 @@ private fun HomeworkReportScreen(
         )
     }
 
+    val errorPatterns = remember(results) { analyzeErrorPatterns(results) }
+    val suggestions = remember(errorPatterns) { suggestionsForPatterns(errorPatterns) }
+    val now = remember { System.currentTimeMillis() }
+    val progressInsights = remember(results, previousReports, now) {
+        buildProgressInsights(results, previousReports, now)
+    }
+    val badges = remember(results, previousReports, now) {
+        buildEducationalBadges(results, previousReports, now)
+    }
+
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            GameHeader(
-                title = "Report Compito",
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = {}
-            )
-        }
-
-        item {
-            SeaGlassPanel(title = "Riepilogo") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
-                    Text("Corretto: $perfectCount")
-                    Text("Completato con errori: $withErrorsCount")
-                    Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
-                }
-            }
-        }
-
-        item {
-            val errorPatterns = remember(results) { analyzeErrorPatterns(results) }
-            val suggestions = remember(errorPatterns) { suggestionsForPatterns(errorPatterns) }
-            val now = remember { System.currentTimeMillis() }
-            val progressInsights = remember(results, previousReports, now) {
-                buildProgressInsights(results, previousReports, now)
-            }
-            val badges = remember(results, previousReports, now) {
-                buildEducationalBadges(results, previousReports, now)
-            }
-
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (errorPatterns.isNotEmpty()) {
-                    SeaGlassPanel(title = "🔍 Difficoltà principali") {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            errorPatterns.take(3).forEach { pattern ->
-                                Text("• ${pattern.category}")
-                            }
+                GameHeader(
+                    title = "Report Compito",
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onBack = onBack,
+                    onLeaderboard = {}
+                )
+                SeaGlassPanel(title = "Riepilogo") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
+                        Text("Corretto: $perfectCount")
+                        Text("Completato con errori: $withErrorsCount")
+                        Text("Da ripassare: ${total - perfectCount - withErrorsCount}")
+                    }
+                }
+            }
+        }
+
+        if (errorPatterns.isNotEmpty()) {
+            item {
+                SeaGlassPanel(title = "🔍 Difficoltà principali") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        errorPatterns.take(3).forEach { pattern ->
+                            Text("• ${pattern.category}")
                         }
                     }
                 }
+            }
+        }
 
-                if (suggestions.isNotEmpty()) {
-                    SeaGlassPanel(title = "💡 Suggerimenti") {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            suggestions.take(2).forEach { suggestion ->
-                                Text("• $suggestion")
-                            }
+        if (suggestions.isNotEmpty()) {
+            item {
+                SeaGlassPanel(title = "💡 Suggerimenti") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        suggestions.take(2).forEach { suggestion ->
+                            Text("• $suggestion")
                         }
                     }
                 }
+            }
+        }
 
-                if (progressInsights.isNotEmpty()) {
-                    SeaGlassPanel(title = "📈 Progressi") {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            progressInsights.forEach { insight ->
-                                Text(insight)
-                            }
+        if (progressInsights.isNotEmpty()) {
+            item {
+                SeaGlassPanel(title = "📈 Progressi") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        progressInsights.forEach { insight ->
+                            Text(insight)
                         }
                     }
                 }
+            }
+        }
 
-                if (badges.isNotEmpty()) {
-                    SeaGlassPanel(title = "🏅 Riconoscimenti") {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            badges.forEach { badge ->
-                                Text("• $badge")
-                            }
+        if (badges.isNotEmpty()) {
+            item {
+                SeaGlassPanel(title = "🏅 Riconoscimenti") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        badges.forEach { badge ->
+                            Text("• $badge")
                         }
                     }
                 }
@@ -1398,49 +1404,11 @@ private fun HomeworkReportScreen(
         }
 
         item {
-            SeaGlassPanel(title = "Dettaglio") {
-                if (results.isEmpty()) {
-                    Text("Nessun risultato disponibile.")
+            SeaGlassPanel(title = "Stampa") {
+                val report = currentReport
+                if (report == null) {
+                    Text("Inserisci il nome per abilitare la stampa del report.")
                 } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        results.forEachIndexed { idx, result ->
-                            val expected = expectedAnswer(result.instance)
-                            val outcome = result.outcome()
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(
-                                    "Esercizio ${idx + 1}: ${exerciseLabel(result.instance)}",
-                                    fontWeight = FontWeight.Bold
-                                )
-                                val statusText = outcomeLabel(outcome)
-                                Text(statusText)
-                                expected?.let { Text("Risposta corretta: $it") }
-                                Text("Tentativi: ${result.attempts}")
-                                val wrongAnswers = result.wrongAnswers
-                                if (wrongAnswers.isNotEmpty()) {
-                                    Text("Risposte da rivedere: ${wrongAnswers.joinToString()}")
-                                }
-                                if (result.stepErrors.isNotEmpty()) {
-                                    Text("Passaggi da rinforzare:")
-                                    result.stepErrors.forEach { err ->
-                                        Text("• ${stepErrorDescription(err)}")
-                                    }
-                                }
-                                if (result.solutionUsed) {
-                                    Text("Soluzione guidata usata")
-                                }
-                            }
-                            if (idx < results.lastIndex) {
-                                Divider(Modifier.padding(vertical = 6.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            currentReport?.let { report ->
-                SeaGlassPanel(title = "Stampa") {
                     Button(
                         onClick = { printHomeworkReport(context, report) },
                         modifier = Modifier.fillMaxWidth()
@@ -1450,9 +1418,51 @@ private fun HomeworkReportScreen(
                 }
             }
         }
+
+        item {
+            Text(
+                "Dettaglio esercizi",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+
+        if (results.isEmpty()) {
+            item {
+                Text("Nessun risultato disponibile.")
+            }
+        } else {
+            itemsIndexed(results) { idx, result ->
+                val expected = expectedAnswer(result.instance)
+                val outcome = result.outcome()
+                SeaGlassPanel(title = "Esercizio ${idx + 1}") {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(exerciseLabel(result.instance), fontWeight = FontWeight.Bold)
+                        val statusText = outcomeLabel(outcome)
+                        Text(statusText)
+                        expected?.let { Text("Risposta corretta: $it") }
+                        Text("Tentativi: ${result.attempts}")
+                        val wrongAnswers = result.wrongAnswers
+                        if (wrongAnswers.isNotEmpty()) {
+                            Text("Risposte da rivedere: ${wrongAnswers.joinToString()}")
+                        }
+                        if (result.stepErrors.isNotEmpty()) {
+                            Text("Passaggi da rinforzare:")
+                            result.stepErrors.forEach { err ->
+                                Text("• ${stepErrorDescription(err)}")
+                            }
+                        }
+                        if (result.solutionUsed) {
+                            Text("Soluzione guidata usata")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeworkReportsScreen(
     soundEnabled: Boolean,
@@ -1461,31 +1471,44 @@ fun HomeworkReportsScreen(
     reports: List<HomeworkReport>
 ) {
     val context = LocalContext.current
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.padding(16.dp)) {
-            GameHeader(
-                title = "Archivio report",
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = {}
-            )
-        }
+    var selectedKeys by remember { mutableStateOf(setOf<String>()) }
+    var multiSelectEnabled by remember { mutableStateOf(false) }
 
+    val selectedReports = remember(reports, selectedKeys) {
+        reports.filter {
+            "${it.childName}_${it.createdAt}" in selectedKeys
+        }
+    }
+
+    fun toggleSelection(key: String) {
+        selectedKeys =
+            if (key in selectedKeys) selectedKeys - key else selectedKeys + key
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+        /* ───────── HEADER FISSO ───────── */
+        GameHeader(
+            title = "Archivio report",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onLeaderboard = {}
+        )
+
+        /* ───────── CONTENUTO SCROLLABILE ───────── */
         LazyColumn(
             modifier = Modifier
-                .weight(1f)
+                .weight(1f)          // 🔴 QUESTO È IL PEZZO CHIAVE
                 .fillMaxWidth(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (reports.isEmpty()) {
-                item {
-                    SeaGlassPanel(title = "Nessun report") {
-                        Text("Non ci sono report salvati.")
-                    }
-                }
-            } else {
+
+            /* ───── STATISTICHE ───── */
+            if (reports.isNotEmpty()) {
                 item {
                     val stats = remember(reports) { buildReportStatistics(reports) }
                     SeaGlassPanel(title = "Statistiche") {
@@ -1494,70 +1517,100 @@ fun HomeworkReportsScreen(
                             Text("Esercizi oggi: ${stats.today.total}")
                             Text("Corretto: ${stats.today.correct}")
                             Text("Con errori: ${stats.today.withErrors}")
+
                             Spacer(Modifier.height(8.dp))
+
                             Text("📊 Settimanale", fontWeight = FontWeight.Bold)
                             Text("Totale esercizi: ${stats.week.total}")
-                            val percent = if (stats.week.total > 0) {
-                                (stats.week.correct.toFloat() / stats.week.total.toFloat() * 100).toInt()
-                            } else {
-                                0
-                            }
+
+                            val percent =
+                                if (stats.week.total > 0)
+                                    (stats.week.correct * 100 / stats.week.total)
+                                else 0
+
                             Text("Percentuale corretti: $percent%")
-                            Text("Passaggio da rinforzare più frequente: ${stats.topWeeklyError ?: "Nessuno"}")
+                            Text(
+                                "Passaggio da rinforzare più frequente: ${
+                                    stats.topWeeklyError ?: "Nessuno"
+                                }"
+                            )
+
                             if (stats.recurringErrors.isNotEmpty()) {
                                 Spacer(Modifier.height(8.dp))
                                 Text("⭐ Difficoltà ricorrenti", fontWeight = FontWeight.Bold)
-                                stats.recurringErrors.forEach { entry ->
-                                    Text("• $entry")
+                                stats.recurringErrors.forEach {
+                                    Text("• $it")
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                itemsIndexed(reports) { idx, report ->
-                    SeaGlassPanel(title = "Report ${idx + 1}") {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
-                            Text("Data: ${formatTimestamp(report.createdAt)}")
+            /* ───── STAMPA ───── */
+            if (reports.isNotEmpty()) {
+                item {
+                    SeaGlassPanel(title = "Stampa selezionati") {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                if (selectedReports.isEmpty())
+                                    "Seleziona uno o più report per stampare o esportare."
+                                else
+                                    "Report selezionati: ${selectedReports.size}"
+                            )
+
                             Button(
-                                onClick = { printHomeworkReport(context, report) },
+                                onClick = { printHomeworkReports(context, selectedReports) },
+                                enabled = selectedReports.isNotEmpty(),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Stampa o esporta PDF")
                             }
-                            val correctCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
-                            val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-                            val wrongCount = report.results.size - correctCount - withErrorsCount
-                            Text("Risultati: $correctCount corretti, $withErrorsCount con errori, $wrongCount da ripassare")
-                            Divider(Modifier.padding(vertical = 4.dp))
-                            report.results.forEachIndexed { rIdx, result ->
-                                val expected = expectedAnswer(result.instance)
-                                val outcome = result.outcome()
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text("Esercizio ${rIdx + 1}: ${exerciseLabel(result.instance)}")
-                                    expected?.let { Text("Risposta corretta: $it") }
-                                    Text("Tentativi: ${result.attempts}")
-                                    val statusText = outcomeLabel(outcome)
-                                    val statusColor = outcomeColor(outcome)
-                                    Text("Esito: $statusText", color = statusColor)
-                                    if (result.wrongAnswers.isNotEmpty()) {
-                                        Text("Risposte da rivedere: ${result.wrongAnswers.joinToString()}")
-                                    }
-                                    if (result.stepErrors.isNotEmpty()) {
-                                        Text("Passaggi da rinforzare:")
-                                        result.stepErrors.forEach { err ->
-                                            Text("• ${stepErrorDescription(err)}")
-                                        }
-                                    }
-                                    if (result.solutionUsed) {
-                                        Text("Soluzione guidata usata")
-                                    }
+                        }
+                    }
+                }
+            }
+
+            /* ───── LISTA REPORT ───── */
+            if (reports.isEmpty()) {
+                item {
+                    SeaGlassPanel(title = "Nessun report") {
+                        Text("Non ci sono report salvati.")
+                    }
+                }
+            } else {
+                itemsIndexed(reports) { idx, report ->
+                    val key = "${report.childName}_${report.createdAt}"
+                    val selected = key in selectedKeys
+
+                    SeaGlassPanel(
+                        title = "Report ${idx + 1}",
+                        modifier = Modifier
+                            .combinedClickable(
+                                onClick = {
+                                    if (multiSelectEnabled) toggleSelection(key)
+                                    else selectedKeys =
+                                        if (selected) emptySet() else setOf(key)
+                                },
+                                onLongClick = {
+                                    multiSelectEnabled = true
+                                    toggleSelection(key)
                                 }
-                                if (rIdx < report.results.lastIndex) {
-                                    Divider(Modifier.padding(vertical = 4.dp))
-                                }
+                            )
+                            .border(
+                                width = if (selected) 3.dp else 1.dp,
+                                color = if (selected)
+                                    MaterialTheme.colorScheme.primary
+                                else Color.Transparent,
+                                shape = RoundedCornerShape(26.dp)
+                            )
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (selected) {
+                                Text("✅ Selezionato", fontWeight = FontWeight.Bold)
                             }
+                            Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
+                            Text("Data: ${formatTimestamp(report.createdAt)}")
                         }
                     }
                 }
@@ -1565,6 +1618,8 @@ fun HomeworkReportsScreen(
         }
     }
 }
+
+
 
 private data class ReportStats(val total: Int, val correct: Int, val withErrors: Int, val wrong: Int)
 
@@ -1710,29 +1765,21 @@ private fun HomeworkUnsupportedScreen(
     onBack: () -> Unit,
     message: String
 ) {
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.padding(16.dp)) {
-            GameHeader(
-                title = "Compiti",
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = {}
-            )
-        }
-
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                SeaGlassPanel(title = "Non disponibile") {
-                    Text(message)
-                }
-            }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        GameHeader(
+            title = "Compiti",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onLeaderboard = {}
+        )
+        SeaGlassPanel(title = "Non disponibile") {
+            Text(message)
         }
     }
 }
