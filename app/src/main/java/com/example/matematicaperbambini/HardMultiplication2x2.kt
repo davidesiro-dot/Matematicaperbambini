@@ -943,6 +943,20 @@ fun HardMultiplication2x2Game(
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
     val hintsEnabled = helps?.hintsEnabled != false
+    val highlightsEnabled = helps?.highlightsEnabled != false
+    val isChallengeMode = isChallengeMode(isHomeworkMode, helps)
+    val guideHighlightsAllowed = shouldHighlightGuideCell(
+        isInputCell = false,
+        isChallengeMode = isChallengeMode,
+        isHomeworkMode = isHomeworkMode,
+        highlightsEnabled = highlightsEnabled
+    )
+    val inputHighlightsAllowed = shouldHighlightGuideCell(
+        isInputCell = true,
+        isChallengeMode = isChallengeMode,
+        isHomeworkMode = isHomeworkMode,
+        highlightsEnabled = highlightsEnabled
+    )
     var noHintsMode by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var solutionUsed by remember { mutableStateOf(false) }
@@ -1206,7 +1220,10 @@ fun HardMultiplication2x2Game(
     }
 
     fun isHL(row: HMHighlightRow, col: Int): Boolean =
-        hintsEnabled && !noHintsMode && current?.highlights?.contains(HMHighlight(row, col)) == true
+        guideHighlightsAllowed &&
+            hintsEnabled &&
+            !noHintsMode &&
+            current?.highlights?.contains(HMHighlight(row, col)) == true
 
     Box(Modifier.fillMaxSize()) {
         val ui = rememberUiSizing()
@@ -1337,89 +1354,89 @@ fun HardMultiplication2x2Game(
 
                             Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
 
-                            HMCarryRowRight(
-                                signW, gap, digitW, carryW, carryH,
-                                expected = activePlan.carryP1,
-                                input = inCarryP1,
-                                err = errCarryP1,
-                                columns = activePlan.columns,
-                                enabled = { c -> enabled(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
-                                isActive = { c -> isActive(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
-                                highlight = { c -> isHL(HMHighlightRow.CARRY_P1, c) },
-                                shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P1, c) },
-                                onChange = { c, v -> onTyped(HMRowKey.CARRY_P1, c, HMCellKind.CARRY, v) },
-                                fontSize = carryFont
-                            )
+                                HMCarryRowRight(
+                                    signW, gap, digitW, carryW, carryH,
+                                    expected = activePlan.carryP1,
+                                    input = inCarryP1,
+                                    err = errCarryP1,
+                                    columns = activePlan.columns,
+                                    enabled = { c -> enabled(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
+                                    isActive = { c -> isActive(HMRowKey.CARRY_P1, c, HMCellKind.CARRY) },
+                                    highlight = { inputHighlightsAllowed },
+                                    shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P1, c) },
+                                    onChange = { c, v -> onTyped(HMRowKey.CARRY_P1, c, HMCellKind.CARRY, v) },
+                                    fontSize = carryFont
+                                )
 
-                            HMDigitRowRight(
-                                signW, gap, digitW, digitH,
-                                expected = activePlan.p1Str,
-                                input = inP1,
-                                err = errP1,
-                                columns = activePlan.columns,
-                                enabled = { c -> enabled(HMRowKey.P1, c, HMCellKind.DIGIT) },
-                                isActive = { c -> isActive(HMRowKey.P1, c, HMCellKind.DIGIT) },
-                                highlight = { c -> isHL(HMHighlightRow.P1, c) },
-                                onChange = { c, v -> onTyped(HMRowKey.P1, c, HMCellKind.DIGIT, v) },
-                                fontSize = digitFont
-                            )
+                                HMDigitRowRight(
+                                    signW, gap, digitW, digitH,
+                                    expected = activePlan.p1Str,
+                                    input = inP1,
+                                    err = errP1,
+                                    columns = activePlan.columns,
+                                    enabled = { c -> enabled(HMRowKey.P1, c, HMCellKind.DIGIT) },
+                                    isActive = { c -> isActive(HMRowKey.P1, c, HMCellKind.DIGIT) },
+                                    highlight = { inputHighlightsAllowed },
+                                    onChange = { c, v -> onTyped(HMRowKey.P1, c, HMCellKind.DIGIT, v) },
+                                    fontSize = digitFont
+                                )
 
-                            HMCarryRowRight(
-                                signW, gap, digitW, carryW, carryH,
-                                expected = activePlan.carryP2,
-                                input = inCarryP2,
-                                err = errCarryP2,
-                                columns = activePlan.columns,
-                                enabled = { c -> enabled(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
-                                isActive = { c -> isActive(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
-                                highlight = { c -> isHL(HMHighlightRow.CARRY_P2, c) },
-                                shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P2, c) },
-                                onChange = { c, v -> onTyped(HMRowKey.CARRY_P2, c, HMCellKind.CARRY, v) },
-                                fontSize = carryFont
-                            )
+                                HMCarryRowRight(
+                                    signW, gap, digitW, carryW, carryH,
+                                    expected = activePlan.carryP2,
+                                    input = inCarryP2,
+                                    err = errCarryP2,
+                                    columns = activePlan.columns,
+                                    enabled = { c -> enabled(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
+                                    isActive = { c -> isActive(HMRowKey.CARRY_P2, c, HMCellKind.CARRY) },
+                                    highlight = { inputHighlightsAllowed },
+                                    shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_P2, c) },
+                                    onChange = { c, v -> onTyped(HMRowKey.CARRY_P2, c, HMCellKind.CARRY, v) },
+                                    fontSize = carryFont
+                                )
 
-                            HMDigitRowRight(
-                                signW, gap, digitW, digitH,
-                                expected = activePlan.p2Str,
-                                input = inP2,
-                                err = errP2,
-                                columns = activePlan.columns,
-                                enabled = { c -> enabled(HMRowKey.P2, c, HMCellKind.DIGIT) },
-                                isActive = { c -> isActive(HMRowKey.P2, c, HMCellKind.DIGIT) },
-                                highlight = { c -> isHL(HMHighlightRow.P2, c) },
-                                onChange = { c, v -> onTyped(HMRowKey.P2, c, HMCellKind.DIGIT, v) },
-                                fixedUnitDash = true,
-                                fontSize = digitFont
-                            )
+                                HMDigitRowRight(
+                                    signW, gap, digitW, digitH,
+                                    expected = activePlan.p2Str,
+                                    input = inP2,
+                                    err = errP2,
+                                    columns = activePlan.columns,
+                                    enabled = { c -> enabled(HMRowKey.P2, c, HMCellKind.DIGIT) },
+                                    isActive = { c -> isActive(HMRowKey.P2, c, HMCellKind.DIGIT) },
+                                    highlight = { inputHighlightsAllowed },
+                                    onChange = { c, v -> onTyped(HMRowKey.P2, c, HMCellKind.DIGIT, v) },
+                                    fixedUnitDash = true,
+                                    fontSize = digitFont
+                                )
 
                             Divider(thickness = if (ui.isCompact) 1.dp else 2.dp)
 
-                            HMCarryRowRight(
-                                signW, gap, digitW, carryW, carryH,
-                                expected = activePlan.carrySUM,
-                                input = inCarrySUM,
-                                err = errCarrySUM,
-                                columns = activePlan.columns,
-                                enabled = { c -> enabled(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
-                                isActive = { c -> isActive(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
-                                highlight = { c -> isHL(HMHighlightRow.CARRY_SUM, c) },
-                                shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_SUM, c) },
-                                onChange = { c, v -> onTyped(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY, v) },
-                                fontSize = carryFont
-                            )
+                                HMCarryRowRight(
+                                    signW, gap, digitW, carryW, carryH,
+                                    expected = activePlan.carrySUM,
+                                    input = inCarrySUM,
+                                    err = errCarrySUM,
+                                    columns = activePlan.columns,
+                                    enabled = { c -> enabled(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
+                                    isActive = { c -> isActive(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY) },
+                                    highlight = { inputHighlightsAllowed },
+                                    shouldFade = { c -> carryShouldFade(HMRowKey.CARRY_SUM, c) },
+                                    onChange = { c, v -> onTyped(HMRowKey.CARRY_SUM, c, HMCellKind.CARRY, v) },
+                                    fontSize = carryFont
+                                )
 
-                            HMDigitRowRight(
-                                signW, gap, digitW, digitH,
-                                expected = activePlan.resStr,
-                                input = inSUM,
-                                err = errSUM,
-                                columns = activePlan.columns,
-                                enabled = { c -> enabled(HMRowKey.SUM, c, HMCellKind.DIGIT) },
-                                isActive = { c -> isActive(HMRowKey.SUM, c, HMCellKind.DIGIT) },
-                                highlight = { c -> isHL(HMHighlightRow.SUM, c) },
-                                onChange = { c, v -> onTyped(HMRowKey.SUM, c, HMCellKind.DIGIT, v) },
-                                fontSize = digitFont
-                            )
+                                HMDigitRowRight(
+                                    signW, gap, digitW, digitH,
+                                    expected = activePlan.resStr,
+                                    input = inSUM,
+                                    err = errSUM,
+                                    columns = activePlan.columns,
+                                    enabled = { c -> enabled(HMRowKey.SUM, c, HMCellKind.DIGIT) },
+                                    isActive = { c -> isActive(HMRowKey.SUM, c, HMCellKind.DIGIT) },
+                                    highlight = { inputHighlightsAllowed },
+                                    onChange = { c, v -> onTyped(HMRowKey.SUM, c, HMCellKind.DIGIT, v) },
+                                    fontSize = digitFont
+                                )
                         }
                     }
                 }

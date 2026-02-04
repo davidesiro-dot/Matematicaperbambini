@@ -313,6 +313,14 @@ fun LongSubtractionGame(
     var manualB by remember { mutableStateOf("") }
     var manualNumbers by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val isHomeworkMode = exercise != null || onExerciseFinished != null
+    val highlightsEnabled = helps?.highlightsEnabled != false
+    val isChallengeMode = isChallengeMode(isHomeworkMode, helps)
+    val guideHighlightsAllowed = shouldHighlightGuideCell(
+        isInputCell = false,
+        isChallengeMode = isChallengeMode,
+        isHomeworkMode = isHomeworkMode,
+        highlightsEnabled = highlightsEnabled
+    )
 
     var problem by remember(digits, startMode) {
         mutableStateOf(
@@ -842,42 +850,44 @@ fun LongSubtractionGame(
                                     )
                                 } else if (showBorrowTarget) {
                                     val active = col == currentColumn
+                                    val guideActive = active && guideHighlightsAllowed
                                     SubStaticBox(
                                         text = borrowTargetInputs[col],
                                         size = boxSize,
-                                        active = active,
+                                        active = guideActive,
                                         textColor = MaterialTheme.colorScheme.onTertiaryContainer,
                                         backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                        borderColorOverride = if (active) {
+                                        borderColorOverride = if (guideActive) {
                                             Color(0xFF22C55E)
                                         } else {
                                             MaterialTheme.colorScheme.tertiary
                                         },
-                                        borderWidthOverride = if (active) 3.dp else 2.dp
+                                        borderWidthOverride = if (guideActive) 3.dp else 2.dp
                                     )
                                 } else if (showBorrowSource) {
                                     val active = col == currentColumn
+                                    val guideActive = active && guideHighlightsAllowed
                                     SubStaticBox(
                                         text = borrowInputs[col],
                                         size = boxSize,
-                                        active = active,
+                                        active = guideActive,
                                         textColor = MaterialTheme.colorScheme.onTertiaryContainer,
                                         backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                        borderColorOverride = if (active) {
+                                        borderColorOverride = if (guideActive) {
                                             Color(0xFF22C55E)
                                         } else {
                                             MaterialTheme.colorScheme.tertiary
                                         },
-                                        borderWidthOverride = if (active) 3.dp else 2.dp
+                                        borderWidthOverride = if (guideActive) 3.dp else 2.dp
                                     )
                                 } else if (showBorrowSpace) {
                                     SubStaticBox(
                                         text = "",
                                         size = boxSize,
-                                        active = true,
+                                        active = guideHighlightsAllowed,
                                         textColor = MaterialTheme.colorScheme.onTertiaryContainer,
                                         backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                        borderColorOverride = Color(0xFF22C55E),
+                                        borderColorOverride = if (guideHighlightsAllowed) Color(0xFF22C55E) else MaterialTheme.colorScheme.tertiary,
                                         borderWidthOverride = 2.dp
                                     )
                                 } else {
@@ -896,6 +906,7 @@ fun LongSubtractionGame(
                                     Spacer(Modifier.width(gap))
                                     for (col in 0 until activeDigits) {
                                         val active = col == currentColumn
+                                        val guideActive = active && guideHighlightsAllowed
                                         val isActiveBorrowSource = borrowPending &&
                                             borrowPhase == BorrowPhase.SOURCE_INPUT &&
                                             borrowSource == col
@@ -917,7 +928,7 @@ fun LongSubtractionGame(
                                         SubStaticBox(
                                             text = expected.topDigitsOriginal[col].toString(),
                                             size = boxSize,
-                                            active = active,
+                                            active = guideActive,
                                             textColor = if (visualState == DigitVisualState.CONSUMED_BY_BORROW) {
                                                 dimmedText
                                             } else {
@@ -944,11 +955,12 @@ fun LongSubtractionGame(
                                     Spacer(Modifier.width(gap))
                                     for (col in 0 until activeDigits) {
                                         val active = col == currentColumn
+                                        val guideActive = active && guideHighlightsAllowed
 
                                         SubStaticBox(
                                             text = expected.bottomDigits[col].toString(),
                                             size = boxSize,
-                                            active = active
+                                            active = guideActive
                                         )
                                         Spacer(Modifier.width(gap))
                                     }
