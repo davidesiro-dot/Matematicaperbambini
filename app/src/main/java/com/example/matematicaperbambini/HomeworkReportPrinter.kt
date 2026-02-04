@@ -183,9 +183,19 @@ private fun buildReportLines(reports: List<HomeworkReport>): List<PrintLine> {
 
 private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalReports: Int): List<PrintLine> {
     val lines = mutableListOf<PrintLine>()
+    val completedExercises = if (report.totalExercises > 0) {
+        report.completedExercises
+    } else {
+        report.results.size
+    }
+    val plannedTotal = if (report.totalExercises > 0) {
+        report.totalExercises
+    } else {
+        completedExercises
+    }
     val perfectCount = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
     val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-    val wrongCount = report.results.size - perfectCount - withErrorsCount
+    val wrongCount = completedExercises - perfectCount - withErrorsCount
     val durationMillis = report.results.sumOf { (it.endedAt - it.startedAt).coerceAtLeast(0) }
     val solutionUsedCount = report.results.count { it.solutionUsed }
     val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
@@ -205,7 +215,11 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
     lines += PrintLine("", LineStyle.BODY)
 
     lines += PrintLine("Riepilogo", LineStyle.SECTION)
-    lines += PrintLine("Totale esercizi: ${report.results.size}", LineStyle.BODY)
+    if (report.interrupted) {
+        lines += PrintLine("⚠ Compito interrotto prima del completamento", LineStyle.BODY)
+        lines += PrintLine("Esercizi completati: $completedExercises su $plannedTotal", LineStyle.BODY)
+    }
+    lines += PrintLine("Totale esercizi: $completedExercises", LineStyle.BODY)
     lines += PrintLine("Corretto: $perfectCount", LineStyle.BODY)
     lines += PrintLine("Completato con errori (⚠️): $withErrorsCount", LineStyle.BODY)
     lines += PrintLine("Da ripassare: $wrongCount", LineStyle.BODY)
