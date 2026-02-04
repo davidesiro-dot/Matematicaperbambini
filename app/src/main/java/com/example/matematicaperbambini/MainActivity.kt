@@ -6,7 +6,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,6 +35,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -578,6 +583,7 @@ private fun AppShell() {
                 onOpenHomework = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
                 onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
+                savedHomeworks = savedHomeworks,
                 onPickDigitsFor = { m ->
                     openStartMenu(m)
                 },
@@ -848,6 +854,7 @@ private fun HomeMenuKids(
     onOpenHomework: () -> Unit,
     onOpenAssignedHomeworks: () -> Unit,
     onOpenReports: () -> Unit,
+    savedHomeworks: List<SavedHomework>,
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
@@ -915,12 +922,6 @@ private fun HomeMenuKids(
                 onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
             ),
             MenuButtonData(
-                title = "Compiti assegnati",
-                baseColor = Color(0xFF10B981),
-                iconText = "📘",
-                onClick = onOpenAssignedHomeworks
-            ),
-            MenuButtonData(
                 title = "Tabelline",
                 baseColor = Color(0xFFF39C12),
                 iconText = "×",
@@ -985,6 +986,13 @@ private fun HomeMenuKids(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            val assignedCount = savedHomeworks.size
+            if (assignedCount > 0) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    AssignedHomeworkBanner(count = assignedCount, onOpen = onOpenAssignedHomeworks)
+                }
+            }
+
             // ✅ BOTTONI SENZA PANNELLO "GLASSCARD" + alzati di 20dp
             val offsetPx = with(LocalDensity.current) {
                 when (sizeProfile) {
@@ -1043,6 +1051,61 @@ private fun HomeMenuKids(
             }
         }
 
+
+@Composable
+fun AssignedHomeworkBanner(count: Int, onOpen: () -> Unit) {
+    if (count <= 0) return
+
+    val transition = rememberInfiniteTransition(label = "assignedHomeworkPulse")
+    val badgeScale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "assignedHomeworkBadgeScale"
+    )
+
+    SeaGlassPanel(modifier = Modifier.clickable { onOpen() }) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "🎒",
+                fontSize = 24.sp
+            )
+            Text(
+                text = "Hai $count compiti assegnati",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .scale(badgeScale)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "$count",
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+            TextButton(onClick = onOpen) {
+                Text("Apri")
+            }
+        }
+    }
+}
 
 
 @Composable
