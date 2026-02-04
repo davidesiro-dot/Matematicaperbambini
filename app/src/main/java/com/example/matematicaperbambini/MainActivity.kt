@@ -1073,7 +1073,7 @@ fun AssignedHomeworkBanner(count: Int, onOpen: () -> Unit) {
         initialValue = 1f,
         targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
-            animation = tween(900),
+            animation = tween(1000),
             repeatMode = RepeatMode.Reverse
         ),
         label = "assignedHomeworkBadgeScale"
@@ -1109,7 +1109,8 @@ fun AssignedHomeworkBanner(count: Int, onOpen: () -> Unit) {
                     text = "$count",
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(0.dp)
                 )
             }
             TextButton(onClick = onOpen) {
