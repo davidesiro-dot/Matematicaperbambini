@@ -821,7 +821,7 @@ fun HomeworkBuilderScreen(
 }
 
 @Composable
-private fun GameToggleRow(
+fun GameToggleRow(
     title: String,
     subtitle: String,
     checked: Boolean,
@@ -866,7 +866,7 @@ private fun HelpConfigSection(
 }
 
 @Composable
-private fun AmountConfigRow(
+fun AmountConfigRow(
     exercisesCountInput: String,
     repeatsInput: String,
     onExercisesCountChange: (String) -> Unit,
@@ -891,7 +891,7 @@ private fun AmountConfigRow(
 }
 
 @Composable
-private fun RandomSourceRow(
+fun RandomSourceRow(
     source: ExerciseSourceConfig,
     onSourceChange: (ExerciseSourceConfig) -> Unit
 ) {
@@ -907,7 +907,7 @@ private fun RandomSourceRow(
 }
 
 @Composable
-private fun ManualExerciseSection(
+fun ManualExerciseSection(
     source: ExerciseSourceConfig,
     onSourceChange: (ExerciseSourceConfig) -> Unit,
     manualOps: List<ManualOp.AB>,
@@ -987,7 +987,7 @@ private fun ManualExerciseSection(
 }
 
 @Composable
-private fun HelpToggleRow(
+fun HelpToggleRow(
     label: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
