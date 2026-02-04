@@ -73,16 +73,20 @@ fun DivisionStepGame(
     val isChallengeMode = isChallengeMode(isHomeworkMode, helps)
     val guideHighlightsAllowed = shouldHighlightGuideCell(
         isInputCell = false,
+        isCurrentStepInput = false,
         isChallengeMode = isChallengeMode,
         isHomeworkMode = isHomeworkMode,
         highlightsEnabled = highlightsEnabled
     )
-    val inputHighlightsAllowed = shouldHighlightGuideCell(
-        isInputCell = true,
-        isChallengeMode = isChallengeMode,
-        isHomeworkMode = isHomeworkMode,
-        highlightsEnabled = highlightsEnabled
-    )
+    fun shouldHighlightInputCell(isCurrentStepInput: Boolean): Boolean {
+        return shouldHighlightGuideCell(
+            isInputCell = true,
+            isCurrentStepInput = isCurrentStepInput,
+            isChallengeMode = isChallengeMode,
+            isHomeworkMode = isHomeworkMode,
+            highlightsEnabled = highlightsEnabled
+        )
+    }
 
     fun newPlan(): DivisionPlan {
         val (dividend, divisor) = generateDivision(rng, mode)
@@ -622,7 +626,7 @@ fun DivisionStepGame(
                                                         enabled = active,
                                                         active = active,
                                                         isError = quotientErrors[col].value,
-                                                        highlight = inputHighlightsAllowed,
+                                                        highlight = shouldHighlightInputCell(active),
                                                         microLabel = if (showCellHelper) target.microLabel else null,
                                                         onValueChange = { onDigitInput(target, it) },
                                                         w = quotientDigitW,
@@ -675,7 +679,7 @@ fun DivisionStepGame(
                                                         enabled = active,
                                                         active = active,
                                                         isError = productErrors[si][target.idx].value,
-                                                        highlight = inputHighlightsAllowed,
+                                                        highlight = shouldHighlightInputCell(active),
                                                         microLabel = if (showCellHelper) target.microLabel else null,
                                                         onValueChange = { onDigitInput(target, it) },
                                                         w = digitSmallW,
@@ -709,7 +713,7 @@ fun DivisionStepGame(
                                                                 enabled = active,
                                                                 active = active,
                                                                 isError = remainderErrors[si][target.idx].value,
-                                                                highlight = inputHighlightsAllowed,
+                                                                highlight = shouldHighlightInputCell(active),
                                                                 microLabel = if (showCellHelper) target.microLabel else null,
                                                                 onValueChange = { onDigitInput(target, it) },
                                                                 w = digitSmallW,

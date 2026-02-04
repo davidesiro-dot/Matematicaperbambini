@@ -317,6 +317,7 @@ fun LongSubtractionGame(
     val isChallengeMode = isChallengeMode(isHomeworkMode, helps)
     val guideHighlightsAllowed = shouldHighlightGuideCell(
         isInputCell = false,
+        isCurrentStepInput = false,
         isChallengeMode = isChallengeMode,
         isHomeworkMode = isHomeworkMode,
         highlightsEnabled = highlightsEnabled
