@@ -1280,6 +1280,11 @@ fun HardMultiplication2x2Game(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
+                            Text(
+                                text = "Limiti inserimento: A 10-999, B 1-99",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Button(
                                 onClick = {
                                     val aVal = manualAValue ?: return@Button
