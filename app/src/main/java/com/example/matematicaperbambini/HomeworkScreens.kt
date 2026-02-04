@@ -260,87 +260,86 @@ fun HomeworkBuilderScreen(
                                         additionManualBInput = ""
                                     }
                                 },
-                            onRemoveManual = { index ->
-                                additionManualOps.removeAt(index)
-                            },
-                            manualItemText = { op -> "• ${op.a} + ${op.b}" }
-                        )
-                        HelpConfigSection(
-                            hintsEnabled = additionHintsEnabled,
-                            highlightsEnabled = additionHighlightsEnabled,
-                            allowSolution = additionAllowSolution,
-                            autoCheck = additionAutoCheck,
-                            onHintsChange = { additionHintsEnabled = it },
-                            onHighlightsChange = { additionHighlightsEnabled = it },
-                            onAllowSolutionChange = { additionAllowSolution = it },
-                            onAutoCheckChange = { additionAutoCheck = it }
-                        )
+                                onRemoveManual = { index ->
+                                    additionManualOps.removeAt(index)
+                                },
+                                manualItemText = { op -> "• ${op.a} + ${op.b}" }
+                            )
+                            HelpConfigSection(
+                                hintsEnabled = additionHintsEnabled,
+                                highlightsEnabled = additionHighlightsEnabled,
+                                allowSolution = additionAllowSolution,
+                                autoCheck = additionAutoCheck,
+                                onHintsChange = { additionHintsEnabled = it },
+                                onHighlightsChange = { additionHighlightsEnabled = it },
+                                onAllowSolutionChange = { additionAllowSolution = it },
+                                onAutoCheckChange = { additionAutoCheck = it }
+                            )
                     }
                 }
             }
-        }
 
-        if (subtractionEnabled) {
-            item {
-                SeaGlassPanel(title = "Configurazione sottrazioni") {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RandomSourceRow(
-                            source = subtractionSource,
-                            onSourceChange = { subtractionManualSelected = false }
-                        )
-                        OutlinedTextField(
-                            value = subtractionDigitsInput,
-                            onValueChange = {
-                                subtractionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
-                            },
-                            label = { Text("Difficoltà (cifre)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        AmountConfigRow(
-                            exercisesCountInput = subtractionExercisesCountInput,
-                            repeatsInput = subtractionRepeatsInput,
-                            onExercisesCountChange = { subtractionExercisesCountInput = it },
-                            onRepeatsChange = { subtractionRepeatsInput = it }
-                        )
-                        ManualExerciseSection(
-                            source = subtractionSource,
-                            onSourceChange = { subtractionManualSelected = it is ExerciseSourceConfig.Manual },
-                            manualOps = subtractionManualOps,
-                            manualAInput = subtractionManualAInput,
-                            manualBInput = subtractionManualBInput,
-                            onManualAChange = { subtractionManualAInput = it },
-                            onManualBChange = { subtractionManualBInput = it },
-                            opLabel = "A",
-                            opLabelB = "B",
-                            onAddManual = {
-                                val a = subtractionManualAInput.toIntOrNull()
-                                val b = subtractionManualBInput.toIntOrNull()
-                                if (a != null && b != null && a in 1..999 && b in 1..999 && b < a) {
-                                    subtractionManualOps += ManualOp.AB(a, b)
-                                    subtractionManualAInput = ""
-                                    subtractionManualBInput = ""
-                                }
-                            },
-                            onRemoveManual = { index ->
-                                subtractionManualOps.removeAt(index)
-                            },
-                            manualItemText = { op -> "• ${op.a} - ${op.b}" }
-                        )
-                        HelpConfigSection(
-                            hintsEnabled = subtractionHintsEnabled,
-                            highlightsEnabled = subtractionHighlightsEnabled,
-                            allowSolution = subtractionAllowSolution,
-                            autoCheck = subtractionAutoCheck,
-                            onHintsChange = { subtractionHintsEnabled = it },
-                            onHighlightsChange = { subtractionHighlightsEnabled = it },
-                            onAllowSolutionChange = { subtractionAllowSolution = it },
-                            onAutoCheckChange = { subtractionAutoCheck = it }
-                        )
+            if (subtractionEnabled) {
+                item {
+                    SeaGlassPanel(title = "Configurazione sottrazioni") {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            RandomSourceRow(
+                                source = subtractionSource,
+                                onSourceChange = { subtractionManualSelected = false }
+                            )
+                            OutlinedTextField(
+                                value = subtractionDigitsInput,
+                                onValueChange = {
+                                    subtractionDigitsInput = it.filter { char -> char in '1'..'3' }.take(1)
+                                },
+                                label = { Text("Difficoltà (cifre)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            AmountConfigRow(
+                                exercisesCountInput = subtractionExercisesCountInput,
+                                repeatsInput = subtractionRepeatsInput,
+                                onExercisesCountChange = { subtractionExercisesCountInput = it },
+                                onRepeatsChange = { subtractionRepeatsInput = it }
+                            )
+                            ManualExerciseSection(
+                                source = subtractionSource,
+                                onSourceChange = { subtractionManualSelected = it is ExerciseSourceConfig.Manual },
+                                manualOps = subtractionManualOps,
+                                manualAInput = subtractionManualAInput,
+                                manualBInput = subtractionManualBInput,
+                                onManualAChange = { subtractionManualAInput = it },
+                                onManualBChange = { subtractionManualBInput = it },
+                                opLabel = "A",
+                                opLabelB = "B",
+                                onAddManual = {
+                                    val a = subtractionManualAInput.toIntOrNull()
+                                    val b = subtractionManualBInput.toIntOrNull()
+                                    if (a != null && b != null && a in 1..999 && b in 1..999 && b < a) {
+                                        subtractionManualOps += ManualOp.AB(a, b)
+                                        subtractionManualAInput = ""
+                                        subtractionManualBInput = ""
+                                    }
+                                },
+                                onRemoveManual = { index ->
+                                    subtractionManualOps.removeAt(index)
+                                },
+                                manualItemText = { op -> "• ${op.a} - ${op.b}" }
+                            )
+                            HelpConfigSection(
+                                hintsEnabled = subtractionHintsEnabled,
+                                highlightsEnabled = subtractionHighlightsEnabled,
+                                allowSolution = subtractionAllowSolution,
+                                autoCheck = subtractionAutoCheck,
+                                onHintsChange = { subtractionHintsEnabled = it },
+                                onHighlightsChange = { subtractionHighlightsEnabled = it },
+                                onAllowSolutionChange = { subtractionAllowSolution = it },
+                                onAutoCheckChange = { subtractionAutoCheck = it }
+                            )
+                        }
                     }
                 }
             }
-        }
 
         if (tableEnabled) {
             item {
