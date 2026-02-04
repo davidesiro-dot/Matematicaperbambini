@@ -165,5 +165,8 @@ data class StepError(
 data class HomeworkReport(
     val childName: String,
     val createdAt: Long,
-    val results: List<ExerciseResult>
+    val results: List<ExerciseResult>,
+    val interrupted: Boolean = false,
+    val completedExercises: Int = 0,
+    val totalExercises: Int = 0
 )
