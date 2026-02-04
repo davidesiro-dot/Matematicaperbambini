@@ -1230,28 +1230,57 @@ fun HomeworkRunnerScreen(
     queue: List<HomeworkExerciseEntry>,
     previousReports: List<HomeworkReport>,
     onExit: (List<ExerciseResult>) -> Unit,
-    onSaveReport: (HomeworkReport) -> Unit
+    onSaveReport: (HomeworkReport) -> Unit,
+    homeworkId: String?,
+    onHomeworkCompleted: (String) -> Unit
 ) {
     var index by remember { mutableStateOf(0) }
     val results = remember { mutableStateListOf<ExerciseResult>() }
     var startAt by remember { mutableStateOf(System.currentTimeMillis()) }
     var showExitDialog by remember { mutableStateOf(false) }
+    var showCompletionDialog by remember { mutableStateOf(false) }
+    var completionHandled by remember { mutableStateOf(false) }
 
     LaunchedEffect(index) {
         startAt = System.currentTimeMillis()
     }
 
     if (index >= queue.size) {
-        HomeworkReportScreen(
-            soundEnabled = soundEnabled,
-            onToggleSound = onToggleSound,
-            onBack = { onExit(results.toList()) },
-            results = results,
-            totalExercises = queue.size,
-            interrupted = false,
-            previousReports = previousReports,
-            onSaveReport = onSaveReport
-        )
+        if (!completionHandled) {
+            completionHandled = true
+            val defaultName = previousReports.firstOrNull()?.childName?.ifBlank { null }
+                ?: "Senza nome"
+            val totalExercises = queue.size
+            val report = HomeworkReport(
+                childName = defaultName,
+                createdAt = System.currentTimeMillis(),
+                results = results.toList(),
+                interrupted = false,
+                completedExercises = totalExercises,
+                totalExercises = totalExercises
+            )
+            onSaveReport(report)
+            showCompletionDialog = true
+        }
+
+        if (showCompletionDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Complimenti!") },
+                text = { Text("Hai completato il compito 🎉") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showCompletionDialog = false
+                            homeworkId?.let(onHomeworkCompleted)
+                            onExit(results.toList())
+                        }
+                    ) {
+                        Text("Torna alla Home")
+                    }
+                }
+            )
+        }
         return
     }
 
