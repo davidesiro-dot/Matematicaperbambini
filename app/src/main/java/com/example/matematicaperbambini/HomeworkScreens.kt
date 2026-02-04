@@ -152,73 +152,73 @@ fun HomeworkBuilderScreen(
         ExerciseSourceConfig.Random
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        GameHeader(
-            title = "Compiti (genitore)",
-            soundEnabled = soundEnabled,
-            onToggleSound = onToggleSound,
-            onBack = onBack,
-            onLeaderboard = {}
-        )
+    LazyColumn(
+        Modifier
+            .fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            GameHeader(
+                title = "Compiti (genitore)",
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onBack = onBack,
+                onLeaderboard = {}
+            )
+        }
 
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (lastResults.isNotEmpty()) {
-                item {
-                    val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
-                    val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-                    SeaGlassPanel(title = "Ultimo report") {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
-                            Text("Corretto: $perfectCount")
-                            Text("Completato con errori: $withErrorsCount")
-                            Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
-                        }
-                    }
-                }
-            }
-
+        if (lastResults.isNotEmpty()) {
             item {
-                SeaGlassPanel(title = "Seleziona giochi") {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        GameToggleRow(
-                            title = "Addizioni",
-                            subtitle = "Somme con numeri configurabili",
-                            checked = additionEnabled,
-                            onCheckedChange = { additionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Sottrazioni",
-                            subtitle = "Differenze con numeri configurabili",
-                            checked = subtractionEnabled,
-                            onCheckedChange = { subtractionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Tabellina",
-                            subtitle = "Esercizi su una tabellina specifica",
-                            checked = tableEnabled,
-                            onCheckedChange = { tableEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Divisioni passo-passo",
-                            subtitle = "Divisioni con resto",
-                            checked = divisionEnabled,
-                            onCheckedChange = { divisionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Moltiplicazioni difficili",
-                            subtitle = "Moltiplicazioni a due cifre",
-                            checked = hardEnabled,
-                            onCheckedChange = { hardEnabled = it }
-                        )
+                val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
+                val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
+                SeaGlassPanel(title = "Ultimo report") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
+                        Text("Corretto: $perfectCount")
+                        Text("Completato con errori: $withErrorsCount")
+                        Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
                     }
                 }
             }
+        }
+
+        item {
+            SeaGlassPanel(title = "Seleziona giochi") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    GameToggleRow(
+                        title = "Addizioni",
+                        subtitle = "Somme con numeri configurabili",
+                        checked = additionEnabled,
+                        onCheckedChange = { additionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Sottrazioni",
+                        subtitle = "Differenze con numeri configurabili",
+                        checked = subtractionEnabled,
+                        onCheckedChange = { subtractionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Tabellina",
+                        subtitle = "Esercizi su una tabellina specifica",
+                        checked = tableEnabled,
+                        onCheckedChange = { tableEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Divisioni passo-passo",
+                        subtitle = "Divisioni con resto",
+                        checked = divisionEnabled,
+                        onCheckedChange = { divisionEnabled = it }
+                    )
+                    GameToggleRow(
+                        title = "Moltiplicazioni difficili",
+                        subtitle = "Moltiplicazioni a due cifre",
+                        checked = hardEnabled,
+                        onCheckedChange = { hardEnabled = it }
+                    )
+                }
+            }
+        }
 
         if (additionEnabled) {
             item {
