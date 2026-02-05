@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -836,7 +837,13 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                reports = homeworkReports
+                reports = homeworkReports,
+                onDeleteReports = { reportsToDelete ->
+                    reportScope.launch {
+                        reportStorage.deleteReports(reportsToDelete)
+                        homeworkReports = reportStorage.loadReports()
+                    }
+                }
             )
 
             Screen.ASSIGNED_HOMEWORKS -> AssignedHomeworksScreen(
@@ -953,20 +960,33 @@ private fun HomeMenuKids(
                     .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
                     .padding(12.dp)
             ) {
+                var topActionsHeightPx by remember { mutableStateOf(0) }
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.TopEnd
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     TopActionsPill(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(top = 6.dp)
+                            .onSizeChanged { topActionsHeightPx = it.height }
                     ) {
                         SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
                         SmallCircleButton("📋") { onOpenHomework() }
                         SmallCircleButton("🗂️") { onOpenReports() }
                         SmallCircleButton("🏆") { onOpenLeaderboard() }
                     }
+
+                    val badgeOffset = with(LocalDensity.current) {
+                        topActionsHeightPx.toDp() + 6.dp
+                    }
+                    AssignedHomeworkOverlay(
+                        count = savedHomeworks.size,
+                        onOpen = onOpenAssignedHomeworks,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(y = badgeOffset)
+                            .zIndex(1f)
+                    )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -1047,15 +1067,6 @@ private fun HomeMenuKids(
                 }
             }
         }
-        if (savedHomeworks.isNotEmpty()) {
-            AssignedHomeworkOverlay(
-                count = savedHomeworks.size,
-                onOpen = onOpenAssignedHomeworks,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .zIndex(1f)
-            )
-        }
     }
 }
 
@@ -1065,18 +1076,37 @@ fun AssignedHomeworkOverlay(
     onOpen: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (count <= 0) return
-
-    val transition = rememberInfiniteTransition(label = "assignedHomeworkPulse")
-    val pulseScale by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "assignedHomeworkOverlayScale"
-    )
+    val shouldPulse = count > 0
+    val pulseScale = if (shouldPulse) {
+        val transition = rememberInfiniteTransition(label = "assignedHomeworkPulse")
+        val scale by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "assignedHomeworkOverlayScale"
+        )
+        scale
+    } else {
+        1f
+    }
+    val pulseAlpha = if (shouldPulse) {
+        val transition = rememberInfiniteTransition(label = "assignedHomeworkPulseAlpha")
+        val alpha by transition.animateFloat(
+            initialValue = 0.9f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "assignedHomeworkOverlayAlpha"
+        )
+        alpha
+    } else {
+        1f
+    }
 
     Surface(
         modifier = modifier
@@ -1084,11 +1114,20 @@ fun AssignedHomeworkOverlay(
             .graphicsLayer {
                 scaleX = pulseScale
                 scaleY = pulseScale
+                alpha = pulseAlpha
             }
             .clip(RoundedCornerShape(14.dp))
             .clickable { onOpen() },
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        color = if (count > 0) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
+        },
+        contentColor = if (count > 0) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
         tonalElevation = 2.dp
     ) {
         Row(
@@ -1099,16 +1138,28 @@ fun AssignedHomeworkOverlay(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "🎒",
-                fontSize = 14.sp
-            )
-            Text(
-                text = "Hai $count compiti assegnati",
+                text = "Compiti",
                 style = MaterialTheme.typography.labelMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontWeight = FontWeight.SemiBold
             )
+            if (count > 0) {
+                Surface(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = count.coerceAtMost(99).toString(),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     }
 }
