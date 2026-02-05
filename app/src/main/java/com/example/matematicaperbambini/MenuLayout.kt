@@ -4,13 +4,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material3.Icon
@@ -40,7 +40,10 @@ fun MenuHeaderLogoLayout(
             .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
             .padding(12.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 header()
             }
@@ -48,7 +51,6 @@ fun MenuHeaderLogoLayout(
             content(
                 Modifier
                     .fillMaxWidth()
-                    .weight(1f)
             )
         }
     }
