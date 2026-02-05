@@ -38,6 +38,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -985,12 +986,15 @@ private fun HomeMenuKids(
                 content = { contentModifier ->
                     Column(
                         modifier = contentModifier
-                            .padding(top = 30.dp, bottom = 12.dp)
+                            .padding(bottom = 12.dp)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         sections.forEach { section ->
-                            SeaGlassPanel(title = section.title) {
+                            SeaGlassPanel(
+                                title = section.title,
+                                modifier = Modifier.alpha(0.5f)
+                            ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)) {
                                     section.buttons.forEach { indexedButton ->
                                         val index = indexedButton.index
