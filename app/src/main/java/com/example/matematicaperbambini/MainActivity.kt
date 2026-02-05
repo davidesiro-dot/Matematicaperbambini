@@ -35,7 +35,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -194,6 +193,8 @@ enum class LeaderboardTab {
 // -----------------------------
 private enum class Screen {
     HOME,
+    GAME_MENU,
+    HOMEWORK_MENU,
     DIGITS_PICKER,     // Add/Sub
     OPERATION_START_MENU,
     TABELLINE_MENU,
@@ -583,6 +584,17 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
+                onOpenGameMenu = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                onOpenHomeworkMenu = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
+                onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
+                savedHomeworks = savedHomeworks,
+            )
+
+            Screen.GAME_MENU -> GameMenuKids(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onOpenLeaderboard = { openLb() },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenHomework = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
                 onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
@@ -601,13 +613,22 @@ private fun AppShell() {
                 }
             )
 
+            Screen.HOMEWORK_MENU -> HomeworkMenu(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onOpenLeaderboard = { openLb() },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
+                onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS }
+            )
+
             Screen.OPERATION_START_MENU -> {
                 val startMenuMode = pendingStartMenuMode ?: GameMode.ADD
                 OperationStartMenuScreen(
                     gameMode = startMenuMode,
                     soundEnabled = soundEnabled,
                     onToggleSound = { soundEnabled = !soundEnabled },
-                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
                     onSelectStartMode = { chosenMode ->
                         startMode = chosenMode
                         sessionHelpSettings = helpPreset.toHelpSettings()
@@ -647,7 +668,7 @@ private fun AppShell() {
             Screen.TABELLINE_MENU -> TabellineMenuScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
                 onSelectClassicManual = {
                     startMode = StartMode.MANUAL
                     navAnim = NavAnim.SLIDE
@@ -740,7 +761,7 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
                 helps = sessionHelpSettings
@@ -752,7 +773,7 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
                 helps = sessionHelpSettings
@@ -766,7 +787,7 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.EXPAND; screen = Screen.HOME },
+                onBack = { navAnim = NavAnim.EXPAND; screen = Screen.GAME_MENU },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
@@ -786,7 +807,7 @@ private fun AppShell() {
             Screen.HOMEWORK_BUILDER -> HomeworkBuilderScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
                 lastResults = lastHomeworkResults,
                 onStartHomework = { configs ->
                     homeworkQueue = buildExerciseQueue(configs)
@@ -849,7 +870,7 @@ private fun AppShell() {
             Screen.ASSIGNED_HOMEWORKS -> AssignedHomeworksScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
                 savedHomeworks = savedHomeworks,
                 onStartHomework = { savedHomework ->
                     homeworkQueue = buildExerciseQueue(savedHomework.tasks)
@@ -871,6 +892,138 @@ private fun HomeMenuKids(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
+    onOpenGameMenu: () -> Unit,
+    onOpenHomeworkMenu: () -> Unit,
+    onOpenReports: () -> Unit,
+    savedHomeworks: List<SavedHomework>
+) {
+    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val sizing = menuSizing(maxHeight)
+            val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+            val buttons = listOf(
+                MenuButtonData(
+                    title = "Gioco libero",
+                    baseColor = Color(0xFF8B5CF6),
+                    iconText = "🎮",
+                    onClick = onOpenGameMenu
+                ),
+                MenuButtonData(
+                    title = "Compiti",
+                    baseColor = Color(0xFF2ECC71),
+                    iconText = "📘",
+                    onClick = onOpenHomeworkMenu
+                ),
+                MenuButtonData(
+                    title = "Report",
+                    baseColor = Color(0xFF3498DB),
+                    iconText = "📊",
+                    onClick = onOpenReports
+                )
+            )
+
+            val animationsReady = remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { animationsReady.value = true }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
+                    .padding(12.dp)
+            ) {
+                MenuHeader(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onOpenLeaderboard = onOpenLeaderboard
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (logoPainter != null) {
+                        Image(
+                            painter = logoPainter,
+                            contentDescription = "Math Kids",
+                            modifier = Modifier.fillMaxWidth(1.02f),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.HelpOutline,
+                            contentDescription = "Logo mancante",
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                val offsetPx = with(LocalDensity.current) { sizing.offset.toPx() }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)
+                ) {
+                    buttons.forEachIndexed { index, data ->
+                        val alpha by animateFloatAsState(
+                            targetValue = if (animationsReady.value) 1f else 0f,
+                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                            label = "menuAlpha$index"
+                        )
+                        val offsetY by animateFloatAsState(
+                            targetValue = if (animationsReady.value) 0f else offsetPx,
+                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                            label = "menuOffset$index"
+                        )
+
+                        Box {
+                            KidsMenuButton(
+                                title = data.title,
+                                baseColor = data.baseColor,
+                                icon = {
+                                    Text(
+                                        data.iconText,
+                                        color = Color.White,
+                                        fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                },
+                                onClick = data.onClick,
+                                height = sizing.buttonHeight,
+                                textSize = sizing.buttonTextSize,
+                                modifier = Modifier.graphicsLayer {
+                                    this.alpha = alpha
+                                    translationY = offsetY
+                                }
+                            )
+
+                            if (data.title == "Compiti") {
+                                HomeworkBadge(
+                                    count = savedHomeworks.size,
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = (-6).dp, y = (-6).dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GameMenuKids(
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onOpenLeaderboard: () -> Unit,
+    onBack: () -> Unit,
     onOpenHomework: () -> Unit,
     onOpenAssignedHomeworks: () -> Unit,
     onOpenReports: () -> Unit,
@@ -880,37 +1033,8 @@ private fun HomeMenuKids(
 ) {
     Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val sizeProfile = when {
-                maxHeight < 620.dp -> MenuSizeProfile.Small
-                maxHeight < 760.dp -> MenuSizeProfile.Normal
-                else -> MenuSizeProfile.Large
-            }
-
-            val baseButtonHeight = when (sizeProfile) {
-                MenuSizeProfile.Small -> 56.dp
-                MenuSizeProfile.Normal -> 64.dp
-                MenuSizeProfile.Large -> 72.dp
-            }
-            val buttonHeight = baseButtonHeight * 0.75f
-
-            val buttonSpacing = when (sizeProfile) {
-                MenuSizeProfile.Small -> 10.dp
-                MenuSizeProfile.Normal -> 12.dp
-                MenuSizeProfile.Large -> 16.dp
-            }
-            val buttonTextSize = when (sizeProfile) {
-                MenuSizeProfile.Small -> 16.sp
-                MenuSizeProfile.Normal -> 18.sp
-                MenuSizeProfile.Large -> 20.sp
-            }
-            val bonusTextSize = when (sizeProfile) {
-                MenuSizeProfile.Small -> 11.sp
-                MenuSizeProfile.Normal -> 12.sp
-                MenuSizeProfile.Large -> 13.sp
-            }
-
+            val sizing = menuSizing(maxHeight)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
-
             val buttons = listOf(
                 MenuButtonData(
                     title = "Addizioni",
@@ -961,19 +1085,25 @@ private fun HomeMenuKids(
                     .padding(12.dp)
             ) {
                 var topActionsHeightPx by remember { mutableStateOf(0) }
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    TopActionsPill(
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Row(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 6.dp)
-                            .onSizeChanged { topActionsHeightPx = it.height }
+                            .fillMaxWidth()
+                            .statusBarsPadding(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-                        SmallCircleButton("📋") { onOpenHomework() }
-                        SmallCircleButton("🗂️") { onOpenReports() }
-                        SmallCircleButton("🏆") { onOpenLeaderboard() }
+                        SmallCircleButton("⬅") { onBack() }
+                        TopActionsPill(
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .onSizeChanged { topActionsHeightPx = it.height }
+                        ) {
+                            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+                            SmallCircleButton("📋") { onOpenHomework() }
+                            SmallCircleButton("🗂️") { onOpenReports() }
+                            SmallCircleButton("🏆") { onOpenLeaderboard() }
+                        }
                     }
 
                     val badgeOffset = with(LocalDensity.current) {
@@ -1014,18 +1144,11 @@ private fun HomeMenuKids(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // ✅ BOTTONI SENZA PANNELLO "GLASSCARD" + alzati di 20dp
-                val offsetPx = with(LocalDensity.current) {
-                    when (sizeProfile) {
-                        MenuSizeProfile.Small -> 12.dp.toPx()
-                        MenuSizeProfile.Normal -> 16.dp.toPx()
-                        MenuSizeProfile.Large -> 18.dp.toPx()
-                    }
-                }
+                val offsetPx = with(LocalDensity.current) { sizing.offset.toPx() }
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(buttonSpacing)
+                    verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)
                 ) {
                     buttons.forEachIndexed { index, data ->
                         val alpha by animateFloatAsState(
@@ -1051,8 +1174,8 @@ private fun HomeMenuKids(
                                 )
                             },
                             onClick = data.onClick,
-                            height = buttonHeight,
-                            textSize = buttonTextSize,
+                            height = sizing.buttonHeight,
+                            textSize = sizing.buttonTextSize,
                             modifier = Modifier.graphicsLayer {
                                 this.alpha = alpha
                                 translationY = offsetY
@@ -1062,7 +1185,7 @@ private fun HomeMenuKids(
 
                     BonusPill(
                         text = "Completa gli esercizi e vinci il BONUS! 🎈",
-                        fontSize = bonusTextSize
+                        fontSize = sizing.bonusTextSize
                     )
                 }
             }
@@ -1164,6 +1287,193 @@ fun AssignedHomeworkOverlay(
     }
 }
 
+@Composable
+private fun HomeworkMenu(
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onOpenLeaderboard: () -> Unit,
+    onBack: () -> Unit,
+    onOpenHomeworkBuilder: () -> Unit,
+    onOpenAssignedHomeworks: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val sizing = menuSizing(maxHeight)
+            val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+            val buttons = listOf(
+                MenuButtonData(
+                    title = "Genera compiti",
+                    baseColor = Color(0xFFE74C3C),
+                    iconText = "📝",
+                    onClick = onOpenHomeworkBuilder
+                ),
+                MenuButtonData(
+                    title = "Fai i compiti",
+                    baseColor = Color(0xFF22C55E),
+                    iconText = "✅",
+                    onClick = onOpenAssignedHomeworks
+                )
+            )
+
+            val animationsReady = remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { animationsReady.value = true }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
+                    .padding(12.dp)
+            ) {
+                MenuHeader(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onOpenLeaderboard = onOpenLeaderboard,
+                    onBack = onBack
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (logoPainter != null) {
+                        Image(
+                            painter = logoPainter,
+                            contentDescription = "Math Kids",
+                            modifier = Modifier.fillMaxWidth(1.02f),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.HelpOutline,
+                            contentDescription = "Logo mancante",
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                val offsetPx = with(LocalDensity.current) { sizing.offset.toPx() }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)
+                ) {
+                    buttons.forEachIndexed { index, data ->
+                        val alpha by animateFloatAsState(
+                            targetValue = if (animationsReady.value) 1f else 0f,
+                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                            label = "menuAlpha$index"
+                        )
+                        val offsetY by animateFloatAsState(
+                            targetValue = if (animationsReady.value) 0f else offsetPx,
+                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                            label = "menuOffset$index"
+                        )
+
+                        KidsMenuButton(
+                            title = data.title,
+                            baseColor = data.baseColor,
+                            icon = {
+                                Text(
+                                    data.iconText,
+                                    color = Color.White,
+                                    fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            },
+                            onClick = data.onClick,
+                            height = sizing.buttonHeight,
+                            textSize = sizing.buttonTextSize,
+                            modifier = Modifier.graphicsLayer {
+                                this.alpha = alpha
+                                translationY = offsetY
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeworkBadge(
+    count: Int,
+    modifier: Modifier = Modifier
+) {
+    if (count <= 0) return
+    val transition = rememberInfiniteTransition(label = "homeworkBadgePulse")
+    val scale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "homeworkBadgeScale"
+    )
+    val alpha by transition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "homeworkBadgeAlpha"
+    )
+
+    Box(
+        modifier = modifier
+            .size(22.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            }
+            .background(Color(0xFFE11D48), CircleShape)
+            .border(1.dp, Color.White.copy(alpha = 0.6f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = count.coerceAtMost(99).toString(),
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun MenuHeader(
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onOpenLeaderboard: () -> Unit,
+    onBack: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (onBack != null) {
+            SmallCircleButton("⬅") { onBack() }
+        } else {
+            Spacer(Modifier.size(36.dp))
+        }
+        TopActionsPill {
+            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+            SmallCircleButton("🏆") { onOpenLeaderboard() }
+        }
+    }
+}
+
 
 @Composable
 private fun KidsMenuButton(
@@ -1253,6 +1563,58 @@ private enum class MenuSizeProfile {
     Small,
     Normal,
     Large
+}
+
+private data class MenuSizing(
+    val buttonHeight: Dp,
+    val buttonSpacing: Dp,
+    val buttonTextSize: TextUnit,
+    val bonusTextSize: TextUnit,
+    val offset: Dp
+)
+
+private fun menuSizing(maxHeight: Dp): MenuSizing {
+    val sizeProfile = when {
+        maxHeight < 620.dp -> MenuSizeProfile.Small
+        maxHeight < 760.dp -> MenuSizeProfile.Normal
+        else -> MenuSizeProfile.Large
+    }
+
+    val baseButtonHeight = when (sizeProfile) {
+        MenuSizeProfile.Small -> 56.dp
+        MenuSizeProfile.Normal -> 64.dp
+        MenuSizeProfile.Large -> 72.dp
+    }
+    val buttonHeight = baseButtonHeight * 0.75f
+
+    val buttonSpacing = when (sizeProfile) {
+        MenuSizeProfile.Small -> 10.dp
+        MenuSizeProfile.Normal -> 12.dp
+        MenuSizeProfile.Large -> 16.dp
+    }
+    val buttonTextSize = when (sizeProfile) {
+        MenuSizeProfile.Small -> 16.sp
+        MenuSizeProfile.Normal -> 18.sp
+        MenuSizeProfile.Large -> 20.sp
+    }
+    val bonusTextSize = when (sizeProfile) {
+        MenuSizeProfile.Small -> 11.sp
+        MenuSizeProfile.Normal -> 12.sp
+        MenuSizeProfile.Large -> 13.sp
+    }
+    val offset = when (sizeProfile) {
+        MenuSizeProfile.Small -> 12.dp
+        MenuSizeProfile.Normal -> 16.dp
+        MenuSizeProfile.Large -> 18.dp
+    }
+
+    return MenuSizing(
+        buttonHeight = buttonHeight,
+        buttonSpacing = buttonSpacing,
+        buttonTextSize = buttonTextSize,
+        bonusTextSize = bonusTextSize,
+        offset = offset
+    )
 }
 
 private data class MenuButtonData(
