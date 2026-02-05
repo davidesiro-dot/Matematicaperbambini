@@ -53,6 +53,7 @@ import java.util.Calendar
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
 import java.text.DateFormat
 import java.util.Date
 import java.util.UUID
@@ -1737,12 +1738,14 @@ fun HomeworkReportsScreen(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
-    reports: List<HomeworkReport>
+    reports: List<HomeworkReport>,
+    onDeleteReports: (List<HomeworkReport>) -> Unit
 ) {
     val context = LocalContext.current
     var selectedKeys by remember { mutableStateOf(setOf<String>()) }
     var multiSelectEnabled by remember { mutableStateOf(false) }
     var expandedKey by remember { mutableStateOf<String?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val selectedReports = remember(reports, selectedKeys) {
         reports.filter {
@@ -1942,7 +1945,7 @@ fun HomeworkReportsScreen(
 
         if (reports.isNotEmpty()) {
             SeaGlassPanel(
-                title = "Stampa report selezionati",
+                title = "Azioni report selezionati",
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .fillMaxWidth()
@@ -1962,9 +1965,95 @@ fun HomeworkReportsScreen(
                     ) {
                         Text("Stampa o esporta PDF")
                     }
+
+                    Button(
+                        onClick = { shareHomeworkReports(context, selectedReports) },
+                        enabled = selectedReports.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Condividi")
+                    }
+
+                    Button(
+                        onClick = { showDeleteConfirm = true },
+                        enabled = selectedReports.isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Elimina", color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
                 }
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Eliminare i report selezionati?") },
+            text = {
+                Text(
+                    "Sei sicuro di voler eliminare i report selezionati?\n" +
+                        "Questa operazione non può essere annullata."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val toDelete = selectedReports
+                        showDeleteConfirm = false
+                        if (toDelete.isNotEmpty()) {
+                            onDeleteReports(toDelete)
+                        }
+                        selectedKeys = emptySet()
+                        multiSelectEnabled = false
+                        expandedKey = null
+                    }
+                ) {
+                    Text("Elimina")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Annulla")
+                }
+            }
+        )
+    }
+}
+
+private fun shareHomeworkReports(context: android.content.Context, reports: List<HomeworkReport>) {
+    if (reports.isEmpty()) return
+    val shareText = buildReportsShareText(reports)
+    val subject = if (reports.size == 1) "Report compiti" else "Report compiti (${reports.size})"
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+        putExtra(Intent.EXTRA_TEXT, shareText)
+    }
+    val chooser = Intent.createChooser(intent, "Condividi report")
+    if (intent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(chooser)
+    }
+}
+
+private fun buildReportsShareText(reports: List<HomeworkReport>): String {
+    return reports.joinToString("\n\n") { report ->
+        val completedExercises = if (report.totalExercises > 0) report.completedExercises else report.results.size
+        val plannedTotal = if (report.totalExercises > 0) report.totalExercises else completedExercises
+        val correct = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
+        val withErrors = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
+        val wrong = completedExercises - correct - withErrors
+        buildString {
+            appendLine("Report Compiti")
+            appendLine("Bambino: ${report.childName}")
+            appendLine("Data e ora: ${formatTimestamp(report.createdAt)}")
+            appendLine("Esercizi completati: $completedExercises su $plannedTotal")
+            appendLine("Corretti: $correct • Con errori: $withErrors • Da ripassare: $wrong")
+            if (report.interrupted) {
+                appendLine("⚠ Compito interrotto")
+            }
+        }.trim()
     }
 }
 

@@ -54,6 +54,17 @@ class HomeworkReportStorage(private val context: Context) {
         }
     }
 
+    suspend fun deleteReports(reportsToDelete: List<HomeworkReport>) {
+        if (reportsToDelete.isEmpty()) return
+        val deleteKeys = reportsToDelete
+            .map { "${it.childName}_${it.createdAt}" }
+            .toSet()
+        val remaining = loadReports().filterNot { report ->
+            "${report.childName}_${report.createdAt}" in deleteKeys
+        }
+        persistReports(remaining)
+    }
+
     private suspend fun persistReports(reports: List<HomeworkReport>) {
         try {
             val payload = reportJson.encodeToString(reports)
