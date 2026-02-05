@@ -57,7 +57,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.zIndex
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Spacer
@@ -595,10 +594,6 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onOpenHomework = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
-                onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
-                onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
-                savedHomeworks = savedHomeworks,
                 onPickDigitsFor = { m ->
                     openStartMenu(m)
                 },
@@ -897,8 +892,8 @@ private fun HomeMenuKids(
     onOpenReports: () -> Unit,
     savedHomeworks: List<SavedHomework>
 ) {
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             val sizing = menuSizing(maxHeight)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
@@ -925,30 +920,57 @@ private fun HomeMenuKids(
             val animationsReady = remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { animationsReady.value = true }
 
-            Column(
+            val density = LocalDensity.current
+            var headerHeightPx by remember { mutableStateOf(0) }
+            var firstButtonHeightPx by remember { mutableStateOf(0) }
+            var logoHeightPx by remember { mutableStateOf(0) }
+
+            val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
+            val screenHeightPx = with(density) { maxHeight.toPx() }
+            val midScreenPx = screenHeightPx * 0.5f
+            val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
+            val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
+            val logoTopPx = headerHeightPx + (logoGapPx - logoHeightPx) / 2f
+
+            val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
+            val logoOffset = with(density) { logoTopPx.toDp() }
+            val logoMaxHeight = with(density) { logoGapPx.toDp() }
+            val offsetPx = with(density) { sizing.offset.toPx() }
+
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
                     .padding(12.dp)
             ) {
-                MenuHeader(
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onOpenLeaderboard = onOpenLeaderboard
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .onSizeChanged { headerHeightPx = it.height }
+                ) {
+                    MenuHeader(
+                        soundEnabled = soundEnabled,
+                        onToggleSound = onToggleSound,
+                        onOpenLeaderboard = onOpenLeaderboard
+                    )
+                }
 
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = logoOffset)
+                        .onSizeChanged { logoHeightPx = it.height },
                     contentAlignment = Alignment.Center
                 ) {
                     if (logoPainter != null) {
                         Image(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
-                            modifier = Modifier.fillMaxWidth(1.02f),
+                            modifier = Modifier
+                                .fillMaxWidth(1.02f)
+                                .heightIn(max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
                     } else {
@@ -961,12 +983,10 @@ private fun HomeMenuKids(
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                val offsetPx = with(LocalDensity.current) { sizing.offset.toPx() }
-
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = firstButtonOffset),
                     verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)
                 ) {
                     buttons.forEachIndexed { index, data ->
@@ -982,6 +1002,11 @@ private fun HomeMenuKids(
                         )
 
                         Box {
+                            val sizeModifier = if (index == 0) {
+                                Modifier.onSizeChanged { firstButtonHeightPx = it.height }
+                            } else {
+                                Modifier
+                            }
                             KidsMenuButton(
                                 title = data.title,
                                 baseColor = data.baseColor,
@@ -996,7 +1021,7 @@ private fun HomeMenuKids(
                                 onClick = data.onClick,
                                 height = sizing.buttonHeight,
                                 textSize = sizing.buttonTextSize,
-                                modifier = Modifier.graphicsLayer {
+                                modifier = sizeModifier.graphicsLayer {
                                     this.alpha = alpha
                                     translationY = offsetY
                                 }
@@ -1024,15 +1049,11 @@ private fun GameMenuKids(
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onBack: () -> Unit,
-    onOpenHomework: () -> Unit,
-    onOpenAssignedHomeworks: () -> Unit,
-    onOpenReports: () -> Unit,
-    savedHomeworks: List<SavedHomework>,
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             val sizing = menuSizing(maxHeight)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
@@ -1077,15 +1098,36 @@ private fun GameMenuKids(
             val animationsReady = remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { animationsReady.value = true }
 
-            Column(
+            val density = LocalDensity.current
+            var headerHeightPx by remember { mutableStateOf(0) }
+            var firstButtonHeightPx by remember { mutableStateOf(0) }
+            var logoHeightPx by remember { mutableStateOf(0) }
+
+            val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
+            val screenHeightPx = with(density) { maxHeight.toPx() }
+            val midScreenPx = screenHeightPx * 0.5f
+            val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
+            val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
+            val logoTopPx = headerHeightPx + (logoGapPx - logoHeightPx) / 2f
+
+            val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
+            val logoOffset = with(density) { logoTopPx.toDp() }
+            val logoMaxHeight = with(density) { logoGapPx.toDp() }
+            val offsetPx = with(density) { sizing.offset.toPx() }
+
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
                     .padding(12.dp)
             ) {
-                var topActionsHeightPx by remember { mutableStateOf(0) }
-                Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .onSizeChanged { headerHeightPx = it.height }
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1094,42 +1136,27 @@ private fun GameMenuKids(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         SmallCircleButton("⬅") { onBack() }
-                        TopActionsPill(
-                            modifier = Modifier
-                                .padding(top = 6.dp)
-                                .onSizeChanged { topActionsHeightPx = it.height }
-                        ) {
+                        TopActionsPill(modifier = Modifier.padding(top = 6.dp)) {
                             SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-                            SmallCircleButton("📋") { onOpenHomework() }
-                            SmallCircleButton("🗂️") { onOpenReports() }
                             SmallCircleButton("🏆") { onOpenLeaderboard() }
                         }
                     }
-
-                    val badgeOffset = with(LocalDensity.current) {
-                        topActionsHeightPx.toDp() + 6.dp
-                    }
-                    AssignedHomeworkOverlay(
-                        count = savedHomeworks.size,
-                        onOpen = onOpenAssignedHomeworks,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(y = badgeOffset)
-                            .zIndex(1f)
-                    )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = logoOffset)
+                        .onSizeChanged { logoHeightPx = it.height },
                     contentAlignment = Alignment.Center
                 ) {
                     if (logoPainter != null) {
                         Image(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
-                            modifier = Modifier.fillMaxWidth(1.02f),
+                            modifier = Modifier
+                                .fillMaxWidth(1.02f)
+                                .heightIn(max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
                     } else {
@@ -1142,12 +1169,10 @@ private fun GameMenuKids(
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                val offsetPx = with(LocalDensity.current) { sizing.offset.toPx() }
-
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = firstButtonOffset),
                     verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)
                 ) {
                     buttons.forEachIndexed { index, data ->
@@ -1162,6 +1187,11 @@ private fun GameMenuKids(
                             label = "menuOffset$index"
                         )
 
+                        val sizeModifier = if (index == 0) {
+                            Modifier.onSizeChanged { firstButtonHeightPx = it.height }
+                        } else {
+                            Modifier
+                        }
                         KidsMenuButton(
                             title = data.title,
                             baseColor = data.baseColor,
@@ -1176,7 +1206,7 @@ private fun GameMenuKids(
                             onClick = data.onClick,
                             height = sizing.buttonHeight,
                             textSize = sizing.buttonTextSize,
-                            modifier = Modifier.graphicsLayer {
+                            modifier = sizeModifier.graphicsLayer {
                                 this.alpha = alpha
                                 translationY = offsetY
                             }
@@ -1296,8 +1326,8 @@ private fun HomeworkMenu(
     onOpenHomeworkBuilder: () -> Unit,
     onOpenAssignedHomeworks: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             val sizing = menuSizing(maxHeight)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
@@ -1318,31 +1348,58 @@ private fun HomeworkMenu(
             val animationsReady = remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { animationsReady.value = true }
 
-            Column(
+            val density = LocalDensity.current
+            var headerHeightPx by remember { mutableStateOf(0) }
+            var firstButtonHeightPx by remember { mutableStateOf(0) }
+            var logoHeightPx by remember { mutableStateOf(0) }
+
+            val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
+            val screenHeightPx = with(density) { maxHeight.toPx() }
+            val midScreenPx = screenHeightPx * 0.5f
+            val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
+            val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
+            val logoTopPx = headerHeightPx + (logoGapPx - logoHeightPx) / 2f
+
+            val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
+            val logoOffset = with(density) { logoTopPx.toDp() }
+            val logoMaxHeight = with(density) { logoGapPx.toDp() }
+            val offsetPx = with(density) { sizing.offset.toPx() }
+
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
                     .padding(12.dp)
             ) {
-                MenuHeader(
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onOpenLeaderboard = onOpenLeaderboard,
-                    onBack = onBack
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .onSizeChanged { headerHeightPx = it.height }
+                ) {
+                    MenuHeader(
+                        soundEnabled = soundEnabled,
+                        onToggleSound = onToggleSound,
+                        onOpenLeaderboard = onOpenLeaderboard,
+                        onBack = onBack
+                    )
+                }
 
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = logoOffset)
+                        .onSizeChanged { logoHeightPx = it.height },
                     contentAlignment = Alignment.Center
                 ) {
                     if (logoPainter != null) {
                         Image(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
-                            modifier = Modifier.fillMaxWidth(1.02f),
+                            modifier = Modifier
+                                .fillMaxWidth(1.02f)
+                                .heightIn(max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
                     } else {
@@ -1355,12 +1412,10 @@ private fun HomeworkMenu(
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                val offsetPx = with(LocalDensity.current) { sizing.offset.toPx() }
-
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = firstButtonOffset),
                     verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)
                 ) {
                     buttons.forEachIndexed { index, data ->
@@ -1375,6 +1430,11 @@ private fun HomeworkMenu(
                             label = "menuOffset$index"
                         )
 
+                        val sizeModifier = if (index == 0) {
+                            Modifier.onSizeChanged { firstButtonHeightPx = it.height }
+                        } else {
+                            Modifier
+                        }
                         KidsMenuButton(
                             title = data.title,
                             baseColor = data.baseColor,
@@ -1389,7 +1449,7 @@ private fun HomeworkMenu(
                             onClick = data.onClick,
                             height = sizing.buttonHeight,
                             textSize = sizing.buttonTextSize,
-                            modifier = Modifier.graphicsLayer {
+                            modifier = sizeModifier.graphicsLayer {
                                 this.alpha = alpha
                                 translationY = offsetY
                             }
