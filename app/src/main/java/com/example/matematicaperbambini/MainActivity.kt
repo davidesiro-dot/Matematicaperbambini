@@ -893,8 +893,10 @@ private fun HomeMenuKids(
     savedHomeworks: List<SavedHomework>
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenH = maxHeight
+        val screenW = maxWidth
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            val sizing = menuSizing(maxHeight)
+            val sizing = menuSizing(screenH)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
                 MenuButtonData(
@@ -926,7 +928,7 @@ private fun HomeMenuKids(
             var logoHeightPx by remember { mutableStateOf(0) }
 
             val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
-            val screenHeightPx = with(density) { maxHeight.toPx() }
+            val screenHeightPx = with(density) { screenH.toPx() }
             val midScreenPx = screenHeightPx * 0.5f
             val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
             val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
@@ -1053,8 +1055,10 @@ private fun GameMenuKids(
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenH = maxHeight
+        val screenW = maxWidth
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            val sizing = menuSizing(maxHeight)
+            val sizing = menuSizing(screenH)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
                 MenuButtonData(
@@ -1104,7 +1108,7 @@ private fun GameMenuKids(
             var logoHeightPx by remember { mutableStateOf(0) }
 
             val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
-            val screenHeightPx = with(density) { maxHeight.toPx() }
+            val screenHeightPx = with(density) { screenH.toPx() }
             val midScreenPx = screenHeightPx * 0.5f
             val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
             val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
@@ -1327,8 +1331,10 @@ private fun HomeworkMenu(
     onOpenAssignedHomeworks: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenH = maxHeight
+        val screenW = maxWidth
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            val sizing = menuSizing(maxHeight)
+            val sizing = menuSizing(screenH)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
                 MenuButtonData(
@@ -1354,7 +1360,7 @@ private fun HomeworkMenu(
             var logoHeightPx by remember { mutableStateOf(0) }
 
             val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
-            val screenHeightPx = with(density) { maxHeight.toPx() }
+            val screenHeightPx = with(density) { screenH.toPx() }
             val midScreenPx = screenHeightPx * 0.5f
             val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
             val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
