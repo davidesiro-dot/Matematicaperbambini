@@ -971,7 +971,7 @@ private fun HomeMenuKids(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
                             modifier = Modifier
-                                .fillMaxWidth(1.02f)
+                                .fillMaxWidth(1.00f)
                                 .heightIn(max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
@@ -1159,7 +1159,7 @@ private fun GameMenuKids(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
                             modifier = Modifier
-                                .fillMaxWidth(1.02f)
+                                .fillMaxWidth(1.00f)
                                 .heightIn(max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
@@ -1404,7 +1404,7 @@ private fun HomeworkMenu(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
                             modifier = Modifier
-                                .fillMaxWidth(1.02f)
+                                .fillMaxWidth(1.00f)
                                 .heightIn(max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
