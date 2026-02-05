@@ -3,8 +3,6 @@ package com.example.matematicaperbambini
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,12 +13,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +37,12 @@ fun MenuHeaderLogoLayout(
     header: @Composable () -> Unit,
     content: @Composable (Modifier) -> Unit
 ) {
+    val density = LocalDensity.current
+    var headerHeightPx by remember { mutableStateOf(0) }
+    val headerHeightDp = with(density) { headerHeightPx.toDp() }
+    val logoTopPadding = headerHeightDp + 50.dp
+    val contentTopPadding = logoTopPadding + logoAreaHeight + 50.dp
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -40,29 +50,38 @@ fun MenuHeaderLogoLayout(
             .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
             .padding(12.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged { headerHeightPx = it.height }
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                header()
-            }
-            MenuLogoArea(logoPainter = logoPainter, height = logoAreaHeight)
-            content(
-                Modifier
-                    .fillMaxWidth()
-            )
+            header()
         }
+
+        MenuLogoArea(
+            logoPainter = logoPainter,
+            height = logoAreaHeight,
+            modifier = Modifier
+                .padding(top = logoTopPadding)
+                .align(Alignment.TopCenter)
+        )
+
+        content(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = contentTopPadding)
+        )
     }
 }
 
 @Composable
 fun MenuLogoArea(
     logoPainter: Painter?,
-    height: Dp
+    height: Dp,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(height),
         contentAlignment = Alignment.Center
