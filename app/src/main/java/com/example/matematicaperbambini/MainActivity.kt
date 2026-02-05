@@ -275,11 +275,12 @@ private fun AppBackground(content: @Composable () -> Unit) {
 fun SeaGlassPanel(
     title: String? = null,
     modifier: Modifier = Modifier,
+    backgroundColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
     content: @Composable () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(26.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+        color = backgroundColor,
         tonalElevation = 0.dp,
         modifier = modifier
             .fillMaxWidth()
@@ -993,7 +994,7 @@ private fun HomeMenuKids(
                         sections.forEach { section ->
                             SeaGlassPanel(
                                 title = section.title,
-                                modifier = Modifier.alpha(0.5f)
+                                backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)) {
                                     section.buttons.forEach { indexedButton ->

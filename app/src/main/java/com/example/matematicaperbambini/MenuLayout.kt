@@ -40,8 +40,8 @@ fun MenuHeaderLogoLayout(
     val density = LocalDensity.current
     var headerHeightPx by remember { mutableStateOf(0) }
     val headerHeightDp = with(density) { headerHeightPx.toDp() }
-    val logoTopPadding = headerHeightDp + 50.dp
-    val contentTopPadding = logoTopPadding + logoAreaHeight + 50.dp
+    val logoTopPadding = headerHeightDp + 20.dp
+    val contentTopPadding = logoTopPadding + logoAreaHeight + 20.dp
 
     Box(
         modifier = modifier
