@@ -28,8 +28,10 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
@@ -981,59 +983,57 @@ private fun HomeMenuKids(
                     )
                 },
                 content = { contentModifier ->
-                    LazyColumn(
-                        modifier = contentModifier,
-                        contentPadding = PaddingValues(bottom = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    Column(
+                        modifier = contentModifier
+                            .padding(top = 30.dp, bottom = 12.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         sections.forEach { section ->
-                            item {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    MenuSectionHeader(title = section.title)
-                                    Column(verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)) {
-                                        section.buttons.forEach { indexedButton ->
-                                            val index = indexedButton.index
-                                            val data = indexedButton.data
-                                            val alpha by animateFloatAsState(
-                                                targetValue = if (animationsReady.value) 1f else 0f,
-                                                animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
-                                                label = "menuAlpha$index"
-                                            )
-                                            val offsetY by animateFloatAsState(
-                                                targetValue = if (animationsReady.value) 0f else offsetPx,
-                                                animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
-                                                label = "menuOffset$index"
-                                            )
+                            SeaGlassPanel(title = section.title) {
+                                Column(verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)) {
+                                    section.buttons.forEach { indexedButton ->
+                                        val index = indexedButton.index
+                                        val data = indexedButton.data
+                                        val alpha by animateFloatAsState(
+                                            targetValue = if (animationsReady.value) 1f else 0f,
+                                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                                            label = "menuAlpha$index"
+                                        )
+                                        val offsetY by animateFloatAsState(
+                                            targetValue = if (animationsReady.value) 0f else offsetPx,
+                                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                                            label = "menuOffset$index"
+                                        )
 
-                                            Box {
-                                                KidsMenuButton(
-                                                    title = data.title,
-                                                    baseColor = data.baseColor,
-                                                    icon = {
-                                                        Text(
-                                                            data.iconText,
-                                                            color = Color.White,
-                                                            fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
-                                                            fontWeight = FontWeight.Black
-                                                        )
-                                                    },
-                                                    onClick = data.onClick,
-                                                    height = sizing.buttonHeight,
-                                                    textSize = sizing.buttonTextSize,
-                                                    modifier = Modifier.graphicsLayer {
-                                                        this.alpha = alpha
-                                                        translationY = offsetY
-                                                    }
-                                                )
-
-                                                if (data.title == "Fai i compiti") {
-                                                    HomeworkBadge(
-                                                        count = savedHomeworks.size,
-                                                        modifier = Modifier
-                                                            .align(Alignment.TopEnd)
-                                                            .offset(x = (-6).dp, y = (-6).dp)
+                                        Box {
+                                            KidsMenuButton(
+                                                title = data.title,
+                                                baseColor = data.baseColor,
+                                                icon = {
+                                                    Text(
+                                                        data.iconText,
+                                                        color = Color.White,
+                                                        fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                                        fontWeight = FontWeight.Black
                                                     )
+                                                },
+                                                onClick = data.onClick,
+                                                height = sizing.buttonHeight,
+                                                textSize = sizing.buttonTextSize,
+                                                modifier = Modifier.graphicsLayer {
+                                                    this.alpha = alpha
+                                                    translationY = offsetY
                                                 }
+                                            )
+
+                                            if (data.title == "Fai i compiti") {
+                                                HomeworkBadge(
+                                                    count = savedHomeworks.size,
+                                                    modifier = Modifier
+                                                        .align(Alignment.TopEnd)
+                                                        .offset(x = (-6).dp, y = (-6).dp)
+                                                )
                                             }
                                         }
                                     }
@@ -1599,22 +1599,6 @@ private data class MenuSection(
     val title: String,
     val buttons: List<IndexedMenuButton>
 )
-
-@Composable
-private fun MenuSectionHeader(
-    title: String,
-    modifier: Modifier = Modifier
-) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelMedium.copy(
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp
-        ),
-        color = Color.White.copy(alpha = 0.85f),
-        modifier = modifier.padding(start = 12.dp)
-    )
-}
 
 @Composable
 private fun GlassCard(
