@@ -10,6 +10,7 @@ import android.print.PrintAttributes
 import android.print.PrintDocumentAdapter
 import android.print.PrintDocumentInfo
 import android.print.PrintManager
+import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -31,14 +32,44 @@ internal fun printHomeworkReports(context: Context, reports: List<HomeworkReport
     printManager.print(jobName, adapter, PrintAttributes.Builder().build())
 }
 
-private enum class LineStyle {
+internal fun createHomeworkReportPdf(context: Context, reports: List<HomeworkReport>): File? {
+    if (reports.isEmpty()) return null
+    val fileName = reportFileName(reports)
+    val outputFile = File(context.cacheDir, fileName)
+    val pdfDocument = PdfDocument()
+    return try {
+        val lines = buildReportLines(reports)
+        renderLines(
+            pdfDocument = pdfDocument,
+            lines = lines,
+            pageWidth = 595,
+            pageHeight = 842,
+            cancellationSignal = null
+        )
+        FileOutputStream(outputFile).use { output ->
+            pdfDocument.writeTo(output)
+        }
+        outputFile
+    } catch (error: Exception) {
+        null
+    } finally {
+        pdfDocument.close()
+    }
+}
+
+private enum class TextStyle {
     TITLE,
     SECTION,
     BODY,
-    PAGE_BREAK
+    SUBTLE
 }
 
-private data class PrintLine(val text: String, val style: LineStyle)
+private sealed class PdfLine {
+    data class TextLine(val text: String, val style: TextStyle) : PdfLine()
+    data object DividerLine : PdfLine()
+    data object PageBreakLine : PdfLine()
+    data class TableLine(val columns: List<String>, val isHeader: Boolean) : PdfLine()
+}
 
 private class HomeworkReportPrintAdapter(
     private val reports: List<HomeworkReport>
@@ -57,7 +88,7 @@ private class HomeworkReportPrintAdapter(
             return
         }
         printAttributes = newAttributes
-        val info = PrintDocumentInfo.Builder("report_compiti.pdf")
+        val info = PrintDocumentInfo.Builder(reportFileName(reports))
             .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
             .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
             .build()
@@ -94,95 +125,151 @@ private class HomeworkReportPrintAdapter(
         }
     }
 
-    private fun renderLines(
-        pdfDocument: PdfDocument,
-        lines: List<PrintLine>,
-        pageWidth: Int,
-        pageHeight: Int,
-        cancellationSignal: CancellationSignal
-    ) {
-        val margin = 40f
-        val maxWidth = pageWidth - margin * 2
-        val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = 18f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-        val sectionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = 14f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-        val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = 12f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        }
-
-        var pageNumber = 1
-        var page = pdfDocument.startPage(
-            PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
-        )
-        var canvas = page.canvas
-        var y = margin
-
-        fun ensureSpace(lineHeight: Float) {
-            if (y + lineHeight > pageHeight - margin) {
-                pdfDocument.finishPage(page)
-                pageNumber += 1
-                page = pdfDocument.startPage(
-                    PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
-                )
-                canvas = page.canvas
-                y = margin
-            }
-        }
-
-        lines.forEach { line ->
-            if (cancellationSignal.isCanceled) return
-            if (line.style == LineStyle.PAGE_BREAK) {
-                pdfDocument.finishPage(page)
-                pageNumber += 1
-                page = pdfDocument.startPage(
-                    PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
-                )
-                canvas = page.canvas
-                y = margin
-                return@forEach
-            }
-
-            val paint = when (line.style) {
-                LineStyle.TITLE -> titlePaint
-                LineStyle.SECTION -> sectionPaint
-                LineStyle.BODY -> bodyPaint
-                LineStyle.PAGE_BREAK -> bodyPaint
-            }
-            val lineHeight = paint.fontSpacing
-            if (line.text.isBlank()) {
-                y += lineHeight * 0.6f
-                return@forEach
-            }
-            val wrappedLines = wrapText(line.text, paint, maxWidth)
-            wrappedLines.forEach { wrapped ->
-                ensureSpace(lineHeight)
-                canvas.drawText(wrapped, margin, y, paint)
-                y += lineHeight
-            }
-        }
-        pdfDocument.finishPage(page)
-    }
 }
 
-private fun buildReportLines(reports: List<HomeworkReport>): List<PrintLine> {
-    val lines = mutableListOf<PrintLine>()
+private fun renderLines(
+    pdfDocument: PdfDocument,
+    lines: List<PdfLine>,
+    pageWidth: Int,
+    pageHeight: Int,
+    cancellationSignal: CancellationSignal?
+) {
+    val margin = 40f
+    val maxWidth = pageWidth - margin * 2
+    val accentColor = 0xFF1E5AA8.toInt()
+    val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = 18f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        color = accentColor
+    }
+    val sectionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = 13f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        color = accentColor
+    }
+    val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = 12f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        color = 0xFF000000.toInt()
+    }
+    val subtlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = 11f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        color = 0xFF000000.toInt()
+    }
+    val dividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        strokeWidth = 1f
+        color = accentColor
+    }
+
+    val tableFractions = listOf(0.08f, 0.42f, 0.2f, 0.15f, 0.15f)
+    val tableWidths = tableFractions.map { it * maxWidth }
+    val tableStarts = tableWidths.runningFold(margin) { acc, width -> acc + width }.dropLast(1)
+
+    var pageNumber = 1
+    var page = pdfDocument.startPage(
+        PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+    )
+    var canvas = page.canvas
+    var y = margin
+
+    fun ensureSpace(lineHeight: Float) {
+        if (y + lineHeight > pageHeight - margin) {
+            pdfDocument.finishPage(page)
+            pageNumber += 1
+            page = pdfDocument.startPage(
+                PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+            )
+            canvas = page.canvas
+            y = margin
+        }
+    }
+
+    fun drawTextLine(text: String, paint: Paint) {
+        val lineHeight = paint.fontSpacing
+        if (text.isBlank()) {
+            y += lineHeight * 0.6f
+            return
+        }
+        wrapText(text, paint, maxWidth).forEach { wrapped ->
+            ensureSpace(lineHeight)
+            canvas.drawText(wrapped, margin, y, paint)
+            y += lineHeight
+        }
+    }
+
+    fun drawTableLine(line: PdfLine.TableLine) {
+        val paint = if (line.isHeader) {
+            Paint(bodyPaint).apply { typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+        } else {
+            bodyPaint
+        }
+        val lineHeight = paint.fontSpacing
+        val wrappedColumns = line.columns.mapIndexed { index, text ->
+            wrapText(text, paint, tableWidths[index])
+        }
+        val maxLines = wrappedColumns.maxOfOrNull { it.size } ?: 1
+        val rowHeight = lineHeight * maxLines
+        ensureSpace(rowHeight)
+        for (rowIndex in 0 until maxLines) {
+            tableStarts.forEachIndexed { columnIndex, startX ->
+                val columnLines = wrappedColumns[columnIndex]
+                val text = columnLines.getOrNull(rowIndex) ?: ""
+                canvas.drawText(text, startX, y, paint)
+            }
+            y += lineHeight
+        }
+        y += lineHeight * 0.2f
+    }
+
+    lines.forEach { line ->
+        if (cancellationSignal?.isCanceled == true) return
+        when (line) {
+            is PdfLine.PageBreakLine -> {
+                pdfDocument.finishPage(page)
+                pageNumber += 1
+                page = pdfDocument.startPage(
+                    PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+                )
+                canvas = page.canvas
+                y = margin
+            }
+            is PdfLine.DividerLine -> {
+                val lineHeight = bodyPaint.fontSpacing
+                ensureSpace(lineHeight)
+                canvas.drawLine(margin, y, pageWidth - margin, y, dividerPaint)
+                y += lineHeight
+            }
+            is PdfLine.TextLine -> {
+                val paint = when (line.style) {
+                    TextStyle.TITLE -> titlePaint
+                    TextStyle.SECTION -> sectionPaint
+                    TextStyle.BODY -> bodyPaint
+                    TextStyle.SUBTLE -> subtlePaint
+                }
+                drawTextLine(line.text, paint)
+            }
+            is PdfLine.TableLine -> {
+                drawTableLine(line)
+            }
+        }
+    }
+    pdfDocument.finishPage(page)
+}
+
+private fun buildReportLines(reports: List<HomeworkReport>): List<PdfLine> {
+    val lines = mutableListOf<PdfLine>()
     reports.forEachIndexed { index, report ->
         lines += buildSingleReportLines(report, index, reports.size)
         if (index < reports.lastIndex) {
-            lines += PrintLine("", LineStyle.PAGE_BREAK)
+            lines += PdfLine.PageBreakLine
         }
     }
     return lines
 }
 
-private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalReports: Int): List<PrintLine> {
-    val lines = mutableListOf<PrintLine>()
+private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalReports: Int): List<PdfLine> {
+    val lines = mutableListOf<PdfLine>()
     val completedExercises = if (report.totalExercises > 0) {
         report.completedExercises
     } else {
@@ -197,96 +284,96 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
     val withErrorsCount = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
     val wrongCount = completedExercises - perfectCount - withErrorsCount
     val durationMillis = report.results.sumOf { (it.endedAt - it.startedAt).coerceAtLeast(0) }
-    val solutionUsedCount = report.results.count { it.solutionUsed }
     val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
+    val hasErrors = report.results.any { it.outcome() != ExerciseOutcome.PERFECT }
 
-    val title = if (totalReports > 1) {
-        "Report Compiti ${index + 1} di $totalReports"
-    } else {
-        "Report Compiti"
+    lines += PdfLine.TextLine("MateMatt – Report Compiti", TextStyle.TITLE)
+    val date = formatReportDate(report.createdAt)
+    val time = formatReportTime(report.createdAt)
+    lines += PdfLine.TextLine("Data: $date   Ora: $time", TextStyle.SUBTLE)
+    lines += PdfLine.TextLine("Bambino: ${report.childName}", TextStyle.SUBTLE)
+    lines += PdfLine.DividerLine
+    if (totalReports > 1) {
+        lines += PdfLine.TextLine("Report ${index + 1} di $totalReports", TextStyle.SUBTLE)
     }
-    lines += PrintLine(title, LineStyle.TITLE)
-    lines += PrintLine("Bambino: ${report.childName}", LineStyle.BODY)
-    lines += PrintLine("Data e ora: ${formatTimestamp(report.createdAt)}", LineStyle.BODY)
-    lines += PrintLine("Durata sessione: ${formatDurationMillis(durationMillis)}", LineStyle.BODY)
-    lines += PrintLine("Modalità: Compiti", LineStyle.BODY)
-    lines += PrintLine("Titolo compito: Compito di matematica", LineStyle.BODY)
-    lines += PrintLine("Tipo di esercizi: ${homeworkTypes.joinToString(", ")}", LineStyle.BODY)
-    lines += PrintLine("", LineStyle.BODY)
+    lines += PdfLine.TextLine("", TextStyle.BODY)
 
-    lines += PrintLine("Riepilogo", LineStyle.SECTION)
+    lines += PdfLine.TextLine("Riepilogo generale", TextStyle.SECTION)
     if (report.interrupted) {
-        lines += PrintLine("⚠ Compito interrotto prima del completamento", LineStyle.BODY)
-        lines += PrintLine("Esercizi completati: $completedExercises su $plannedTotal", LineStyle.BODY)
+        lines += PdfLine.TextLine("⚠ Compito interrotto prima del completamento", TextStyle.BODY)
     }
-    lines += PrintLine("Totale esercizi: $completedExercises", LineStyle.BODY)
-    lines += PrintLine("Corretto: $perfectCount", LineStyle.BODY)
-    lines += PrintLine("Completato con errori (⚠️): $withErrorsCount", LineStyle.BODY)
-    lines += PrintLine("Da ripassare: $wrongCount", LineStyle.BODY)
-    lines += PrintLine("", LineStyle.BODY)
+    lines += PdfLine.TextLine("Totale esercizi: $plannedTotal", TextStyle.BODY)
+    lines += PdfLine.TextLine("Esercizi corretti: $perfectCount", TextStyle.BODY)
+    lines += PdfLine.TextLine("Completati con errori: $withErrorsCount", TextStyle.BODY)
+    lines += PdfLine.TextLine("Da ripassare: $wrongCount", TextStyle.BODY)
+    lines += PdfLine.TextLine("Durata totale del compito: ${formatDurationMillis(durationMillis)}", TextStyle.BODY)
+    lines += PdfLine.TextLine("", TextStyle.BODY)
 
-    lines += PrintLine("Aiuti usati durante la sessione", LineStyle.SECTION)
-    lines += PrintLine("Suggerimenti: non registrati nei report salvati", LineStyle.BODY)
-    lines += PrintLine("Evidenziazioni: non registrate nei report salvati", LineStyle.BODY)
-    lines += PrintLine("Soluzione guidata: $solutionUsedCount utilizzi", LineStyle.BODY)
-    lines += PrintLine("Auto-check: non registrato nei report salvati", LineStyle.BODY)
-    lines += PrintLine("", LineStyle.BODY)
+    lines += PdfLine.TextLine("Tipologie svolte", TextStyle.SECTION)
+    homeworkTypes.forEach { type ->
+        lines += PdfLine.TextLine("• $type", TextStyle.BODY)
+    }
+    lines += PdfLine.TextLine("", TextStyle.BODY)
 
-    lines += PrintLine("Dettaglio esercizi", LineStyle.SECTION)
+    if (hasErrors) {
+        lines += PdfLine.TextLine("Dettaglio degli errori", TextStyle.SECTION)
+        report.results.forEachIndexed { resultIndex, result ->
+            if (result.outcome() == ExerciseOutcome.PERFECT) return@forEachIndexed
+            lines += PdfLine.TextLine(
+                "Esercizio ${resultIndex + 1} – ${result.instance.game.title}",
+                TextStyle.BODY
+            )
+            lines += PdfLine.TextLine("Operazione: ${exerciseLabel(result.instance)}", TextStyle.BODY)
+            if (result.wrongAnswers.isNotEmpty()) {
+                val expected = expectedAnswer(result.instance)
+                val wrongAnswer = result.wrongAnswers.last()
+                lines += PdfLine.TextLine("Errore:", TextStyle.BODY)
+                lines += PdfLine.TextLine("• Risposta inserita: $wrongAnswer", TextStyle.BODY)
+                lines += PdfLine.TextLine(
+                    "• Risposta corretta: ${expected ?: "non disponibile"}",
+                    TextStyle.BODY
+                )
+                lines += PdfLine.TextLine("• Tipo di errore: Risposta finale errata", TextStyle.BODY)
+            }
+            if (result.stepErrors.isNotEmpty()) {
+                lines += PdfLine.TextLine("Errori nei passaggi:", TextStyle.BODY)
+                result.stepErrors.forEach { error ->
+                    lines += PdfLine.TextLine("• ${stepErrorDescription(error)}", TextStyle.BODY)
+                }
+            }
+            lines += PdfLine.TextLine("", TextStyle.BODY)
+        }
+    }
+
+    lines += PdfLine.TextLine("Dettaglio completo degli esercizi", TextStyle.SECTION)
+    lines += PdfLine.TableLine(
+        listOf("#", "Operazione", "Esito", "Tentativi", "Tempo"),
+        isHeader = true
+    )
     report.results.forEachIndexed { index, result ->
         val outcome = when (result.outcome()) {
-            ExerciseOutcome.PERFECT -> "Corretto"
-            ExerciseOutcome.COMPLETED_WITH_ERRORS -> "Completato con errori (⚠️)"
-            ExerciseOutcome.FAILED -> "Sbagliato"
+            ExerciseOutcome.PERFECT -> "✔"
+            ExerciseOutcome.COMPLETED_WITH_ERRORS -> "⚠"
+            ExerciseOutcome.FAILED -> "✖"
         }
-        lines += PrintLine("Esercizio ${index + 1}: ${exerciseLabel(result.instance)}", LineStyle.BODY)
-        lines += PrintLine("Tipo di gioco: ${result.instance.game.title}", LineStyle.BODY)
-        lines += PrintLine("Esito finale: $outcome", LineStyle.BODY)
-        lines += PrintLine("Numero di tentativi: ${result.attempts}", LineStyle.BODY)
-        lines += PrintLine(
-            "Tempo impiegato: ${formatDurationMillis(result.endedAt - result.startedAt)}",
-            LineStyle.BODY
+        lines += PdfLine.TableLine(
+            listOf(
+                "${index + 1}",
+                exerciseLabel(result.instance),
+                outcome,
+                result.attempts.toString(),
+                formatDurationMillis(result.endedAt - result.startedAt)
+            ),
+            isHeader = false
         )
-        if (result.wrongAnswers.isNotEmpty()) {
-            lines += PrintLine("Risposte errate: ${result.wrongAnswers.joinToString(", ")}", LineStyle.BODY)
-        }
-        if (result.stepErrors.isNotEmpty()) {
-            lines += PrintLine("Passaggi con errore da rinforzare:", LineStyle.BODY)
-            result.stepErrors.forEach { error ->
-                lines += PrintLine("• ${stepErrorDescription(error)}", LineStyle.BODY)
-            }
-        }
-        lines += PrintLine(
-            if (result.solutionUsed) {
-                "Soluzione guidata usata: sì"
-            } else {
-                "Soluzione guidata usata: no"
-            },
-            LineStyle.BODY
-        )
-        lines += PrintLine("", LineStyle.BODY)
     }
+    lines += PdfLine.TextLine(
+        "Legenda: ✔ corretto   ⚠ corretto con errori   ✖ da ripassare",
+        TextStyle.SUBTLE
+    )
+    lines += PdfLine.TextLine("", TextStyle.BODY)
 
-    val patterns = analyzeErrorPatterns(report.results)
-
-    lines += PrintLine("Errori commessi nella sessione", LineStyle.SECTION)
-    if (patterns.isEmpty()) {
-        lines += PrintLine("Nessun errore rilevato.", LineStyle.BODY)
-    } else {
-        patterns.forEach { pattern ->
-            lines += PrintLine("• ${pattern.category} (${pattern.occurrences})", LineStyle.BODY)
-        }
-    }
-    lines += PrintLine("", LineStyle.BODY)
-
-    lines += PrintLine("Errori più frequenti", LineStyle.SECTION)
-    if (patterns.isEmpty()) {
-        lines += PrintLine("Nessun errore frequente rilevato.", LineStyle.BODY)
-    } else {
-        patterns.take(3).forEach { pattern ->
-            lines += PrintLine("• ${pattern.category} (${pattern.occurrences})", LineStyle.BODY)
-        }
-    }
+    lines += PdfLine.TextLine("Report generato con MateMatt", TextStyle.SUBTLE)
 
     return lines
 }
@@ -335,6 +422,15 @@ private fun breakLongWord(word: String, paint: Paint, maxWidth: Float): List<Str
         start = end
     }
     return lines
+}
+
+private fun reportFileName(reports: List<HomeworkReport>): String {
+    val report = reports.first()
+    val safeName = report.childName
+        .ifBlank { "Bambino" }
+        .replace(Regex("[^A-Za-z0-9_-]"), "_")
+    val date = formatReportFilenameDate(report.createdAt)
+    return "MateMatt_Report_${safeName}_$date.pdf"
 }
 
 private fun milsToPoints(mils: Int): Int {

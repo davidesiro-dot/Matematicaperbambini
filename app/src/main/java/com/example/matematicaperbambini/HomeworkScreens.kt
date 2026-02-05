@@ -54,6 +54,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
+import androidx.core.content.FileProvider
 import java.text.DateFormat
 import java.util.Date
 import java.util.UUID
@@ -2024,36 +2025,22 @@ fun HomeworkReportsScreen(
 
 private fun shareHomeworkReports(context: android.content.Context, reports: List<HomeworkReport>) {
     if (reports.isEmpty()) return
-    val shareText = buildReportsShareText(reports)
+    val pdfFile = createHomeworkReportPdf(context, reports) ?: return
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        pdfFile
+    )
     val subject = if (reports.size == 1) "Report compiti" else "Report compiti (${reports.size})"
     val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
+        type = "application/pdf"
         putExtra(Intent.EXTRA_SUBJECT, subject)
-        putExtra(Intent.EXTRA_TEXT, shareText)
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     val chooser = Intent.createChooser(intent, "Condividi report")
     if (intent.resolveActivity(context.packageManager) != null) {
         context.startActivity(chooser)
-    }
-}
-
-private fun buildReportsShareText(reports: List<HomeworkReport>): String {
-    return reports.joinToString("\n\n") { report ->
-        val completedExercises = if (report.totalExercises > 0) report.completedExercises else report.results.size
-        val plannedTotal = if (report.totalExercises > 0) report.totalExercises else completedExercises
-        val correct = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
-        val withErrors = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-        val wrong = completedExercises - correct - withErrors
-        buildString {
-            appendLine("Report Compiti")
-            appendLine("Bambino: ${report.childName}")
-            appendLine("Data e ora: ${formatTimestamp(report.createdAt)}")
-            appendLine("Esercizi completati: $completedExercises su $plannedTotal")
-            appendLine("Corretti: $correct • Con errori: $withErrors • Da ripassare: $wrong")
-            if (report.interrupted) {
-                appendLine("⚠ Compito interrotto")
-            }
-        }.trim()
     }
 }
 

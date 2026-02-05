@@ -76,6 +76,21 @@ internal fun formatTimestamp(timestamp: Long): String {
     return formatter.format(Date(timestamp))
 }
 
+internal fun formatReportDate(timestamp: Long): String {
+    val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    return formatter.format(Date(timestamp))
+}
+
+internal fun formatReportTime(timestamp: Long): String {
+    val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+    return formatter.format(Date(timestamp))
+}
+
+internal fun formatReportFilenameDate(timestamp: Long): String {
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return formatter.format(Date(timestamp))
+}
+
 internal fun formatDurationMillis(durationMillis: Long): String {
     val safeMillis = durationMillis.coerceAtLeast(0)
     val totalSeconds = safeMillis / 1000
