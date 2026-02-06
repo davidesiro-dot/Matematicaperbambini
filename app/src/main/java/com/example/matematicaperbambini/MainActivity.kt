@@ -290,10 +290,14 @@ fun SeaGlassPanel(
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             if (!title.isNullOrBlank()) {
-                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.Medium),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
             }
             content()
         }
@@ -1573,9 +1577,9 @@ internal fun menuSizing(maxHeight: Dp): MenuSizing {
         MenuSizeProfile.Large -> 18.dp
     }
     val logoAreaHeight = when (sizeProfile) {
-        MenuSizeProfile.Small -> 120.dp
-        MenuSizeProfile.Normal -> 150.dp
-        MenuSizeProfile.Large -> 180.dp
+        MenuSizeProfile.Small -> 96.dp
+        MenuSizeProfile.Normal -> 120.dp
+        MenuSizeProfile.Large -> 144.dp
     }
 
     return MenuSizing(
