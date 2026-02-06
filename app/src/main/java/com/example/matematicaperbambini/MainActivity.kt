@@ -32,6 +32,7 @@ import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -479,7 +480,8 @@ private fun AppShell() {
     var returnScreenAfterLeaderboard by remember { mutableStateOf<Screen?>(null) }
     var leaderboardTab by remember { mutableStateOf(LeaderboardTab.STARS) }
 
-    var soundEnabled by remember { mutableStateOf(true) }
+    var soundEnabled by rememberSaveable { mutableStateOf(true) }
+    var isLearningMode by rememberSaveable { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val fx = remember(context) { SoundFx(context) }
     val isGameScreen = when (screen) {
