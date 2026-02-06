@@ -64,6 +64,26 @@ import kotlinx.coroutines.launch
 
 
 @Composable
+fun GameToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(title, fontWeight = FontWeight.Bold)
+            Text(subtitle, fontSize = 12.sp)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
 fun HomeworkBuilderScreen(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
@@ -222,31 +242,31 @@ fun HomeworkBuilderScreen(
                                         title = "Addizioni",
                                         subtitle = "Somme con numeri configurabili",
                                         checked = additionEnabled,
-                                        onCheckedChange = { additionEnabled = it }
+                                        onCheckedChange = { checked -> additionEnabled = checked }
                                     )
                                     GameToggleRow(
                                         title = "Sottrazioni",
                                         subtitle = "Differenze con numeri configurabili",
                                         checked = subtractionEnabled,
-                                        onCheckedChange = { subtractionEnabled = it }
+                                        onCheckedChange = { checked -> subtractionEnabled = checked }
                                     )
                                     GameToggleRow(
                                         title = "Tabellina",
                                         subtitle = "Esercizi su una tabellina specifica",
                                         checked = tableEnabled,
-                                        onCheckedChange = { tableEnabled = it }
+                                        onCheckedChange = { checked -> tableEnabled = checked }
                                     )
                                     GameToggleRow(
                                         title = "Divisioni passo-passo",
                                         subtitle = "Divisioni con resto",
                                         checked = divisionEnabled,
-                                        onCheckedChange = { divisionEnabled = it }
+                                        onCheckedChange = { checked -> divisionEnabled = checked }
                                     )
                                     GameToggleRow(
                                         title = "Moltiplicazioni difficili",
                                         subtitle = "Moltiplicazioni a due cifre",
                                         checked = hardEnabled,
-                                        onCheckedChange = { hardEnabled = it }
+                                        onCheckedChange = { checked -> hardEnabled = checked }
                                     )
                                 }
                             }
@@ -1003,26 +1023,6 @@ fun AssignedHomeworksScreen(
                 }
             }
         )
-    }
-}
-
-@Composable
-fun GameToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(title, fontWeight = FontWeight.Bold)
-            Text(subtitle, fontSize = 12.sp)
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
