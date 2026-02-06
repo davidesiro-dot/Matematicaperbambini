@@ -1,30 +1,27 @@
 package com.example.matematicaperbambini
 
-import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,21 +29,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.content.FileProvider
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.io.File
-import java.util.Random
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.absoluteValue
 
 @Composable
 fun TeacherHubScreen(
@@ -58,64 +53,43 @@ fun TeacherHubScreen(
     onEditTask: () -> Unit,
     onOpenTaskList: () -> Unit
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val sizing = menuSizing(maxHeight)
-        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
-
-        MenuHeaderLogoLayout(
-            logoPainter = logoPainter,
-            logoAreaHeight = sizing.logoAreaHeight,
-            header = {
-                GameHeader(
-                    title = "Area Insegnante",
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onBack = onBack,
-                    onLeaderboard = onOpenLeaderboard
-                )
-            },
-            content = { contentModifier ->
-                LazyColumn(
-                    modifier = contentModifier,
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        SeaGlassPanel {
-                            Text(
-                                "Crea compiti e condividili con un codice",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                    item {
-                        Button(
-                            onClick = onCreateTask,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Crea compito")
-                        }
-                    }
-                    item {
-                        Button(
-                            onClick = onEditTask,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Modifica compito")
-                        }
-                    }
-                    item {
-                        Button(
-                            onClick = onOpenTaskList,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Lista compiti")
-                        }
-                    }
-                }
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Area Insegnante",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Crea compiti e condividili con un codice",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onCreateTask,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Crea compito")
             }
-        )
+            Button(
+                onClick = onEditTask,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Modifica compito")
+            }
+            Button(
+                onClick = onOpenTaskList,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Lista compiti")
+            }
+        }
     }
 }
 
@@ -128,71 +102,88 @@ fun TeacherCreateTaskScreen(
     initialDescription: String,
     onCreateCode: (TeacherHomeworkCode) -> Unit
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    var description by remember { mutableStateOf(initialDescription) }
-    val scope = rememberCoroutineScope()
+    var tipoEsercizio by remember { mutableStateOf("") }
+    var numeroDomande by remember { mutableStateOf("") }
+    var difficoltaParametri by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     LaunchedEffect(initialDescription) {
-        description = initialDescription
+        val parsed = decodeTeacherDescription(initialDescription)
+        tipoEsercizio = parsed?.tipoEsercizio.orEmpty()
+        numeroDomande = parsed?.numeroDomande?.toString().orEmpty()
+        difficoltaParametri = parsed?.difficoltaParametri.orEmpty()
     }
 
-    Scaffold(
-        topBar = {
-            GameHeader(
-                title = "Crea compito",
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = {}
-            )
-        },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
+    Scaffold { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                .padding(padding)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                SeaGlassPanel(title = "Descrizione compito") {
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it.take(180) },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Es. Allenamento con addizioni e sottrazioni") }
-                    )
-                }
+                Text(
+                    text = "Crea compito",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
             }
-
             item {
-                SeaGlassPanel(title = "Come funziona") {
-                    Text("Genera un codice da condividere con i tuoi studenti.")
-                }
+                OutlinedTextField(
+                    value = tipoEsercizio,
+                    onValueChange = { tipoEsercizio = it },
+                    label = { Text("Tipo esercizio") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-
             item {
+                OutlinedTextField(
+                    value = numeroDomande,
+                    onValueChange = { value ->
+                        numeroDomande = value.filter { it.isDigit() }
+                    },
+                    label = { Text("Numero domande") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = difficoltaParametri,
+                    onValueChange = { difficoltaParametri = it },
+                    label = { Text("Difficoltà / parametri") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
                 Button(
                     onClick = {
-                        val trimmed = description.trim()
-                        if (trimmed.isBlank()) return@Button
-                        val createdAt = System.currentTimeMillis()
-                        val seed = buildTeacherSeed(trimmed, createdAt)
-                        val (code, finalSeed) = generateUniqueTeacherCode(seed, existingCodes)
-                        val entry = TeacherHomeworkCode(
-                            code = code,
-                            description = trimmed,
-                            createdAt = createdAt,
-                            seed = finalSeed
-                        )
-                        onCreateCode(entry)
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Codice creato: $code")
+                        val domande = numeroDomande.toIntOrNull() ?: 0
+                        if (tipoEsercizio.isBlank() || domande <= 0 || difficoltaParametri.isBlank()) {
+                            Toast.makeText(context, "Completa tutti i campi", Toast.LENGTH_SHORT).show()
+                            return@Button
                         }
+                        val draft = TeacherHomeworkDraft(
+                            tipoEsercizio = tipoEsercizio.trim(),
+                            numeroDomande = domande,
+                            difficoltaParametri = difficoltaParametri.trim()
+                        )
+                        val createdAt = System.currentTimeMillis()
+                        val seed = generateDeterministicSeed(draft)
+                        val code = generateUniqueTeacherCode(seed, createdAt, existingCodes)
+                        val description = encodeTeacherDescription(draft)
+                        onCreateCode(
+                            TeacherHomeworkCode(
+                                code = code,
+                                description = description,
+                                createdAt = createdAt,
+                                seed = seed
+                            )
+                        )
+                        Toast.makeText(context, "Codice creato: $code", Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = description.trim().isNotEmpty()
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Crea codice compito")
                 }
@@ -210,56 +201,63 @@ fun TeacherEditTaskScreen(
     onSelectCode: (TeacherHomeworkCode) -> Unit,
     onCreateNew: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        GameHeader(
-            title = "Modifica compito",
-            soundEnabled = soundEnabled,
-            onToggleSound = onToggleSound,
-            onBack = onBack,
-            onLeaderboard = {}
-        )
-
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Text(
+                text = "Modifica compito",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
             if (codes.isEmpty()) {
-                item {
-                    SeaGlassPanel(title = "Nessun compito") {
-                        Text("Non ci sono codici compito disponibili.")
-                    }
-                }
+                Text("Nessun compito creato")
             } else {
-                itemsIndexed(codes) { _, code ->
-                    SeaGlassPanel(
-                        title = "Codice ${code.code}",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelectCode(code) }
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(code.description)
-                            Text("Creato il: ${formatTimestamp(code.createdAt)}")
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(codes) { code ->
+                        val draft = decodeTeacherDescription(code.description)
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectCode(code) },
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = code.code,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                                if (draft != null) {
+                                    Text("Tipo esercizio: ${draft.tipoEsercizio}")
+                                    Text("Numero domande: ${draft.numeroDomande}")
+                                    Text("Difficoltà: ${draft.difficoltaParametri}")
+                                } else {
+                                    Text("Descrizione non disponibile")
+                                }
+                            }
                         }
                     }
                 }
             }
-
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = onCreateNew,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Crea nuovo codice compito")
-                }
+            Button(
+                onClick = onCreateNew,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Crea nuovo codice compito")
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TeacherTaskListScreen(
     soundEnabled: Boolean,
@@ -269,245 +267,145 @@ fun TeacherTaskListScreen(
     onDeleteCodes: (List<TeacherHomeworkCode>) -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var selectedKeys by remember { mutableStateOf(setOf<String>()) }
-    var multiSelectEnabled by remember { mutableStateOf(false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var pendingExportFile by remember { mutableStateOf<File?>(null) }
+    val selectedCodes = remember { mutableStateOf(setOf<String>()) }
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/pdf")
-    ) { uri ->
-        val file = pendingExportFile
-        if (uri != null && file != null) {
-            scope.launch(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openOutputStream(uri)?.use { output ->
-                        file.inputStream().use { input ->
-                            input.copyTo(output)
-                        }
-                    }
-                }
-            }
-        }
-        pendingExportFile = null
-    }
-
-    val selectedCodes = remember(codes, selectedKeys) {
-        codes.filter { it.code in selectedKeys }
-    }
-
-    fun toggleSelection(key: String) {
-        val updated = if (key in selectedKeys) selectedKeys - key else selectedKeys + key
-        selectedKeys = updated
-        if (updated.isEmpty()) {
-            multiSelectEnabled = false
-        }
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        GameHeader(
-            title = "Lista compiti",
-            soundEnabled = soundEnabled,
-            onToggleSound = onToggleSound,
-            onBack = onBack,
-            onLeaderboard = {}
-        )
-
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Text(
+                text = "Lista compiti",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
             if (codes.isEmpty()) {
-                item {
-                    SeaGlassPanel(title = "Nessun compito") {
-                        Text("Non ci sono codici compito salvati.")
-                    }
-                }
+                Text("Nessun compito creato")
             } else {
-                itemsIndexed(codes) { _, code ->
-                    val selected = code.code in selectedKeys
-                    SeaGlassPanel(
-                        title = "Codice ${code.code}",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = {
-                                    if (multiSelectEnabled) {
-                                        toggleSelection(code.code)
-                                    }
-                                },
-                                onLongClick = {
-                                    multiSelectEnabled = true
-                                    toggleSelection(code.code)
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(codes) { code ->
+                        val draft = decodeTeacherDescription(code.description)
+                        val dateLabel = dateFormatter.format(Date(code.createdAt))
+                        val isSelected = selectedCodes.value.contains(code.code)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Checkbox(
+                                        checked = isSelected,
+                                        onCheckedChange = { checked ->
+                                            selectedCodes.value = if (checked) {
+                                                selectedCodes.value + code.code
+                                            } else {
+                                                selectedCodes.value - code.code
+                                            }
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = code.code,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
-                            )
-                            .border(
-                                width = if (selected) 3.dp else 1.dp,
-                                color = if (selected)
-                                    MaterialTheme.colorScheme.primary
-                                else Color.Transparent,
-                                shape = RoundedCornerShape(26.dp)
-                            )
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            if (selected) {
-                                Text("✅ Selezionato", fontWeight = FontWeight.Bold)
-                            }
-                            Text(code.description)
-                            Text("Data creazione: ${formatTimestamp(code.createdAt)}")
-                            Text(
-                                if (multiSelectEnabled) {
-                                    "Tocca per selezionare"
+                                Spacer(modifier = Modifier.height(4.dp))
+                                if (draft != null) {
+                                    Text("Tipo esercizio: ${draft.tipoEsercizio}")
+                                    Text("Numero domande: ${draft.numeroDomande}")
+                                    Text("Difficoltà: ${draft.difficoltaParametri}")
                                 } else {
-                                    "Tieni premuto per selezionare"
-                                },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
-                            )
+                                    Text("Descrizione non disponibile")
+                                }
+                                Text("Data creazione: $dateLabel")
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Divider()
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    TextButton(onClick = {
+                                        onDeleteCodes(listOf(code))
+                                    }) {
+                                        Text("Elimina")
+                                    }
+                                    TextButton(onClick = {
+                                        val parsed = parseTeacherHomeworkCode(code)
+                                        if (parsed != null) {
+                                            shareTeacherHomeworkPdf(context, parsed.homework, parsed.draft)
+                                        }
+                                    }) {
+                                        Text("Condividi")
+                                    }
+                                    TextButton(onClick = {
+                                        val parsed = parseTeacherHomeworkCode(code)
+                                        if (parsed != null) {
+                                            printTeacherHomeworkPdf(context, parsed.homework, parsed.draft)
+                                        }
+                                    }) {
+                                        Text("Stampa")
+                                    }
+                                    TextButton(onClick = {
+                                        val parsed = parseTeacherHomeworkCode(code)
+                                        if (parsed != null) {
+                                            exportTeacherHomeworkPdf(context, parsed.homework, parsed.draft)
+                                        }
+                                    }) {
+                                        Text("Esporta PDF")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
-
-            if (codes.isNotEmpty()) {
-                item {
-                    SeaGlassPanel(title = "Azioni compiti selezionati") {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                if (selectedCodes.isEmpty())
-                                    "Seleziona uno o più compiti con una pressione prolungata."
-                                else
-                                    "Compiti selezionati: ${selectedCodes.size}"
-                            )
-
-                            Button(
-                                onClick = { printTeacherHomeworkCodes(context, selectedCodes) },
-                                enabled = selectedCodes.isNotEmpty(),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Stampa")
-                            }
-
-                            Button(
-                                onClick = { shareTeacherHomeworkCodes(context, selectedCodes) },
-                                enabled = selectedCodes.isNotEmpty(),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Condividi")
-                            }
-
-                            Button(
-                                onClick = {
-                                    val pdfFile = createTeacherHomeworkPdf(context, selectedCodes)
-                                    if (pdfFile != null) {
-                                        pendingExportFile = pdfFile
-                                        exportLauncher.launch(pdfFile.name)
-                                    }
-                                },
-                                enabled = selectedCodes.isNotEmpty(),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Esporta PDF")
-                            }
-
-                            Button(
-                                onClick = { showDeleteConfirm = true },
-                                enabled = selectedCodes.isNotEmpty(),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Elimina", color = MaterialTheme.colorScheme.onErrorContainer)
-                            }
-                        }
-                    }
+            if (selectedCodes.value.isNotEmpty()) {
+                Button(
+                    onClick = {
+                        val toDelete = codes.filter { selectedCodes.value.contains(it.code) }
+                        onDeleteCodes(toDelete)
+                        selectedCodes.value = emptySet()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Elimina selezionati")
                 }
             }
         }
     }
-
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Eliminare i compiti selezionati?") },
-            text = {
-                Text(
-                    "Sei sicuro di voler eliminare i compiti selezionati?\n" +
-                        "Questa operazione non può essere annullata."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val toDelete = selectedCodes
-                        showDeleteConfirm = false
-                        if (toDelete.isNotEmpty()) {
-                            onDeleteCodes(toDelete)
-                        }
-                        selectedKeys = emptySet()
-                        multiSelectEnabled = false
-                    }
-                ) {
-                    Text("Elimina")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Annulla")
-                }
-            }
-        )
-    }
 }
 
-private fun shareTeacherHomeworkCodes(context: android.content.Context, codes: List<TeacherHomeworkCode>) {
-    if (codes.isEmpty()) return
-    val pdfFile = createTeacherHomeworkPdf(context, codes) ?: return
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.fileprovider",
-        pdfFile
-    )
-    val subject = if (codes.size == 1) "Codice compito" else "Codici compito (${codes.size})"
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "application/pdf"
-        putExtra(Intent.EXTRA_SUBJECT, subject)
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    val chooser = Intent.createChooser(intent, "Condividi codici compito")
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(chooser)
-    }
-}
-
-private fun buildTeacherSeed(description: String, createdAt: Long): Long {
-    val normalized = description.lowercase().trim()
-    return (normalized.hashCode().toLong() shl 32) xor createdAt
+private fun generateDeterministicSeed(draft: TeacherHomeworkDraft): Long {
+    val raw = "${draft.tipoEsercizio}|${draft.numeroDomande}|${draft.difficoltaParametri}"
+    return raw.hashCode().toLong()
 }
 
 private fun generateUniqueTeacherCode(
     seed: Long,
+    createdAt: Long,
     existingCodes: List<TeacherHomeworkCode>
-): Pair<String, Long> {
+): String {
     val used = existingCodes.map { it.code }.toSet()
-    var currentSeed = seed
-    while (true) {
-        val code = generateTeacherCode(currentSeed)
-        if (code !in used) {
-            return code to currentSeed
-        }
-        currentSeed += 1
+    var base = (seed xor createdAt).absoluteValue
+    if (base == 0L) base = 1L
+    var code = base.toString(36).uppercase().padStart(8, '0').take(8)
+    while (used.contains(code)) {
+        base += 1
+        code = base.toString(36).uppercase().padStart(8, '0').take(8)
     }
-}
-
-private fun generateTeacherCode(seed: Long): String {
-    val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    val random = Random(seed)
-    return buildString {
-        repeat(6) {
-            append(chars[random.nextInt(chars.length)])
-        }
-    }
+    return code
 }
