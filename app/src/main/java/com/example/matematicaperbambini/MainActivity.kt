@@ -633,6 +633,7 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                isLearningMode = isLearningMode,
                 onPickDigitsFor = { m ->
                     openStartMenu(m)
                 },
@@ -1117,6 +1118,7 @@ private fun GameMenuKids(
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onBack: () -> Unit,
+    isLearningMode: Boolean,
     onPickDigitsFor: (GameMode) -> Unit, // ADD/SUB
     onPlayDirect: (GameMode) -> Unit     // MULT/DIV/MONEY/MULT_HARD
 ) {
@@ -1125,44 +1127,73 @@ private fun GameMenuKids(
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             val sizing = menuSizing(screenH)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
-            val buttons = listOf(
-                MenuButtonData(
-                    title = "Addizioni",
-                    baseColor = Color(0xFFE74C3C),
-                    iconText = "＋",
-                    onClick = { onPickDigitsFor(GameMode.ADD) }
-                ),
-                MenuButtonData(
-                    title = "Sottrazioni",
-                    baseColor = Color(0xFF2ECC71),
-                    iconText = "−",
-                    onClick = { onPickDigitsFor(GameMode.SUB) }
-                ),
-                MenuButtonData(
-                    title = "Moltiplicazioni",
-                    baseColor = Color(0xFF8B5CF6),
-                    iconText = "××",
-                    onClick = { onPlayDirect(GameMode.MULT_HARD) }
-                ),
-                MenuButtonData(
-                    title = "Divisioni",
-                    baseColor = Color(0xFF3498DB),
-                    iconText = "÷",
-                    onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
-                ),
-                MenuButtonData(
-                    title = "Tabelline",
-                    baseColor = Color(0xFFF39C12),
-                    iconText = "×",
-                    onClick = { onPlayDirect(GameMode.MULT) }
-                ),
-                MenuButtonData(
-                    title = "Conta i soldi",
-                    baseColor = Color(0xFFF1C40F),
-                    iconText = "€",
-                    onClick = { onPlayDirect(GameMode.MONEY) }
+            val buttons = if (isLearningMode) {
+                listOf(
+                    MenuButtonData(
+                        title = "Addizioni Guidate",
+                        baseColor = Color(0xFFE74C3C),
+                        iconText = "＋",
+                        onClick = { onPickDigitsFor(GameMode.ADD) }
+                    ),
+                    MenuButtonData(
+                        title = "Sottrazioni Guidate",
+                        baseColor = Color(0xFF2ECC71),
+                        iconText = "−",
+                        onClick = { onPickDigitsFor(GameMode.SUB) }
+                    ),
+                    MenuButtonData(
+                        title = "Moltiplicazioni Guidate",
+                        baseColor = Color(0xFF8B5CF6),
+                        iconText = "××",
+                        onClick = { onPlayDirect(GameMode.MULT_HARD) }
+                    ),
+                    MenuButtonData(
+                        title = "Divisioni Guidate",
+                        baseColor = Color(0xFF3498DB),
+                        iconText = "÷",
+                        onClick = { onPlayDirect(GameMode.DIV) }
+                    )
                 )
-            )
+            } else {
+                listOf(
+                    MenuButtonData(
+                        title = "Addizioni",
+                        baseColor = Color(0xFFE74C3C),
+                        iconText = "＋",
+                        onClick = { onPickDigitsFor(GameMode.ADD) }
+                    ),
+                    MenuButtonData(
+                        title = "Sottrazioni",
+                        baseColor = Color(0xFF2ECC71),
+                        iconText = "−",
+                        onClick = { onPickDigitsFor(GameMode.SUB) }
+                    ),
+                    MenuButtonData(
+                        title = "Moltiplicazioni",
+                        baseColor = Color(0xFF8B5CF6),
+                        iconText = "××",
+                        onClick = { onPlayDirect(GameMode.MULT_HARD) }
+                    ),
+                    MenuButtonData(
+                        title = "Divisioni",
+                        baseColor = Color(0xFF3498DB),
+                        iconText = "÷",
+                        onClick = { onPlayDirect(GameMode.DIV) } // ✅ ora apre DivisionStepGame
+                    ),
+                    MenuButtonData(
+                        title = "Tabelline",
+                        baseColor = Color(0xFFF39C12),
+                        iconText = "×",
+                        onClick = { onPlayDirect(GameMode.MULT) }
+                    ),
+                    MenuButtonData(
+                        title = "Conta i soldi",
+                        baseColor = Color(0xFFF1C40F),
+                        iconText = "€",
+                        onClick = { onPlayDirect(GameMode.MONEY) }
+                    )
+                )
+            }
 
             val animationsReady = remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { animationsReady.value = true }
