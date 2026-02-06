@@ -575,6 +575,12 @@ private fun AppShell() {
         screen = Screen.TABELLINE_MENU
     }
 
+    fun openTeacherHub() {
+        teacherDraftDescription = ""
+        navAnim = NavAnim.SLIDE
+        screen = Screen.TEACHER_HUB
+    }
+
     fun openLb(tab: LeaderboardTab = leaderboardTab) {
         leaderboardTab = tab
         returnScreenAfterLeaderboard = screen
@@ -603,11 +609,7 @@ private fun AppShell() {
                 onOpenGameMenu = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
-                onOpenTeacherHub = {
-                    teacherDraftDescription = ""
-                    navAnim = NavAnim.SLIDE
-                    screen = Screen.TEACHER_HUB
-                },
+                onOpenTeacherHub = { openTeacherHub() },
                 onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
                 savedHomeworks = savedHomeworks,
             )
@@ -638,11 +640,7 @@ private fun AppShell() {
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
-                onOpenTeacherHub = {
-                    teacherDraftDescription = ""
-                    navAnim = NavAnim.SLIDE
-                    screen = Screen.TEACHER_HUB
-                }
+                onOpenTeacherHub = { openTeacherHub() }
             )
 
             Screen.TEACHER_HUB -> TeacherHubScreen(
