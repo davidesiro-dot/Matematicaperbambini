@@ -170,78 +170,87 @@ fun HomeworkBuilderScreen(
         ExerciseSourceConfig.Random
     }
 
-    Scaffold(
-        topBar = {
-            GameHeader(
-                title = "Compiti (genitore)",
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = {}
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (lastResults.isNotEmpty()) {
-                item {
-                    val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
-                    val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-                    SeaGlassPanel(title = "Ultimo report") {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
-                            Text("Corretto: $perfectCount")
-                            Text("Completato con errori: $withErrorsCount")
-                            Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val sizing = menuSizing(maxHeight)
+        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+
+        MenuHeaderLogoLayout(
+            logoPainter = logoPainter,
+            logoAreaHeight = sizing.logoAreaHeight,
+            header = {
+                MenuHeader(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onOpenLeaderboard = {},
+                    onBack = onBack
+                )
+            },
+            content = { contentModifier ->
+                Scaffold(
+                    modifier = contentModifier.fillMaxSize(),
+                    containerColor = Color.Transparent,
+                    snackbarHost = { SnackbarHost(snackbarHostState) }
+                ) { padding ->
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        if (lastResults.isNotEmpty()) {
+                            item {
+                                val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
+                                val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
+                                SeaGlassPanel(title = "Ultimo report") {
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
+                                        Text("Corretto: $perfectCount")
+                                        Text("Completato con errori: $withErrorsCount")
+                                        Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
+                                    }
+                                }
+                            }
                         }
-                    }
-                }
-            }
 
-            item {
-                SeaGlassPanel(title = "Seleziona giochi") {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        GameToggleRow(
-                            title = "Addizioni",
-                            subtitle = "Somme con numeri configurabili",
-                            checked = additionEnabled,
-                            onCheckedChange = { additionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Sottrazioni",
-                            subtitle = "Differenze con numeri configurabili",
-                            checked = subtractionEnabled,
-                            onCheckedChange = { subtractionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Tabellina",
-                            subtitle = "Esercizi su una tabellina specifica",
-                            checked = tableEnabled,
-                            onCheckedChange = { tableEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Divisioni passo-passo",
-                            subtitle = "Divisioni con resto",
-                            checked = divisionEnabled,
-                            onCheckedChange = { divisionEnabled = it }
-                        )
-                        GameToggleRow(
-                            title = "Moltiplicazioni difficili",
-                            subtitle = "Moltiplicazioni a due cifre",
-                            checked = hardEnabled,
-                            onCheckedChange = { hardEnabled = it }
-                        )
-                    }
-                }
-            }
+                        item {
+                            SeaGlassPanel(title = "Seleziona giochi") {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    GameToggleRow(
+                                        title = "Addizioni",
+                                        subtitle = "Somme con numeri configurabili",
+                                        checked = additionEnabled,
+                                        onCheckedChange = { additionEnabled = it }
+                                    )
+                                    GameToggleRow(
+                                        title = "Sottrazioni",
+                                        subtitle = "Differenze con numeri configurabili",
+                                        checked = subtractionEnabled,
+                                        onCheckedChange = { subtractionEnabled = it }
+                                    )
+                                    GameToggleRow(
+                                        title = "Tabellina",
+                                        subtitle = "Esercizi su una tabellina specifica",
+                                        checked = tableEnabled,
+                                        onCheckedChange = { tableEnabled = it }
+                                    )
+                                    GameToggleRow(
+                                        title = "Divisioni passo-passo",
+                                        subtitle = "Divisioni con resto",
+                                        checked = divisionEnabled,
+                                        onCheckedChange = { divisionEnabled = it }
+                                    )
+                                    GameToggleRow(
+                                        title = "Moltiplicazioni difficili",
+                                        subtitle = "Moltiplicazioni a due cifre",
+                                        checked = hardEnabled,
+                                        onCheckedChange = { hardEnabled = it }
+                                    )
+                                }
+                            }
+                        }
 
-        if (additionEnabled) {
+                        if (additionEnabled) {
             item {
                 SeaGlassPanel(title = "Configurazione addizioni") {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -907,8 +916,6 @@ fun HomeworkBuilderScreen(
     }
 }
 
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AssignedHomeworksScreen(
@@ -921,75 +928,79 @@ fun AssignedHomeworksScreen(
     val formatter = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val sortedHomeworks = remember(savedHomeworks) { savedHomeworks.sortedByDescending { it.createdAt } }
 
-    Scaffold(
-        topBar = {
-            GameHeader(
-                title = "Compiti assegnati",
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = {}
-            )
-        }
-    ) { padding ->
-        if (sortedHomeworks.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                SeaGlassPanel {
-                    Text(
-                        "Nessun compito assegnato",
-                        fontWeight = FontWeight.ExtraBold,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        "Chiedi al genitore di creare un compito",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                itemsIndexed(sortedHomeworks, key = { _, item -> item.id }) { _, homework ->
-                    val totalExercises = homework.tasks.sumOf {
-                        it.amount.exercisesCount * it.amount.repeatsPerExercise
-                    }
-                    SeaGlassPanel(
-                        title = homework.name,
-                        modifier = Modifier.combinedClickable(onClick = { onStartHomework(homework) })
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val sizing = menuSizing(maxHeight)
+        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+
+        MenuHeaderLogoLayout(
+            logoPainter = logoPainter,
+            logoAreaHeight = sizing.logoAreaHeight,
+            header = {
+                MenuHeader(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onOpenLeaderboard = {},
+                    onBack = onBack
+                )
+            },
+            content = { contentModifier ->
+                if (sortedHomeworks.isEmpty()) {
+                    Column(
+                        modifier = contentModifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            formatter.format(Date(homework.createdAt)),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                        Text(
-                            if (totalExercises > 0) {
-                                "Esercizi previsti: $totalExercises"
-                            } else {
-                                "Task: ${homework.tasks.size}"
-                            },
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Button(
-                            onClick = { onStartHomework(homework) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Inizia") }
+                        SeaGlassPanel {
+                            Text(
+                                "Nessun compito assegnato",
+                                fontWeight = FontWeight.ExtraBold,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                "Chiedi al genitore di creare un compito",
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = contentModifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        itemsIndexed(sortedHomeworks, key = { _, item -> item.id }) { _, homework ->
+                            val totalExercises = homework.tasks.sumOf {
+                                it.amount.exercisesCount * it.amount.repeatsPerExercise
+                            }
+                            SeaGlassPanel(
+                                title = homework.name,
+                                modifier = Modifier.combinedClickable(onClick = { onStartHomework(homework) })
+                            ) {
+                                Text(
+                                    formatter.format(Date(homework.createdAt)),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    if (totalExercises > 0) {
+                                        "Esercizi previsti: $totalExercises"
+                                    } else {
+                                        "Task: ${homework.tasks.size}"
+                                    },
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Button(
+                                    onClick = { onStartHomework(homework) },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("Inizia") }
+                            }
+                        }
                     }
                 }
             }
-        }
+        )
     }
 }
 
@@ -1771,12 +1782,11 @@ fun HomeworkReportsScreen(
             logoPainter = logoPainter,
             logoAreaHeight = sizing.logoAreaHeight,
             header = {
-                GameHeader(
-                    title = "Archivio report",
+                MenuHeader(
                     soundEnabled = soundEnabled,
                     onToggleSound = onToggleSound,
-                    onBack = onBack,
-                    onLeaderboard = {}
+                    onOpenLeaderboard = {},
+                    onBack = onBack
                 )
             },
             content = { contentModifier ->

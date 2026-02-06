@@ -28,10 +28,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
@@ -525,8 +523,9 @@ private fun AppShell() {
     var mode by remember { mutableStateOf(GameMode.ADD) }
     var digits by remember { mutableStateOf(2) }
     var startMode by remember { mutableStateOf(StartMode.RANDOM) }
-    var helpPreset by remember { mutableStateOf(HelpPreset.GUIDED) }
+    var helpPreset by remember { mutableStateOf(HelpPreset.TRAINING) }
     var sessionHelpSettings by remember { mutableStateOf(helpPreset.toHelpSettings()) }
+    var isLearningMode by remember { mutableStateOf(false) }
 
     var pendingDigitsMode by remember { mutableStateOf<GameMode?>(null) }
     var pendingStartMenuMode by remember { mutableStateOf<GameMode?>(null) }
@@ -565,6 +564,11 @@ private fun AppShell() {
     }
 
     fun openStartMenu(m: GameMode) {
+        if (isLearningMode) {
+            helpPreset = HelpPreset.GUIDED
+        } else if (helpPreset == HelpPreset.GUIDED) {
+            helpPreset = HelpPreset.TRAINING
+        }
         pendingStartMenuMode = m
         navAnim = NavAnim.SLIDE
         screen = Screen.OPERATION_START_MENU
@@ -606,10 +610,20 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
-                onOpenGameMenu = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                onOpenGameMenu = {
+                    isLearningMode = false
+                    helpPreset = HelpPreset.TRAINING
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.GAME_MENU
+                },
+                onOpenLearningMenu = {
+                    isLearningMode = true
+                    helpPreset = HelpPreset.GUIDED
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.GAME_MENU
+                },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
-                onOpenTeacherHub = { openTeacherHub() },
                 onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
                 savedHomeworks = savedHomeworks,
             )
@@ -730,6 +744,11 @@ private fun AppShell() {
                             GameMode.DIV -> { navAnim = NavAnim.SLIDE; screen = Screen.DIV_STEP_GAME }
                             GameMode.MONEY -> openGame(startMenuMode, digits, startMode)
                         }
+                    },
+                    availableHelpPresets = if (isLearningMode) {
+                        listOf(HelpPreset.GUIDED)
+                    } else {
+                        listOf(HelpPreset.TRAINING, HelpPreset.CHALLENGE)
                     },
                     selectedHelpPreset = helpPreset,
                     onSelectHelpPreset = { helpPreset = it }
@@ -890,7 +909,7 @@ private fun AppShell() {
             Screen.HOMEWORK_BUILDER -> HomeworkBuilderScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 lastResults = lastHomeworkResults,
                 onStartHomework = { configs ->
                     homeworkQueue = buildExerciseQueue(configs)
@@ -953,7 +972,7 @@ private fun AppShell() {
             Screen.ASSIGNED_HOMEWORKS -> AssignedHomeworksScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 savedHomeworks = savedHomeworks,
                 onStartHomework = { savedHomework ->
                     homeworkQueue = buildExerciseQueue(savedHomework.tasks)
@@ -976,9 +995,9 @@ private fun HomeMenuKids(
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onOpenGameMenu: () -> Unit,
+    onOpenLearningMenu: () -> Unit,
     onOpenHomeworkBuilder: () -> Unit,
     onOpenAssignedHomeworks: () -> Unit,
-    onOpenTeacherHub: () -> Unit,
     onOpenReports: () -> Unit,
     savedHomeworks: List<SavedHomework>
 ) {
@@ -987,66 +1006,36 @@ private fun HomeMenuKids(
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             val sizing = menuSizing(screenH)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
-            val sections = listOf(
-                MenuSection(
-                    title = "Area Bambino",
-                    buttons = listOf(
-                        IndexedMenuButton(
-                            index = 0,
-                            data = MenuButtonData(
-                                title = "Fai i compiti",
-                                baseColor = Color(0xFF22C55E),
-                                iconText = "✅",
-                                onClick = onOpenAssignedHomeworks
-                            )
-                        ),
-                        IndexedMenuButton(
-                            index = 1,
-                            data = MenuButtonData(
-                                title = "Gioco libero",
-                                baseColor = Color(0xFF8B5CF6),
-                                iconText = "🎮",
-                                onClick = onOpenGameMenu
-                            )
-                        )
-                    )
+            val buttons = listOf(
+                MenuButtonData(
+                    title = "Gioco libero",
+                    baseColor = Color(0xFF8B5CF6),
+                    iconText = "🎮",
+                    onClick = onOpenGameMenu
                 ),
-                MenuSection(
-                    title = "Area Genitore",
-                    buttons = listOf(
-                        IndexedMenuButton(
-                            index = 2,
-                            data = MenuButtonData(
-                                title = "Crea compiti",
-                                baseColor = Color(0xFFE74C3C),
-                                iconText = "📝",
-                                onClick = onOpenHomeworkBuilder
-                            )
-                        ),
-                        IndexedMenuButton(
-                            index = 3,
-                            data = MenuButtonData(
-                                title = "Report",
-                                baseColor = Color(0xFF3498DB),
-                                iconText = "📊",
-                                onClick = onOpenReports
-                            )
-                        )
-                    )
+                MenuButtonData(
+                    title = "Impara",
+                    baseColor = Color(0xFF0EA5E9),
+                    iconText = "📚",
+                    onClick = onOpenLearningMenu
                 ),
-                MenuSection(
-                    title = "Area Insegnante",
-                    buttons = listOf(
-                        IndexedMenuButton(
-                            index = 4,
-                            data = MenuButtonData(
-                                title = "Entra",
-                                baseColor = Color(0xFFF39C12),
-                                iconText = "🔑",
-                                onClick = onOpenTeacherHub
-                            )
-                        )
-                    )
+                MenuButtonData(
+                    title = "Compiti",
+                    baseColor = Color(0xFF22C55E),
+                    iconText = "✅",
+                    onClick = onOpenAssignedHomeworks
+                ),
+                MenuButtonData(
+                    title = "Genera compiti",
+                    baseColor = Color(0xFFE74C3C),
+                    iconText = "📝",
+                    onClick = onOpenHomeworkBuilder
+                ),
+                MenuButtonData(
+                    title = "Report",
+                    baseColor = Color(0xFF3498DB),
+                    iconText = "📊",
+                    onClick = onOpenReports
                 )
             )
 
@@ -1069,61 +1058,49 @@ private fun HomeMenuKids(
                 content = { contentModifier ->
                     Column(
                         modifier = contentModifier
-                            .padding(bottom = 12.dp)
-                            .verticalScroll(rememberScrollState()),
+                            .padding(bottom = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        sections.forEach { section ->
-                            SeaGlassPanel(
-                                title = section.title,
-                                backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)) {
-                                    section.buttons.forEach { indexedButton ->
-                                        val index = indexedButton.index
-                                        val data = indexedButton.data
-                                        val alpha by animateFloatAsState(
-                                            targetValue = if (animationsReady.value) 1f else 0f,
-                                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
-                                            label = "menuAlpha$index"
-                                        )
-                                        val offsetY by animateFloatAsState(
-                                            targetValue = if (animationsReady.value) 0f else offsetPx,
-                                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
-                                            label = "menuOffset$index"
-                                        )
+                        buttons.forEachIndexed { index, data ->
+                            val alpha by animateFloatAsState(
+                                targetValue = if (animationsReady.value) 1f else 0f,
+                                animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                                label = "menuAlpha$index"
+                            )
+                            val offsetY by animateFloatAsState(
+                                targetValue = if (animationsReady.value) 0f else offsetPx,
+                                animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                                label = "menuOffset$index"
+                            )
 
-                                        Box {
-                                            KidsMenuButton(
-                                                title = data.title,
-                                                baseColor = data.baseColor,
-                                                icon = {
-                                                    Text(
-                                                        data.iconText,
-                                                        color = Color.White,
-                                                        fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
-                                                        fontWeight = FontWeight.Black
-                                                    )
-                                                },
-                                                onClick = data.onClick,
-                                                height = sizing.buttonHeight,
-                                                textSize = sizing.buttonTextSize,
-                                                modifier = Modifier.graphicsLayer {
-                                                    this.alpha = alpha
-                                                    translationY = offsetY
-                                                }
-                                            )
-
-                                            if (data.title == "Fai i compiti") {
-                                                HomeworkBadge(
-                                                    count = savedHomeworks.size,
-                                                    modifier = Modifier
-                                                        .align(Alignment.TopEnd)
-                                                        .offset(x = (-6).dp, y = (-6).dp)
-                                                )
-                                            }
-                                        }
+                            Box {
+                                KidsMenuButton(
+                                    title = data.title,
+                                    baseColor = data.baseColor,
+                                    icon = {
+                                        Text(
+                                            data.iconText,
+                                            color = Color.White,
+                                            fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    },
+                                    onClick = data.onClick,
+                                    height = sizing.buttonHeight,
+                                    textSize = sizing.buttonTextSize,
+                                    modifier = Modifier.graphicsLayer {
+                                        this.alpha = alpha
+                                        translationY = offsetY
                                     }
+                                )
+
+                                if (data.title == "Compiti") {
+                                    HomeworkBadge(
+                                        count = savedHomeworks.size,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = (-6).dp, y = (-6).dp)
+                                    )
                                 }
                             }
                         }
@@ -1502,7 +1479,7 @@ private fun HomeworkBadge(
 }
 
 @Composable
-private fun MenuHeader(
+fun MenuHeader(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
@@ -1682,16 +1659,6 @@ private data class MenuButtonData(
     val baseColor: Color,
     val iconText: String,
     val onClick: () -> Unit
-)
-
-private data class IndexedMenuButton(
-    val index: Int,
-    val data: MenuButtonData
-)
-
-private data class MenuSection(
-    val title: String,
-    val buttons: List<IndexedMenuButton>
 )
 
 @Composable
