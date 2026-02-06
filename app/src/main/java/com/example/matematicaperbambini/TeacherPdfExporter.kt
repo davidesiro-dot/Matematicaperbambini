@@ -2,9 +2,12 @@ package com.example.matematicaperbambini
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.pdf.PdfDocument
 import android.print.PrintAttributes
 import android.print.PrintDocumentAdapter
@@ -53,7 +56,10 @@ private fun createTeacherHomeworkPdf(
     val document = PdfDocument()
     val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
     val page = document.startPage(pageInfo)
-    drawTeacherPdfContent(page.canvas, homework, draft)
+    val logo = runCatching {
+        BitmapFactory.decodeResource(context.resources, R.drawable.math_kids_logo)
+    }.getOrNull()
+    drawTeacherPdfContent(page.canvas, homework, draft, logo)
     document.finishPage(page)
 
     val outputFile = File(context.cacheDir, "compito_${homework.codice}.pdf")
@@ -64,43 +70,85 @@ private fun createTeacherHomeworkPdf(
     return outputFile
 }
 
-private fun drawTeacherPdfContent(canvas: Canvas, homework: TeacherHomework, draft: TeacherHomeworkDraft) {
+private fun drawTeacherPdfContent(
+    canvas: Canvas,
+    homework: TeacherHomework,
+    draft: TeacherHomeworkDraft,
+    logo: Bitmap?
+) {
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     paint.color = Color.BLACK
 
     val left = 48f
-    var y = 80f
+    val right = 547f
+    var y = 70f
 
-    paint.textSize = 20f
+    logo?.let { bitmap ->
+        val maxLogoWidth = 200f
+        val scale = maxLogoWidth / bitmap.width.toFloat().coerceAtLeast(1f)
+        val logoHeight = bitmap.height * scale
+        val logoRect = RectF(left, y, left + maxLogoWidth, y + logoHeight)
+        canvas.drawBitmap(bitmap, null, logoRect, null)
+        y += logoHeight + 24f
+    }
+
+    paint.textSize = 18f
     paint.isFakeBoldText = true
-    canvas.drawText("Mate Matt", left, y, paint)
+    canvas.drawText("Codice compito", left, y, paint)
+    y += 36f
 
-    paint.isFakeBoldText = false
-    paint.textSize = 14f
-    canvas.drawText("(logo placeholder)", left, y + 22f, paint)
-
-    y += 70f
-    paint.textSize = 26f
-    paint.isFakeBoldText = true
-    canvas.drawText("Compito", left, y, paint)
-
-    y += 50f
-    paint.textSize = 36f
+    paint.textSize = 42f
     paint.isFakeBoldText = true
     canvas.drawText(homework.codice, left, y, paint)
-
-    y += 40f
-    paint.textSize = 16f
+    y += 32f
     paint.isFakeBoldText = false
+
+    paint.textSize = 16f
+    canvas.drawLine(left, y, right, y, paint)
+    y += 28f
+
+    paint.isFakeBoldText = true
+    canvas.drawText("Descrizione del compito", left, y, paint)
+    paint.isFakeBoldText = false
+    y += 26f
     canvas.drawText("Tipo esercizio: ${draft.tipoEsercizio}", left, y, paint)
-    y += 24f
+    y += 22f
     canvas.drawText("Numero domande: ${draft.numeroDomande}", left, y, paint)
-    y += 24f
+    y += 22f
     canvas.drawText("Difficoltà: ${draft.difficoltaParametri}", left, y, paint)
 
-    y += 50f
-    paint.textSize = 14f
-    canvas.drawText("Inserisci questo codice nell’app Mate Matt", left, y, paint)
+    y += 36f
+    paint.isFakeBoldText = true
+    canvas.drawText("Istruzioni", left, y, paint)
+    paint.isFakeBoldText = false
+    y += 24f
+    val instruction = "Inserisci questo codice nell’app Mate Matt per iniziare il compito."
+    wrapPdfText(instruction, paint, right - left).forEach { line ->
+        canvas.drawText(line, left, y, paint)
+        y += 20f
+    }
+}
+
+private fun wrapPdfText(text: String, paint: Paint, maxWidth: Float): List<String> {
+    if (text.isBlank()) return listOf("")
+    val words = text.split(" ")
+    val lines = mutableListOf<String>()
+    var currentLine = ""
+    for (word in words) {
+        val candidate = if (currentLine.isEmpty()) word else "$currentLine $word"
+        if (paint.measureText(candidate) <= maxWidth) {
+            currentLine = candidate
+        } else {
+            if (currentLine.isNotEmpty()) {
+                lines += currentLine
+            }
+            currentLine = word
+        }
+    }
+    if (currentLine.isNotEmpty()) {
+        lines += currentLine
+    }
+    return lines
 }
 
 private class TeacherPdfPrintAdapter(
