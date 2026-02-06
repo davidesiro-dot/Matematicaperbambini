@@ -637,7 +637,12 @@ private fun AppShell() {
                 onOpenLeaderboard = { openLb() },
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
-                onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS }
+                onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
+                onOpenTeacherHub = {
+                    teacherDraftDescription = ""
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.TEACHER_HUB
+                }
             )
 
             Screen.TEACHER_HUB -> TeacherHubScreen(
@@ -1360,7 +1365,8 @@ private fun HomeworkMenu(
     onOpenLeaderboard: () -> Unit,
     onBack: () -> Unit,
     onOpenHomeworkBuilder: () -> Unit,
-    onOpenAssignedHomeworks: () -> Unit
+    onOpenAssignedHomeworks: () -> Unit,
+    onOpenTeacherHub: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
@@ -1379,6 +1385,12 @@ private fun HomeworkMenu(
                     baseColor = Color(0xFF22C55E),
                     iconText = "✅",
                     onClick = onOpenAssignedHomeworks
+                ),
+                MenuButtonData(
+                    title = "Area insegnante",
+                    baseColor = Color(0xFFF39C12),
+                    iconText = "🔑",
+                    onClick = onOpenTeacherHub
                 )
             )
 
