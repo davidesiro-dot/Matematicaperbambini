@@ -1,6 +1,7 @@
 package com.example.matematicaperbambini
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.Paint
 import android.graphics.RectF
@@ -12,6 +13,7 @@ import android.print.PrintAttributes
 import android.print.PrintDocumentAdapter
 import android.print.PrintDocumentInfo
 import android.print.PrintManager
+import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.max
@@ -26,6 +28,40 @@ internal fun printTeacherHomeworkCodes(context: Context, codes: List<TeacherHome
     }
     val adapter = TeacherHomeworkPrintAdapter(context, codes)
     printManager.print(jobName, adapter, PrintAttributes.Builder().build())
+}
+
+internal fun shareTeacherHomeworkCodes(context: Context, codes: List<TeacherHomeworkCode>) {
+    if (codes.isEmpty()) return
+    val pdfFile = createTeacherHomeworkPdf(context, codes) ?: return
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", pdfFile)
+    val subject = if (codes.size == 1) {
+        "Codice compito"
+    } else {
+        "Codici compiti (${codes.size})"
+    }
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "application/pdf"
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    val chooser = Intent.createChooser(intent, "Condividi codici")
+    if (intent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(chooser)
+    }
+}
+
+internal fun exportTeacherHomeworkCodes(context: Context, codes: List<TeacherHomeworkCode>) {
+    if (codes.isEmpty()) return
+    val pdfFile = createTeacherHomeworkPdf(context, codes) ?: return
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", pdfFile)
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(uri, "application/pdf")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    if (intent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(intent)
+    }
 }
 
 internal fun createTeacherHomeworkPdf(context: Context, codes: List<TeacherHomeworkCode>): File? {
