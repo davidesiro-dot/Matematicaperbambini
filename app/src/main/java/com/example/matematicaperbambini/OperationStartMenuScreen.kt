@@ -50,15 +50,9 @@ fun OperationStartMenuScreen(
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
     onSelectStartMode: (StartMode) -> Unit,
-    availableHelpPresets: List<HelpPreset>,
     selectedHelpPreset: HelpPreset,
     onSelectHelpPreset: (HelpPreset) -> Unit
 ) {
-    val visiblePresets = if (availableHelpPresets.isNotEmpty()) {
-        availableHelpPresets
-    } else {
-        HelpPreset.values().toList()
-    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -114,7 +108,7 @@ fun OperationStartMenuScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                visiblePresets.forEach { preset ->
+                HelpPreset.values().forEach { preset ->
                     Box(modifier = Modifier.weight(1f)) {
                         ModeSegmentedButton(
                             label = when (preset) {

@@ -6,7 +6,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -44,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -62,26 +60,6 @@ import java.util.Date
 import java.util.UUID
 import kotlinx.coroutines.launch
 
-
-@Composable
-fun GameToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(title, fontWeight = FontWeight.Bold)
-            Text(subtitle, fontSize = 12.sp)
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
 
 @Composable
 fun HomeworkBuilderScreen(
@@ -192,87 +170,78 @@ fun HomeworkBuilderScreen(
         ExerciseSourceConfig.Random
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val sizing = menuSizing(maxHeight)
-        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
-
-        MenuHeaderLogoLayout(
-            logoPainter = logoPainter,
-            logoAreaHeight = sizing.logoAreaHeight,
-            header = {
-                MenuHeader(
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onOpenLeaderboard = {},
-                    onBack = onBack
-                )
-            },
-            content = { contentModifier ->
-                Scaffold(
-                    modifier = contentModifier.fillMaxSize(),
-                    containerColor = Color.Transparent,
-                    snackbarHost = { SnackbarHost(snackbarHostState) }
-                ) { padding ->
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        if (lastResults.isNotEmpty()) {
-                            item {
-                                val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
-                                val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-                                SeaGlassPanel(title = "Ultimo report") {
-                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
-                                        Text("Corretto: $perfectCount")
-                                        Text("Completato con errori: $withErrorsCount")
-                                        Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
-                                    }
-                                }
-                            }
+    Scaffold(
+        topBar = {
+            GameHeader(
+                title = "Compiti (genitore)",
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onBack = onBack,
+                onLeaderboard = {}
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            if (lastResults.isNotEmpty()) {
+                item {
+                    val perfectCount = lastResults.count { it.outcome() == ExerciseOutcome.PERFECT }
+                    val withErrorsCount = lastResults.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
+                    SeaGlassPanel(title = "Ultimo report") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Esercizi: ${lastResults.size}", fontWeight = FontWeight.Bold)
+                            Text("Corretto: $perfectCount")
+                            Text("Completato con errori: $withErrorsCount")
+                            Text("Da ripassare: ${lastResults.size - perfectCount - withErrorsCount}")
                         }
+                    }
+                }
+            }
 
-                        item {
-                            SeaGlassPanel(title = "Seleziona giochi") {
-                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    GameToggleRow(
-                                        title = "Addizioni",
-                                        subtitle = "Somme con numeri configurabili",
-                                        checked = additionEnabled,
-                                        onCheckedChange = { checked -> additionEnabled = checked }
-                                    )
-                                    GameToggleRow(
-                                        title = "Sottrazioni",
-                                        subtitle = "Differenze con numeri configurabili",
-                                        checked = subtractionEnabled,
-                                        onCheckedChange = { checked -> subtractionEnabled = checked }
-                                    )
-                                    GameToggleRow(
-                                        title = "Tabellina",
-                                        subtitle = "Esercizi su una tabellina specifica",
-                                        checked = tableEnabled,
-                                        onCheckedChange = { checked -> tableEnabled = checked }
-                                    )
-                                    GameToggleRow(
-                                        title = "Divisioni passo-passo",
-                                        subtitle = "Divisioni con resto",
-                                        checked = divisionEnabled,
-                                        onCheckedChange = { checked -> divisionEnabled = checked }
-                                    )
-                                    GameToggleRow(
-                                        title = "Moltiplicazioni difficili",
-                                        subtitle = "Moltiplicazioni a due cifre",
-                                        checked = hardEnabled,
-                                        onCheckedChange = { checked -> hardEnabled = checked }
-                                    )
-                                }
-                            }
-                        }
+            item {
+                SeaGlassPanel(title = "Seleziona giochi") {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        GameToggleRow(
+                            title = "Addizioni",
+                            subtitle = "Somme con numeri configurabili",
+                            checked = additionEnabled,
+                            onCheckedChange = { additionEnabled = it }
+                        )
+                        GameToggleRow(
+                            title = "Sottrazioni",
+                            subtitle = "Differenze con numeri configurabili",
+                            checked = subtractionEnabled,
+                            onCheckedChange = { subtractionEnabled = it }
+                        )
+                        GameToggleRow(
+                            title = "Tabellina",
+                            subtitle = "Esercizi su una tabellina specifica",
+                            checked = tableEnabled,
+                            onCheckedChange = { tableEnabled = it }
+                        )
+                        GameToggleRow(
+                            title = "Divisioni passo-passo",
+                            subtitle = "Divisioni con resto",
+                            checked = divisionEnabled,
+                            onCheckedChange = { divisionEnabled = it }
+                        )
+                        GameToggleRow(
+                            title = "Moltiplicazioni difficili",
+                            subtitle = "Moltiplicazioni a due cifre",
+                            checked = hardEnabled,
+                            onCheckedChange = { hardEnabled = it }
+                        )
+                    }
+                }
+            }
 
-                        if (additionEnabled) {
+        if (additionEnabled) {
             item {
                 SeaGlassPanel(title = "Configurazione addizioni") {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -938,6 +907,8 @@ fun HomeworkBuilderScreen(
     }
 }
 
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AssignedHomeworksScreen(
@@ -950,79 +921,95 @@ fun AssignedHomeworksScreen(
     val formatter = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val sortedHomeworks = remember(savedHomeworks) { savedHomeworks.sortedByDescending { it.createdAt } }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val sizing = menuSizing(maxHeight)
-        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
-
-        MenuHeaderLogoLayout(
-            logoPainter = logoPainter,
-            logoAreaHeight = sizing.logoAreaHeight,
-            header = {
-                MenuHeader(
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onOpenLeaderboard = {},
-                    onBack = onBack
-                )
-            },
-            content = { contentModifier ->
-                if (sortedHomeworks.isEmpty()) {
-                    Column(
-                        modifier = contentModifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        SeaGlassPanel {
-                            Text(
-                                "Nessun compito assegnato",
-                                fontWeight = FontWeight.ExtraBold,
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                "Chiedi al genitore di creare un compito",
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
+    Scaffold(
+        topBar = {
+            GameHeader(
+                title = "Compiti assegnati",
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onBack = onBack,
+                onLeaderboard = {}
+            )
+        }
+    ) { padding ->
+        if (sortedHomeworks.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                SeaGlassPanel {
+                    Text(
+                        "Nessun compito assegnato",
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "Chiedi al genitore di creare un compito",
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                itemsIndexed(sortedHomeworks, key = { _, item -> item.id }) { _, homework ->
+                    val totalExercises = homework.tasks.sumOf {
+                        it.amount.exercisesCount * it.amount.repeatsPerExercise
                     }
-                } else {
-                    LazyColumn(
-                        modifier = contentModifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    SeaGlassPanel(
+                        title = homework.name,
+                        modifier = Modifier.combinedClickable(onClick = { onStartHomework(homework) })
                     ) {
-                        itemsIndexed(sortedHomeworks, key = { _, item -> item.id }) { _, homework ->
-                            val totalExercises = homework.tasks.sumOf {
-                                it.amount.exercisesCount * it.amount.repeatsPerExercise
-                            }
-                            SeaGlassPanel(
-                                title = homework.name,
-                                modifier = Modifier.combinedClickable(onClick = { onStartHomework(homework) })
-                            ) {
-                                Text(
-                                    formatter.format(Date(homework.createdAt)),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                )
-                                Text(
-                                    if (totalExercises > 0) {
-                                        "Esercizi previsti: $totalExercises"
-                                    } else {
-                                        "Task: ${homework.tasks.size}"
-                                    },
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Button(
-                                    onClick = { onStartHomework(homework) },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) { Text("Inizia") }
-                            }
-                        }
+                        Text(
+                            formatter.format(Date(homework.createdAt)),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            if (totalExercises > 0) {
+                                "Esercizi previsti: $totalExercises"
+                            } else {
+                                "Task: ${homework.tasks.size}"
+                            },
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Button(
+                            onClick = { onStartHomework(homework) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Inizia") }
                     }
                 }
             }
-        )
+        }
+    }
+}
+
+@Composable
+fun GameToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(title, fontWeight = FontWeight.Bold)
+            Text(subtitle, fontSize = 12.sp)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -1776,231 +1763,229 @@ fun HomeworkReportsScreen(
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val sizing = menuSizing(maxHeight)
-        val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
 
-        MenuHeaderLogoLayout(
-            logoPainter = logoPainter,
-            logoAreaHeight = sizing.logoAreaHeight,
-            header = {
-                MenuHeader(
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onOpenLeaderboard = {},
-                    onBack = onBack
-                )
-            },
-            content = { contentModifier ->
-                LazyColumn(
-                    modifier = contentModifier,
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (reports.isEmpty()) {
-                        item {
-                            SeaGlassPanel(title = "Nessun report") {
-                                Text("Non ci sono report salvati.")
-                            }
-                        }
+        /* ───────── HEADER FISSO ───────── */
+        GameHeader(
+            title = "Archivio report",
+            soundEnabled = soundEnabled,
+            onToggleSound = onToggleSound,
+            onBack = onBack,
+            onLeaderboard = {}
+        )
+
+        /* ───────── CONTENUTO SCROLLABILE ───────── */
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)          // 🔴 QUESTO È IL PEZZO CHIAVE
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            /* ───── LISTA REPORT ───── */
+            if (reports.isEmpty()) {
+                item {
+                    SeaGlassPanel(title = "Nessun report") {
+                        Text("Non ci sono report salvati.")
+                    }
+                }
+            } else {
+                itemsIndexed(reports) { idx, report ->
+                    val key = "${report.childName}_${report.createdAt}"
+                    val selected = key in selectedKeys
+                    val expanded = expandedKey == key
+                    val completedExercises = if (report.totalExercises > 0) {
+                        report.completedExercises
                     } else {
-                        itemsIndexed(reports) { idx, report ->
-                            val key = "${report.childName}_${report.createdAt}"
-                            val selected = key in selectedKeys
-                            val expanded = expandedKey == key
-                            val completedExercises = if (report.totalExercises > 0) {
-                                report.completedExercises
-                            } else {
-                                report.results.size
-                            }
-                            val plannedTotal = if (report.totalExercises > 0) {
-                                report.totalExercises
-                            } else {
-                                completedExercises
-                            }
-                            val correct = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
-                            val withErrors = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
-                            val wrong = completedExercises - correct - withErrors
-                            val durationMillis = report.results.sumOf { (it.endedAt - it.startedAt).coerceAtLeast(0) }
-                            val errorPatterns = analyzeErrorPatterns(report.results)
-                            val solutionUsedCount = report.results.count { it.solutionUsed }
-                            val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
+                        report.results.size
+                    }
+                    val plannedTotal = if (report.totalExercises > 0) {
+                        report.totalExercises
+                    } else {
+                        completedExercises
+                    }
+                    val correct = report.results.count { it.outcome() == ExerciseOutcome.PERFECT }
+                    val withErrors = report.results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
+                    val wrong = completedExercises - correct - withErrors
+                    val durationMillis = report.results.sumOf { (it.endedAt - it.startedAt).coerceAtLeast(0) }
+                    val errorPatterns = analyzeErrorPatterns(report.results)
+                    val solutionUsedCount = report.results.count { it.solutionUsed }
+                    val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
 
-                            SeaGlassPanel(
-                                title = if (report.interrupted) {
-                                    "Report ${idx + 1} – ⚠ Compito interrotto"
-                                } else {
-                                    "Report ${idx + 1}"
+                    SeaGlassPanel(
+                        title = if (report.interrupted) {
+                            "Report ${idx + 1} – ⚠ Compito interrotto"
+                        } else {
+                            "Report ${idx + 1}"
+                        },
+                        modifier = Modifier
+                            .combinedClickable(
+                                onClick = {
+                                    if (multiSelectEnabled) {
+                                        toggleSelection(key)
+                                    } else {
+                                        expandedKey = if (expanded) null else key
+                                    }
                                 },
-                                modifier = Modifier
-                                    .combinedClickable(
-                                        onClick = {
-                                            if (multiSelectEnabled) {
-                                                toggleSelection(key)
-                                            } else {
-                                                expandedKey = if (expanded) null else key
-                                            }
-                                        },
-                                        onLongClick = {
-                                            multiSelectEnabled = true
-                                            toggleSelection(key)
-                                        }
-                                    )
-                                    .border(
-                                        width = if (selected) 3.dp else 1.dp,
-                                        color = if (selected)
-                                            MaterialTheme.colorScheme.primary
-                                        else Color.Transparent,
-                                        shape = RoundedCornerShape(26.dp)
-                                    )
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    if (selected) {
-                                        Text("✅ Selezionato", fontWeight = FontWeight.Bold)
-                                    }
-                                    if (report.interrupted) {
-                                        Text("⚠ Compito interrotto", fontWeight = FontWeight.SemiBold)
-                                        Text("Esercizi completati: $completedExercises su $plannedTotal")
-                                    }
-                                    Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
-                                    Text("Data e ora: ${formatTimestamp(report.createdAt)}")
-                                    Text("Durata: ${formatDurationMillis(durationMillis)}")
-                                    Text("Totale esercizi: $completedExercises")
-                                    Text("Corretti: $correct • Con errori: $withErrors • Da ripassare: $wrong")
-                                    Text(
-                                        if (multiSelectEnabled) {
-                                            "Tocca per selezionare"
+                                onLongClick = {
+                                    multiSelectEnabled = true
+                                    toggleSelection(key)
+                                }
+                            )
+                            .border(
+                                width = if (selected) 3.dp else 1.dp,
+                                color = if (selected)
+                                    MaterialTheme.colorScheme.primary
+                                else Color.Transparent,
+                                shape = RoundedCornerShape(26.dp)
+                            )
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (selected) {
+                                Text("✅ Selezionato", fontWeight = FontWeight.Bold)
+                            }
+                            if (report.interrupted) {
+                                Text("⚠ Compito interrotto", fontWeight = FontWeight.SemiBold)
+                                Text("Esercizi completati: $completedExercises su $plannedTotal")
+                            }
+                            Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
+                            Text("Data e ora: ${formatTimestamp(report.createdAt)}")
+                            Text("Durata: ${formatDurationMillis(durationMillis)}")
+                            Text("Totale esercizi: $completedExercises")
+                            Text("Corretti: $correct • Con errori: $withErrors • Da ripassare: $wrong")
+                            Text(
+                                if (multiSelectEnabled) {
+                                    "Tocca per selezionare"
+                                } else {
+                                    "Tocca per aprire il dettaglio • Tieni premuto per selezionare"
+                                },
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+
+                            if (expanded) {
+                                Spacer(Modifier.height(8.dp))
+                                Text("Testata sessione", fontWeight = FontWeight.Bold)
+                                Text("Bambino: ${report.childName}")
+                                Text("Data e ora: ${formatTimestamp(report.createdAt)}")
+                                Text("Durata: ${formatDurationMillis(durationMillis)}")
+                                Text("Modalità: Compiti")
+                                Text("Tipi esercizi: ${homeworkTypes.joinToString(", ")}")
+
+                                Spacer(Modifier.height(8.dp))
+                                if (report.interrupted) {
+                                    Text("⚠ Compito interrotto prima del completamento", fontWeight = FontWeight.SemiBold)
+                                    Text("Esercizi completati: $completedExercises su $plannedTotal")
+                                    Spacer(Modifier.height(8.dp))
+                                }
+                                Text("Riepilogo sessione", fontWeight = FontWeight.Bold)
+                                Text("Totale esercizi: $completedExercises")
+                                Text("Corretti: $correct")
+                                Text("Completati con errori: $withErrors")
+                                Text("Da ripassare: $wrong")
+
+                                Spacer(Modifier.height(8.dp))
+                                Text("Aiuti usati durante la sessione", fontWeight = FontWeight.Bold)
+                                Text("Suggerimenti: non registrati nei report salvati")
+                                Text("Evidenziazioni: non registrate nei report salvati")
+                                Text("Soluzione guidata: $solutionUsedCount utilizzi")
+                                Text("Auto-check: non registrato nei report salvati")
+
+                                Spacer(Modifier.height(8.dp))
+                                SeaGlassPanel(title = "Errori della sessione") {
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("Errori commessi nella sessione", fontWeight = FontWeight.Bold)
+                                        if (errorPatterns.isEmpty()) {
+                                            Text("Nessun errore rilevato.")
                                         } else {
-                                            "Tocca per aprire il dettaglio • Tieni premuto per selezionare"
-                                        },
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 12.sp
-                                    )
-
-                                    if (expanded) {
-                                        Spacer(Modifier.height(8.dp))
-                                        Text("Testata sessione", fontWeight = FontWeight.Bold)
-                                        Text("Bambino: ${report.childName}")
-                                        Text("Data e ora: ${formatTimestamp(report.createdAt)}")
-                                        Text("Durata: ${formatDurationMillis(durationMillis)}")
-                                        Text("Modalità: Compiti")
-                                        Text("Tipi esercizi: ${homeworkTypes.joinToString(", ")}")
-
-                                        Spacer(Modifier.height(8.dp))
-                                        if (report.interrupted) {
-                                            Text("⚠ Compito interrotto prima del completamento", fontWeight = FontWeight.SemiBold)
-                                            Text("Esercizi completati: $completedExercises su $plannedTotal")
-                                            Spacer(Modifier.height(8.dp))
-                                        }
-                                        Text("Riepilogo sessione", fontWeight = FontWeight.Bold)
-                                        Text("Totale esercizi: $completedExercises")
-                                        Text("Corretti: $correct")
-                                        Text("Completati con errori: $withErrors")
-                                        Text("Da ripassare: $wrong")
-
-                                        Spacer(Modifier.height(8.dp))
-                                        Text("Aiuti usati durante la sessione", fontWeight = FontWeight.Bold)
-                                        Text("Suggerimenti: non registrati nei report salvati")
-                                        Text("Evidenziazioni: non registrate nei report salvati")
-                                        Text("Soluzione guidata: $solutionUsedCount utilizzi")
-                                        Text("Auto-check: non registrato nei report salvati")
-
-                                        Spacer(Modifier.height(8.dp))
-                                        SeaGlassPanel(title = "Errori della sessione") {
-                                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                Text("Errori commessi nella sessione", fontWeight = FontWeight.Bold)
-                                                if (errorPatterns.isEmpty()) {
-                                                    Text("Nessun errore rilevato.")
-                                                } else {
-                                                    errorPatterns.forEach { pattern ->
-                                                        Text("• ${pattern.category} (${pattern.occurrences})")
-                                                    }
-                                                }
-                                                Spacer(Modifier.height(6.dp))
-                                                Text("Errori più frequenti", fontWeight = FontWeight.Bold)
-                                                if (errorPatterns.isEmpty()) {
-                                                    Text("Nessun errore frequente rilevato.")
-                                                } else {
-                                                    errorPatterns.take(3).forEach { pattern ->
-                                                        Text("• ${pattern.category} (${pattern.occurrences})")
-                                                    }
-                                                }
+                                            errorPatterns.forEach { pattern ->
+                                                Text("• ${pattern.category} (${pattern.occurrences})")
                                             }
                                         }
-
-                                        Spacer(Modifier.height(8.dp))
-                                        Text("Dettaglio esercizi", fontWeight = FontWeight.Bold)
-                                        report.results.forEachIndexed { index, result ->
-                                            val outcome = outcomeLabel(result.outcome())
-                                            val exerciseDuration = formatDurationMillis(result.endedAt - result.startedAt)
-                                            Spacer(Modifier.height(6.dp))
-                                            Text("Esercizio ${index + 1}", fontWeight = FontWeight.SemiBold)
-                                            Text("Tipo di gioco: ${result.instance.game.title}")
-                                            Text("Operazione: ${exerciseLabel(result.instance)}")
-                                            Text("Esito: $outcome")
-                                            Text("Tentativi: ${result.attempts}")
-                                            Text("Tempo impiegato: $exerciseDuration")
-                                            Text(
-                                                if (result.solutionUsed) {
-                                                    "Soluzione guidata: sì"
-                                                } else {
-                                                    "Soluzione guidata: no"
-                                                }
-                                            )
+                                        Spacer(Modifier.height(6.dp))
+                                        Text("Errori più frequenti", fontWeight = FontWeight.Bold)
+                                        if (errorPatterns.isEmpty()) {
+                                            Text("Nessun errore frequente rilevato.")
+                                        } else {
+                                            errorPatterns.take(3).forEach { pattern ->
+                                                Text("• ${pattern.category} (${pattern.occurrences})")
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }
-                    }
 
-                    if (reports.isNotEmpty()) {
-                        item {
-                            SeaGlassPanel(
-                                title = "Azioni report selezionati",
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                                    .fillMaxWidth()
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Spacer(Modifier.height(8.dp))
+                                Text("Dettaglio esercizi", fontWeight = FontWeight.Bold)
+                                report.results.forEachIndexed { index, result ->
+                                    val outcome = outcomeLabel(result.outcome())
+                                    val exerciseDuration = formatDurationMillis(result.endedAt - result.startedAt)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text("Esercizio ${index + 1}", fontWeight = FontWeight.SemiBold)
+                                    Text("Tipo di gioco: ${result.instance.game.title}")
+                                    Text("Operazione: ${exerciseLabel(result.instance)}")
+                                    Text("Esito: $outcome")
+                                    Text("Tentativi: ${result.attempts}")
+                                    Text("Tempo impiegato: $exerciseDuration")
                                     Text(
-                                        if (selectedReports.isEmpty())
-                                            "Seleziona uno o più report con una pressione prolungata."
-                                        else
-                                            "Report selezionati: ${selectedReports.size}"
+                                        if (result.solutionUsed) {
+                                            "Soluzione guidata: sì"
+                                        } else {
+                                            "Soluzione guidata: no"
+                                        }
                                     )
-
-                                    Button(
-                                        onClick = { printHomeworkReports(context, selectedReports) },
-                                        enabled = selectedReports.isNotEmpty(),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Stampa o esporta PDF")
-                                    }
-
-                                    Button(
-                                        onClick = { shareHomeworkReports(context, selectedReports) },
-                                        enabled = selectedReports.isNotEmpty(),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Condividi")
-                                    }
-
-                                    Button(
-                                        onClick = { showDeleteConfirm = true },
-                                        enabled = selectedReports.isNotEmpty(),
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Elimina", color = MaterialTheme.colorScheme.onErrorContainer)
-                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        )
+        }
+
+        if (reports.isNotEmpty()) {
+            SeaGlassPanel(
+                title = "Azioni report selezionati",
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .fillMaxWidth()
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (selectedReports.isEmpty())
+                            "Seleziona uno o più report con una pressione prolungata."
+                        else
+                            "Report selezionati: ${selectedReports.size}"
+                    )
+
+                    Button(
+                        onClick = { printHomeworkReports(context, selectedReports) },
+                        enabled = selectedReports.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Stampa o esporta PDF")
+                    }
+
+                    Button(
+                        onClick = { shareHomeworkReports(context, selectedReports) },
+                        enabled = selectedReports.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Condividi")
+                    }
+
+                    Button(
+                        onClick = { showDeleteConfirm = true },
+                        enabled = selectedReports.isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Elimina", color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                }
+            }
+        }
     }
 
     if (showDeleteConfirm) {
