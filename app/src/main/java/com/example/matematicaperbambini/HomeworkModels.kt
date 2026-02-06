@@ -64,11 +64,11 @@ fun HelpPreset.toHelpSettings(): HelpSettings = when (this) {
         showCellHelper = true
     )
     HelpPreset.TRAINING -> HelpSettings(
-        hintsEnabled = true,
-        highlightsEnabled = true,
+        hintsEnabled = false,
+        highlightsEnabled = false,
         allowSolution = false,
         autoCheck = true,
-        showCellHelper = true
+        showCellHelper = false
     )
     HelpPreset.CHALLENGE -> HelpSettings(
         hintsEnabled = false,
@@ -83,7 +83,7 @@ fun HelpPreset.description(): String = when (this) {
     HelpPreset.GUIDED ->
         "Suggerimenti attivi, evidenziazioni attive, soluzione disponibile, controllo automatico."
     HelpPreset.TRAINING ->
-        "Suggerimenti ed evidenziazioni attivi. Nessuna soluzione. Controllo automatico."
+        "Nessun aiuto attivo. Controllo automatico."
     HelpPreset.CHALLENGE ->
         "Nessun aiuto attivo. Risolvi tutto da solo, come in classe."
 }
