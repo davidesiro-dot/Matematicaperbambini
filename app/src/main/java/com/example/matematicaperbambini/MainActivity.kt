@@ -197,6 +197,10 @@ private enum class Screen {
     HOME,
     GAME_MENU,
     HOMEWORK_MENU,
+    TEACHER_HUB,
+    TEACHER_CREATE_TASK,
+    TEACHER_EDIT_TASK,
+    TEACHER_TASK_LIST,
     DIGITS_PICKER,     // Add/Sub
     OPERATION_START_MENU,
     TABELLINE_MENU,
@@ -290,10 +294,14 @@ fun SeaGlassPanel(
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             if (!title.isNullOrBlank()) {
-                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.Medium),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
             }
             content()
         }
@@ -530,16 +538,21 @@ private fun AppShell() {
     var lastHomeworkResults by remember { mutableStateOf<List<ExerciseResult>>(emptyList()) }
     var homeworkReports by remember { mutableStateOf<List<HomeworkReport>>(emptyList()) }
     var savedHomeworks by remember { mutableStateOf<List<SavedHomework>>(emptyList()) }
+    var teacherHomeworkCodes by remember { mutableStateOf<List<TeacherHomeworkCode>>(emptyList()) }
+    var teacherDraftDescription by remember { mutableStateOf("") }
     var homeworkReturnScreen by remember { mutableStateOf(Screen.HOMEWORK_BUILDER) }
     var runningHomeworkId by remember { mutableStateOf<String?>(null) }
     val reportStorage = remember(context) { HomeworkReportStorage(context) }
     val reportScope = rememberCoroutineScope()
     val savedHomeworkRepository = remember(context) { SavedHomeworkRepository(context) }
     val savedHomeworkScope = rememberCoroutineScope()
+    val teacherHomeworkRepository = remember(context) { TeacherHomeworkRepository(context) }
+    val teacherHomeworkScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         homeworkReports = reportStorage.loadReports()
         savedHomeworks = savedHomeworkRepository.getAll()
+        teacherHomeworkCodes = teacherHomeworkRepository.getAll()
     }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
@@ -590,7 +603,11 @@ private fun AppShell() {
                 onOpenGameMenu = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
-                onOpenHomeworkMenu = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
+                onOpenTeacherHub = {
+                    teacherDraftDescription = ""
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.TEACHER_HUB
+                },
                 onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
                 savedHomeworks = savedHomeworks,
             )
@@ -621,6 +638,68 @@ private fun AppShell() {
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS }
+            )
+
+            Screen.TEACHER_HUB -> TeacherHubScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onOpenLeaderboard = { openLb() },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onCreateTask = {
+                    teacherDraftDescription = ""
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.TEACHER_CREATE_TASK
+                },
+                onEditTask = { navAnim = NavAnim.SLIDE; screen = Screen.TEACHER_EDIT_TASK },
+                onOpenTaskList = { navAnim = NavAnim.SLIDE; screen = Screen.TEACHER_TASK_LIST }
+            )
+
+            Screen.TEACHER_CREATE_TASK -> TeacherCreateTaskScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = {
+                    teacherDraftDescription = ""
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.TEACHER_HUB
+                },
+                existingCodes = teacherHomeworkCodes,
+                initialDescription = teacherDraftDescription,
+                onCreateCode = { newCode ->
+                    teacherHomeworkScope.launch {
+                        teacherHomeworkRepository.save(newCode)
+                        teacherHomeworkCodes = teacherHomeworkRepository.getAll()
+                    }
+                }
+            )
+
+            Screen.TEACHER_EDIT_TASK -> TeacherEditTaskScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TEACHER_HUB },
+                codes = teacherHomeworkCodes,
+                onSelectCode = { code ->
+                    teacherDraftDescription = code.description
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.TEACHER_CREATE_TASK
+                },
+                onCreateNew = {
+                    teacherDraftDescription = ""
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.TEACHER_CREATE_TASK
+                }
+            )
+
+            Screen.TEACHER_TASK_LIST -> TeacherTaskListScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.TEACHER_HUB },
+                codes = teacherHomeworkCodes,
+                onDeleteCodes = { codesToDelete ->
+                    teacherHomeworkScope.launch {
+                        teacherHomeworkRepository.delete(codesToDelete.map { it.code })
+                        teacherHomeworkCodes = teacherHomeworkRepository.getAll()
+                    }
+                }
             )
 
             Screen.OPERATION_START_MENU -> {
@@ -896,7 +975,7 @@ private fun HomeMenuKids(
     onOpenGameMenu: () -> Unit,
     onOpenHomeworkBuilder: () -> Unit,
     onOpenAssignedHomeworks: () -> Unit,
-    onOpenHomeworkMenu: () -> Unit,
+    onOpenTeacherHub: () -> Unit,
     onOpenReports: () -> Unit,
     savedHomeworks: List<SavedHomework>
 ) {
@@ -958,10 +1037,10 @@ private fun HomeMenuKids(
                         IndexedMenuButton(
                             index = 4,
                             data = MenuButtonData(
-                                title = "Codice compito",
+                                title = "Entra",
                                 baseColor = Color(0xFFF39C12),
                                 iconText = "🔑",
-                                onClick = onOpenHomeworkMenu
+                                onClick = onOpenTeacherHub
                             )
                         )
                     )
@@ -1573,9 +1652,9 @@ internal fun menuSizing(maxHeight: Dp): MenuSizing {
         MenuSizeProfile.Large -> 18.dp
     }
     val logoAreaHeight = when (sizeProfile) {
-        MenuSizeProfile.Small -> 120.dp
-        MenuSizeProfile.Normal -> 150.dp
-        MenuSizeProfile.Large -> 180.dp
+        MenuSizeProfile.Small -> 96.dp
+        MenuSizeProfile.Normal -> 120.dp
+        MenuSizeProfile.Large -> 144.dp
     }
 
     return MenuSizing(
