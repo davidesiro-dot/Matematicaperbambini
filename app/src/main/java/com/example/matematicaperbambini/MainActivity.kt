@@ -195,6 +195,7 @@ enum class LeaderboardTab {
 private enum class Screen {
     HOME,
     GAME_MENU,
+    LEARNING_MENU,
     HOMEWORK_MENU,
     TEACHER_HUB,
     TEACHER_CREATE_TASK,
@@ -621,7 +622,7 @@ private fun AppShell() {
                     isLearningMode = true
                     helpPreset = HelpPreset.GUIDED
                     navAnim = NavAnim.SLIDE
-                    screen = Screen.GAME_MENU
+                    screen = Screen.LEARNING_MENU
                 },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
@@ -643,6 +644,26 @@ private fun AppShell() {
                         GameMode.MULT -> openTabellineMenu()
                         GameMode.MULT_HARD -> openStartMenu(m)
                         GameMode.DIV -> openStartMenu(m) // ✅
+                        GameMode.MONEY -> openGame(m, digits, startMode)
+                        else -> openGame(m, digits)
+                    }
+                }
+            )
+
+            Screen.LEARNING_MENU -> GameMenuKids(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onOpenLeaderboard = { openLb() },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                isLearningMode = true,
+                onPickDigitsFor = { m ->
+                    openStartMenu(m)
+                },
+                onPlayDirect = { m ->
+                    when (m) {
+                        GameMode.MULT -> openTabellineMenu()
+                        GameMode.MULT_HARD -> openStartMenu(m)
+                        GameMode.DIV -> openStartMenu(m)
                         GameMode.MONEY -> openGame(m, digits, startMode)
                         else -> openGame(m, digits)
                     }
@@ -727,7 +748,10 @@ private fun AppShell() {
                     gameMode = startMenuMode,
                     soundEnabled = soundEnabled,
                     onToggleSound = { soundEnabled = !soundEnabled },
-                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                    onBack = {
+                        navAnim = NavAnim.SLIDE
+                        screen = if (isLearningMode) Screen.LEARNING_MENU else Screen.GAME_MENU
+                    },
                     onSelectStartMode = { chosenMode ->
                         startMode = chosenMode
                         sessionHelpSettings = helpPreset.toHelpSettings()
@@ -865,7 +889,10 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                onBack = {
+                    navAnim = NavAnim.SLIDE
+                    screen = if (isLearningMode) Screen.LEARNING_MENU else Screen.GAME_MENU
+                },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
                 helps = sessionHelpSettings
@@ -877,7 +904,10 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                onBack = {
+                    navAnim = NavAnim.SLIDE
+                    screen = if (isLearningMode) Screen.LEARNING_MENU else Screen.GAME_MENU
+                },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
                 helps = sessionHelpSettings
@@ -891,7 +921,10 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.EXPAND; screen = Screen.GAME_MENU },
+                onBack = {
+                    navAnim = NavAnim.EXPAND
+                    screen = if (isLearningMode) Screen.LEARNING_MENU else Screen.GAME_MENU
+                },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
@@ -1131,25 +1164,25 @@ private fun GameMenuKids(
             val buttons = if (isLearningMode) {
                 listOf(
                     MenuButtonData(
-                        title = "Addizioni Guidate",
+                        title = "Addizioni guidate",
                         baseColor = Color(0xFFE74C3C),
                         iconText = "＋",
                         onClick = { onPickDigitsFor(GameMode.ADD) }
                     ),
                     MenuButtonData(
-                        title = "Sottrazioni Guidate",
+                        title = "Sottrazioni guidate",
                         baseColor = Color(0xFF2ECC71),
                         iconText = "−",
                         onClick = { onPickDigitsFor(GameMode.SUB) }
                     ),
                     MenuButtonData(
-                        title = "Moltiplicazioni Guidate",
+                        title = "Moltiplicazioni guidate",
                         baseColor = Color(0xFF8B5CF6),
                         iconText = "××",
                         onClick = { onPlayDirect(GameMode.MULT_HARD) }
                     ),
                     MenuButtonData(
-                        title = "Divisioni Guidate",
+                        title = "Divisioni guidate",
                         baseColor = Color(0xFF3498DB),
                         iconText = "÷",
                         onClick = { onPlayDirect(GameMode.DIV) }
