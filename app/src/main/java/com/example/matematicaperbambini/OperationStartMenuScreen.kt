@@ -51,7 +51,8 @@ fun OperationStartMenuScreen(
     onBack: () -> Unit,
     onSelectStartMode: (StartMode) -> Unit,
     selectedHelpPreset: HelpPreset,
-    onSelectHelpPreset: (HelpPreset) -> Unit
+    onSelectHelpPreset: (HelpPreset) -> Unit,
+    availableHelpPresets: List<HelpPreset> = HelpPreset.values().toList()
 ) {
     Column(
         modifier = Modifier
@@ -108,7 +109,7 @@ fun OperationStartMenuScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                HelpPreset.values().forEach { preset ->
+                availableHelpPresets.forEach { preset ->
                     Box(modifier = Modifier.weight(1f)) {
                         ModeSegmentedButton(
                             label = when (preset) {
