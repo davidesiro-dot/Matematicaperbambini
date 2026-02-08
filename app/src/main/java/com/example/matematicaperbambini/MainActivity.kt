@@ -516,6 +516,7 @@ private fun AppShell() {
     var startMode by remember { mutableStateOf(StartMode.RANDOM) }
     var helpPreset by remember { mutableStateOf(HelpPreset.GUIDED) }
     var sessionHelpSettings by remember { mutableStateOf(helpPreset.toHelpSettings()) }
+    var isLearnFlow by remember { mutableStateOf(false) }
 
     var pendingDigitsMode by remember { mutableStateOf<GameMode?>(null) }
     var pendingStartMenuMode by remember { mutableStateOf<GameMode?>(null) }
@@ -549,6 +550,7 @@ private fun AppShell() {
     }
 
     fun openGuidedSession() {
+        isLearnFlow = true
         helpPreset = HelpPreset.GUIDED
         sessionHelpSettings = HelpPreset.GUIDED.toHelpSettings()
         startMode = StartMode.RANDOM
@@ -590,10 +592,10 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
-                onOpenGameMenu = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
-                onOpenLearnMenu = { navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
-                onOpenHomeworkMenu = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
-                onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
+                onOpenGameMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                onOpenLearnMenu = { isLearnFlow = true; navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
+                onOpenHomeworkMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
+                onOpenReports = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
                 savedHomeworks = savedHomeworks,
             )
 
@@ -601,24 +603,22 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onBack = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onStartAddition = {
                     openGuidedSession()
-                    openGame(GameMode.ADD, digits, StartMode.RANDOM)
+                    openStartMenu(GameMode.ADD)
                 },
                 onStartSubtraction = {
                     openGuidedSession()
-                    openGame(GameMode.SUB, digits, StartMode.RANDOM)
+                    openStartMenu(GameMode.SUB)
                 },
                 onStartMultiplication = {
                     openGuidedSession()
-                    navAnim = NavAnim.EXPAND
-                    screen = Screen.MULT_HARD_GAME
+                    openStartMenu(GameMode.MULT_HARD)
                 },
                 onStartDivision = {
                     openGuidedSession()
-                    navAnim = NavAnim.EXPAND
-                    screen = Screen.DIV_STEP_GAME
+                    openStartMenu(GameMode.DIV)
                 }
             )
 
@@ -628,9 +628,11 @@ private fun AppShell() {
                 onOpenLeaderboard = { openLb() },
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onPickDigitsFor = { m ->
+                    isLearnFlow = false
                     openStartMenu(m)
                 },
                 onPlayDirect = { m ->
+                    isLearnFlow = false
                     when (m) {
                         GameMode.MULT -> openTabellineMenu()
                         GameMode.MULT_HARD -> openStartMenu(m)
@@ -656,7 +658,10 @@ private fun AppShell() {
                     gameMode = startMenuMode,
                     soundEnabled = soundEnabled,
                     onToggleSound = { soundEnabled = !soundEnabled },
-                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                    onBack = {
+                        navAnim = NavAnim.SLIDE
+                        screen = if (isLearnFlow) Screen.IMPARA_MENU else Screen.GAME_MENU
+                    },
                     onSelectStartMode = { chosenMode ->
                         startMode = chosenMode
                         sessionHelpSettings = helpPreset.toHelpSettings()
@@ -677,7 +682,8 @@ private fun AppShell() {
                         }
                     },
                     selectedHelpPreset = helpPreset,
-                    onSelectHelpPreset = { helpPreset = it }
+                    onSelectHelpPreset = { helpPreset = it },
+                    availableHelpPresets = if (isLearnFlow) listOf(HelpPreset.GUIDED) else HelpPreset.values().toList()
                 )
             }
 
@@ -789,7 +795,10 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                onBack = {
+                    navAnim = NavAnim.SLIDE
+                    screen = if (isLearnFlow) Screen.IMPARA_MENU else Screen.GAME_MENU
+                },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
                 helps = sessionHelpSettings
@@ -801,7 +810,10 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                onBack = {
+                    navAnim = NavAnim.SLIDE
+                    screen = if (isLearnFlow) Screen.IMPARA_MENU else Screen.GAME_MENU
+                },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
                 helps = sessionHelpSettings
@@ -815,7 +827,15 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
-                onBack = { navAnim = NavAnim.EXPAND; screen = Screen.GAME_MENU },
+                onBack = {
+                    if (isLearnFlow) {
+                        navAnim = NavAnim.SLIDE
+                        screen = Screen.IMPARA_MENU
+                    } else {
+                        navAnim = NavAnim.EXPAND
+                        screen = Screen.GAME_MENU
+                    }
+                },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) }
             )
