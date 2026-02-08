@@ -313,48 +313,46 @@ fun TabellineGuidateScreen(
                             }
                         }
                     }
-                }
-            }
 
-            Button(
-                onClick = { fillOneExample() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) {
-                Text("Fammi vedere come si fa", fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = {
-                        if (phase.validate) {
-                            if (validatePhase(phase)) {
-                                if (phaseIndex == phases.lastIndex) {
-                                    completed = true
-                                    infoMessage = "Hai imparato la tabellina del $table! 🌟"
-                                } else {
-                                    phaseIndex += 1
-                                }
-                            }
-                        } else {
-                            if (allFilled) {
-                                phaseIndex += 1
-                            } else {
-                                infoMessage = "Completa tutte le righe con calma 🙂"
-                            }
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = { fillOneExample() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) {
+                            Text("Fammi vedere come si fa", fontWeight = FontWeight.Bold)
                         }
-                    },
-                    enabled = allFilled,
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3B82F6),
-                        disabledContainerColor = Color(0xFFBFDBFE),
-                        disabledContentColor = Color(0xFF1E3A8A)
-                    )
-                ) {
-                    Text(primaryLabel, fontWeight = FontWeight.Black, fontSize = 18.sp)
+
+                        Button(
+                            onClick = {
+                                if (phase.validate) {
+                                    if (validatePhase(phase)) {
+                                        if (phaseIndex == phases.lastIndex) {
+                                            completed = true
+                                            infoMessage = "Hai imparato la tabellina del $table! 🌟"
+                                        } else {
+                                            phaseIndex += 1
+                                        }
+                                    }
+                                } else {
+                                    if (allFilled) {
+                                        phaseIndex += 1
+                                    } else {
+                                        infoMessage = "Completa tutte le righe con calma 🙂"
+                                    }
+                                }
+                            },
+                            enabled = allFilled,
+                            modifier = Modifier.fillMaxWidth().height(54.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF3B82F6),
+                                disabledContainerColor = Color(0xFFBFDBFE),
+                                disabledContentColor = Color(0xFF1E3A8A)
+                            )
+                        ) {
+                            Text(primaryLabel, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        }
+                    }
                 }
             }
         }
