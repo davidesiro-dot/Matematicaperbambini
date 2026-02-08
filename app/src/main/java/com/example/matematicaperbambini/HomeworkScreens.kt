@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -68,13 +69,18 @@ fun HomeworkBuilderScreen(
     onBack: () -> Unit,
     lastResults: List<ExerciseResult>,
     onStartHomework: (List<HomeworkTaskConfig>) -> Unit,
-    onSaveHomework: (SavedHomework) -> Unit
+    onSaveHomework: (SavedHomework) -> Unit,
+    onSaveHomeworkCode: (HomeworkCodeEntry) -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showSaveDialog by remember { mutableStateOf(false) }
     var saveNameInput by remember { mutableStateOf("") }
     var pendingConfigs by remember { mutableStateOf<List<HomeworkTaskConfig>>(emptyList()) }
+    var showCodeDialog by remember { mutableStateOf(false) }
+    var codeTitleInput by remember { mutableStateOf("") }
+    var generatedCode by remember { mutableStateOf<String?>(null) }
+    var generatedPayload by remember { mutableStateOf<HomeworkCodePayload?>(null) }
     var additionEnabled by remember { mutableStateOf(false) }
     var additionDigitsInput by remember { mutableStateOf("2") }
     var additionExercisesCountInput by remember { mutableStateOf("5") }
@@ -854,6 +860,20 @@ fun HomeworkBuilderScreen(
                 enabled = anyEnabled
             ) { Text("Salva compito per dopo") }
         }
+
+        item {
+            Button(
+                onClick = {
+                    val configs = buildConfigs()
+                    val generated = generateHomeworkCode(configs)
+                    generatedCode = generated.code
+                    generatedPayload = generated.payload
+                    showCodeDialog = true
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = anyEnabled
+            ) { Text("Genera codice compito") }
+        }
     }
 
     if (showSaveDialog) {
@@ -905,6 +925,79 @@ fun HomeworkBuilderScreen(
             }
         )
     }
+
+    if (showCodeDialog) {
+        val trimmedTitle = codeTitleInput.trim()
+        val codeValue = generatedCode
+        AlertDialog(
+            onDismissRequest = {
+                showCodeDialog = false
+                codeTitleInput = ""
+                generatedCode = null
+                generatedPayload = null
+            },
+            title = { Text("Codice compito") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = codeTitleInput,
+                        onValueChange = { input ->
+                            if (input.length <= 32) {
+                                codeTitleInput = input
+                            }
+                        },
+                        label = { Text("Titolo del compito") },
+                        placeholder = { Text("Es. Compiti matematica – lunedì") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (codeValue != null) {
+                        Text(
+                            text = codeValue,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val payload = generatedPayload
+                        if (payload != null && codeValue != null) {
+                            val entry = HomeworkCodeEntry(
+                                id = payload.id,
+                                title = trimmedTitle,
+                                code = codeValue,
+                                createdAt = payload.createdAt,
+                                tasks = payload.tasks
+                            )
+                            onSaveHomeworkCode(entry)
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Codice salvato")
+                            }
+                        }
+                        showCodeDialog = false
+                        codeTitleInput = ""
+                        generatedCode = null
+                        generatedPayload = null
+                    },
+                    enabled = trimmedTitle.isNotEmpty() && codeValue != null
+                ) { Text("Salva") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showCodeDialog = false
+                        codeTitleInput = ""
+                        generatedCode = null
+                        generatedPayload = null
+                    }
+                ) { Text("Annulla") }
+            }
+        )
+    }
 }
 
 }
@@ -916,10 +1009,16 @@ fun AssignedHomeworksScreen(
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
     savedHomeworks: List<SavedHomework>,
-    onStartHomework: (SavedHomework) -> Unit
+    onStartHomework: (SavedHomework) -> Unit,
+    onStartHomeworkFromCode: (HomeworkCodePayload) -> Unit
 ) {
     val formatter = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val sortedHomeworks = remember(savedHomeworks) { savedHomeworks.sortedByDescending { it.createdAt } }
+    var showRestoreDialog by remember { mutableStateOf(false) }
+    var restoreCodeInput by remember { mutableStateOf("") }
+    var restoreError by remember { mutableStateOf<String?>(null) }
+    var pendingPayload by remember { mutableStateOf<HomeworkCodePayload?>(null) }
+    var showRestoreConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -932,15 +1031,19 @@ fun AssignedHomeworksScreen(
             )
         }
     ) { padding ->
-        if (sortedHomeworks.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Button(
+                onClick = { showRestoreDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Ripristina codice") }
+
+            if (sortedHomeworks.isEmpty()) {
                 SeaGlassPanel {
                     Text(
                         "Nessun compito assegnato",
@@ -953,43 +1056,127 @@ fun AssignedHomeworksScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                itemsIndexed(sortedHomeworks, key = { _, item -> item.id }) { _, homework ->
-                    val totalExercises = homework.tasks.sumOf {
-                        it.amount.exercisesCount * it.amount.repeatsPerExercise
-                    }
-                    SeaGlassPanel(
-                        title = homework.name,
-                        modifier = Modifier.combinedClickable(onClick = { onStartHomework(homework) })
-                    ) {
-                        Text(
-                            formatter.format(Date(homework.createdAt)),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                        Text(
-                            if (totalExercises > 0) {
-                                "Esercizi previsti: $totalExercises"
-                            } else {
-                                "Task: ${homework.tasks.size}"
-                            },
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Button(
-                            onClick = { onStartHomework(homework) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Inizia") }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    itemsIndexed(sortedHomeworks, key = { _, item -> item.id }) { _, homework ->
+                        val totalExercises = homework.tasks.sumOf {
+                            it.amount.exercisesCount * it.amount.repeatsPerExercise
+                        }
+                        SeaGlassPanel(
+                            title = homework.name,
+                            modifier = Modifier.combinedClickable(onClick = { onStartHomework(homework) })
+                        ) {
+                            Text(
+                                formatter.format(Date(homework.createdAt)),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                if (totalExercises > 0) {
+                                    "Esercizi previsti: $totalExercises"
+                                } else {
+                                    "Task: ${homework.tasks.size}"
+                                },
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Button(
+                                onClick = { onStartHomework(homework) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Inizia") }
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (showRestoreDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showRestoreDialog = false
+                restoreCodeInput = ""
+                restoreError = null
+            },
+            title = { Text("Inserisci codice compito") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = restoreCodeInput,
+                        onValueChange = { restoreCodeInput = it.take(256) },
+                        label = { Text("Codice compito") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    restoreError?.let { error ->
+                        Text(error, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val payload = decodeHomeworkCode(restoreCodeInput)
+                        if (payload == null) {
+                            restoreError = "Codice non valido, controlla e riprova 🙂"
+                        } else {
+                            pendingPayload = payload
+                            showRestoreDialog = false
+                            restoreError = null
+                            showRestoreConfirm = true
+                        }
+                    }
+                ) { Text("Inizia") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRestoreDialog = false
+                        restoreCodeInput = ""
+                        restoreError = null
+                    }
+                ) { Text("Annulla") }
+            }
+        )
+    }
+
+    if (showRestoreConfirm) {
+        val payload = pendingPayload
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirm = false },
+            title = { Text("Compito trovato") },
+            text = {
+                if (payload == null) {
+                    Text("Codice non valido, controlla e riprova 🙂")
+                } else {
+                    Text(buildHomeworkCodeDescription(payload.tasks))
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (payload != null) {
+                            onStartHomeworkFromCode(payload)
+                        }
+                        showRestoreConfirm = false
+                        restoreCodeInput = ""
+                        pendingPayload = null
+                    },
+                    enabled = payload != null
+                ) { Text("Inizia compito") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRestoreConfirm = false
+                        restoreCodeInput = ""
+                        pendingPayload = null
+                    }
+                ) { Text("Annulla") }
+            }
+        )
     }
 }
 
@@ -1237,7 +1424,8 @@ fun HomeworkRunnerScreen(
     onSaveReport: (HomeworkReport) -> Unit,
     onFinishHomework: (List<ExerciseResult>) -> Unit,
     homeworkId: String?,
-    onHomeworkCompleted: (String) -> Unit
+    onHomeworkCompleted: (String) -> Unit,
+    startedFromCode: Boolean
 ) {
     var index by remember { mutableStateOf(0) }
     val results = remember { mutableStateListOf<ExerciseResult>() }
@@ -1292,7 +1480,8 @@ fun HomeworkRunnerScreen(
                                 results = results.toList(),
                                 interrupted = false,
                                 completedExercises = totalExercises,
-                                totalExercises = totalExercises
+                                totalExercises = totalExercises,
+                                startedFromCode = startedFromCode
                             )
                             onSaveReport(report)
                             showCompletionDialog = false
@@ -1331,7 +1520,8 @@ fun HomeworkRunnerScreen(
                                 results = results.toList(),
                                 interrupted = true,
                                 completedExercises = completedExercises,
-                                totalExercises = totalExercises
+                                totalExercises = totalExercises,
+                                startedFromCode = startedFromCode
                             )
                             onSaveReport(report)
                         }
@@ -1552,7 +1742,8 @@ private fun HomeworkReportScreen(
     totalExercises: Int,
     interrupted: Boolean,
     previousReports: List<HomeworkReport>,
-    onSaveReport: (HomeworkReport) -> Unit
+    onSaveReport: (HomeworkReport) -> Unit,
+    startedFromCode: Boolean = false
 ) {
     val perfectCount = results.count { it.outcome() == ExerciseOutcome.PERFECT }
     val withErrorsCount = results.count { it.outcome() == ExerciseOutcome.COMPLETED_WITH_ERRORS }
@@ -1597,7 +1788,8 @@ private fun HomeworkReportScreen(
                             results = results,
                             interrupted = interrupted,
                             completedExercises = total,
-                            totalExercises = totalExercises
+                            totalExercises = totalExercises,
+                            startedFromCode = startedFromCode
                         )
                         onSaveReport(report)
                         currentReport = report
@@ -1650,6 +1842,9 @@ private fun HomeworkReportScreen(
             item {
                 SeaGlassPanel(title = "Riepilogo") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (startedFromCode) {
+                            Text("Avviato tramite codice compito", fontWeight = FontWeight.SemiBold)
+                        }
                         Text("Totale esercizi: $total", fontWeight = FontWeight.Bold)
                         Text("Corretto: $perfectCount")
                         Text("Completato con errori: $withErrorsCount")
@@ -1884,6 +2079,9 @@ fun HomeworkReportsScreen(
                                 Text("⚠ Compito interrotto", fontWeight = FontWeight.SemiBold)
                                 Text("Esercizi completati: $completedExercises su $plannedTotal")
                             }
+                            if (report.startedFromCode) {
+                                Text("Avviato tramite codice compito", fontWeight = FontWeight.SemiBold)
+                            }
                             Text("Bambino: ${report.childName}", fontWeight = FontWeight.Bold)
                             Text("Data e ora: ${formatTimestamp(report.createdAt)}")
                             Text("Durata: ${formatDurationMillis(durationMillis)}")
@@ -1906,6 +2104,9 @@ fun HomeworkReportsScreen(
                                 Text("Data e ora: ${formatTimestamp(report.createdAt)}")
                                 Text("Durata: ${formatDurationMillis(durationMillis)}")
                                 Text("Modalità: Compiti")
+                                if (report.startedFromCode) {
+                                    Text("Origine: Codice compito")
+                                }
                                 Text("Tipi esercizi: ${homeworkTypes.joinToString(", ")}")
 
                                 Spacer(Modifier.height(8.dp))

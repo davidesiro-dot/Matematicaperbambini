@@ -180,13 +180,23 @@ data class HomeworkReport(
     val results: List<ExerciseResult>,
     val interrupted: Boolean = false,
     val completedExercises: Int = 0,
-    val totalExercises: Int = 0
+    val totalExercises: Int = 0,
+    val startedFromCode: Boolean = false
 )
 
 @Serializable
 data class SavedHomework(
     val id: String,
     val name: String,
+    val createdAt: Long,
+    val tasks: List<HomeworkTaskConfig>
+)
+
+@Serializable
+data class HomeworkCodeEntry(
+    val id: String,
+    val title: String,
+    val code: String,
     val createdAt: Long,
     val tasks: List<HomeworkTaskConfig>
 )

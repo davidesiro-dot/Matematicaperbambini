@@ -292,6 +292,9 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
     val time = formatReportTime(report.createdAt)
     lines += PdfLine.TextLine("Data: $date   Ora: $time", TextStyle.SUBTLE)
     lines += PdfLine.TextLine("Bambino: ${report.childName}", TextStyle.SUBTLE)
+    if (report.startedFromCode) {
+        lines += PdfLine.TextLine("Origine: Codice compito", TextStyle.SUBTLE)
+    }
     lines += PdfLine.DividerLine
     if (totalReports > 1) {
         lines += PdfLine.TextLine("Report ${index + 1} di $totalReports", TextStyle.SUBTLE)
