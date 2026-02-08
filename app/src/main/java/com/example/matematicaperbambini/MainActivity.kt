@@ -198,6 +198,8 @@ private enum class Screen {
     DIGITS_PICKER,     // Add/Sub
     OPERATION_START_MENU,
     TABELLINE_MENU,
+    GUIDED_TABLE_PICKER,
+    GUIDED_TABLE_GAME,
     GAME,              // Add/Sub/Money (e altro se vuoi)
     MULT_PICKER,       // scegli tabellina 1..10
     MULT_GAME,         // tabellina 10 caselle
@@ -524,6 +526,7 @@ private fun AppShell() {
     // tabelline
     var selectedTable by remember { mutableStateOf(2) }
     var selectedGapsTable by remember { mutableStateOf(2) }
+    var guidedTable by remember { mutableStateOf(2) }
     var homeworkQueue by remember { mutableStateOf<List<HomeworkExerciseEntry>>(emptyList()) }
     var lastHomeworkResults by remember { mutableStateOf<List<ExerciseResult>>(emptyList()) }
     var homeworkReports by remember { mutableStateOf<List<HomeworkReport>>(emptyList()) }
@@ -619,6 +622,11 @@ private fun AppShell() {
                 onStartDivision = {
                     openGuidedSession()
                     openStartMenu(GameMode.DIV)
+                },
+                onStartGuidedTables = {
+                    openGuidedSession()
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.GUIDED_TABLE_PICKER
                 }
             )
 
@@ -718,6 +726,30 @@ private fun AppShell() {
                         TabellineMode.CLASSIC -> Screen.MULT_PICKER
                     }
                 }
+            )
+
+            Screen.GUIDED_TABLE_PICKER -> MultTablePickerScreen(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
+                onPickTable = { table ->
+                    guidedTable = table
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.GUIDED_TABLE_GAME
+                }
+            )
+
+            Screen.GUIDED_TABLE_GAME -> TabellineGuidateScreen(
+                table = guidedTable,
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
+                onRepeat = {},
+                onPickAnother = {
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.GUIDED_TABLE_PICKER
+                },
+                onExitToLearnMenu = { navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU }
             )
 
             Screen.MULT_PICKER -> MultTablePickerScreen(
@@ -1114,7 +1146,8 @@ private fun LearnMenuKids(
     onStartAddition: () -> Unit,
     onStartSubtraction: () -> Unit,
     onStartMultiplication: () -> Unit,
-    onStartDivision: () -> Unit
+    onStartDivision: () -> Unit,
+    onStartGuidedTables: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
@@ -1146,6 +1179,12 @@ private fun LearnMenuKids(
                     baseColor = Color(0xFF3498DB),
                     iconText = "÷",
                     onClick = onStartDivision
+                ),
+                MenuButtonData(
+                    title = "Tabelline guidate",
+                    baseColor = Color(0xFFF59E0B),
+                    iconText = "×",
+                    onClick = onStartGuidedTables
                 )
             )
 
