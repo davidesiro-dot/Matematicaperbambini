@@ -23,11 +23,14 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
@@ -45,11 +48,14 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.net.URLDecoder
 import java.net.URLEncoder
+import java.text.DateFormat
+import java.util.Date
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.HelpOutline
@@ -538,16 +544,21 @@ private fun AppShell() {
     var lastHomeworkResults by remember { mutableStateOf<List<ExerciseResult>>(emptyList()) }
     var homeworkReports by remember { mutableStateOf<List<HomeworkReport>>(emptyList()) }
     var savedHomeworks by remember { mutableStateOf<List<SavedHomework>>(emptyList()) }
+    var homeworkCodes by remember { mutableStateOf<List<HomeworkCodeEntry>>(emptyList()) }
     var homeworkReturnScreen by remember { mutableStateOf(Screen.HOMEWORK_BUILDER) }
     var runningHomeworkId by remember { mutableStateOf<String?>(null) }
+    var runningHomeworkFromCode by remember { mutableStateOf(false) }
     val reportStorage = remember(context) { HomeworkReportStorage(context) }
     val reportScope = rememberCoroutineScope()
     val savedHomeworkRepository = remember(context) { SavedHomeworkRepository(context) }
     val savedHomeworkScope = rememberCoroutineScope()
+    val homeworkCodeRepository = remember(context) { HomeworkCodeRepository(context) }
+    val homeworkCodeScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         homeworkReports = reportStorage.loadReports()
         savedHomeworks = savedHomeworkRepository.getAll()
+        homeworkCodes = homeworkCodeRepository.getAll()
     }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
@@ -667,7 +678,15 @@ private fun AppShell() {
                 onOpenLeaderboard = { openLb() },
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
-                onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS }
+                onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
+                homeworkCodes = homeworkCodes,
+                onDeleteHomeworkCode = { entry ->
+                    homeworkCodeScope.launch {
+                        homeworkCodeRepository.delete(entry.id)
+                        homeworkCodes = homeworkCodeRepository.getAll()
+                    }
+                },
+                onShareHomeworkCode = { entry -> shareHomeworkCode(context, entry) }
             )
 
             Screen.OPERATION_START_MENU -> {
@@ -907,6 +926,7 @@ private fun AppShell() {
                     homeworkQueue = buildExerciseQueue(configs)
                     homeworkReturnScreen = Screen.HOMEWORK_BUILDER
                     runningHomeworkId = null
+                    runningHomeworkFromCode = false
                     navAnim = NavAnim.SLIDE
                     screen = Screen.HOMEWORK_RUNNER
                 },
@@ -914,6 +934,12 @@ private fun AppShell() {
                     savedHomeworkScope.launch {
                         savedHomeworkRepository.save(savedHomework)
                         savedHomeworks = savedHomeworkRepository.getAll()
+                    }
+                },
+                onSaveHomeworkCode = { entry ->
+                    homeworkCodeScope.launch {
+                        homeworkCodeRepository.save(entry)
+                        homeworkCodes = homeworkCodeRepository.getAll()
                     }
                 }
             )
@@ -929,6 +955,7 @@ private fun AppShell() {
                 onExit = { results ->
                     lastHomeworkResults = results
                     runningHomeworkId = null
+                    runningHomeworkFromCode = false
                     navAnim = NavAnim.SLIDE
                     screen = homeworkReturnScreen
                 },
@@ -941,6 +968,7 @@ private fun AppShell() {
                 onFinishHomework = { results ->
                     lastHomeworkResults = results
                     runningHomeworkId = null
+                    runningHomeworkFromCode = false
                     homeworkQueue = emptyList()
                     navAnim = NavAnim.SLIDE
                     screen = Screen.HOME
@@ -952,7 +980,8 @@ private fun AppShell() {
                         savedHomeworkRepository.delete(homeworkId)
                         savedHomeworks = savedHomeworkRepository.getAll()
                     }
-                }
+                },
+                startedFromCode = runningHomeworkFromCode
             )
 
             Screen.HOMEWORK_REPORTS -> HomeworkReportsScreen(
@@ -977,6 +1006,15 @@ private fun AppShell() {
                     homeworkQueue = buildExerciseQueue(savedHomework.tasks)
                     homeworkReturnScreen = Screen.ASSIGNED_HOMEWORKS
                     runningHomeworkId = savedHomework.id
+                    runningHomeworkFromCode = false
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.HOMEWORK_RUNNER
+                },
+                onStartHomeworkFromCode = { payload ->
+                    homeworkQueue = buildExerciseQueue(payload.tasks)
+                    homeworkReturnScreen = Screen.ASSIGNED_HOMEWORKS
+                    runningHomeworkId = null
+                    runningHomeworkFromCode = true
                     navAnim = NavAnim.SLIDE
                     screen = Screen.HOMEWORK_RUNNER
                 }
@@ -1611,7 +1649,10 @@ private fun HomeworkMenu(
     onOpenLeaderboard: () -> Unit,
     onBack: () -> Unit,
     onOpenHomeworkBuilder: () -> Unit,
-    onOpenAssignedHomeworks: () -> Unit
+    onOpenAssignedHomeworks: () -> Unit,
+    homeworkCodes: List<HomeworkCodeEntry>,
+    onDeleteHomeworkCode: (HomeworkCodeEntry) -> Unit,
+    onShareHomeworkCode: (HomeworkCodeEntry) -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
@@ -1744,10 +1785,126 @@ private fun HomeworkMenu(
                                 translationY = offsetY
                             }
                         )
+                        if (index == 0) {
+                            HomeworkCodesSection(
+                                codes = homeworkCodes,
+                                onDeleteCode = onDeleteHomeworkCode,
+                                onShareCode = onShareHomeworkCode
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HomeworkCodesSection(
+    codes: List<HomeworkCodeEntry>,
+    onDeleteCode: (HomeworkCodeEntry) -> Unit,
+    onShareCode: (HomeworkCodeEntry) -> Unit
+) {
+    val formatter = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
+    val sortedCodes = remember(codes) { codes.sortedByDescending { it.createdAt } }
+    var selectedId by remember { mutableStateOf<String?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    val selectedCode = sortedCodes.firstOrNull { it.id == selectedId }
+
+    Spacer(modifier = Modifier.height(12.dp))
+    SeaGlassPanel(title = "Codici compito") {
+        if (sortedCodes.isEmpty()) {
+            Text("Nessun codice salvato.")
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 260.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                sortedCodes.forEach { code ->
+                    val isSelected = code.id == selectedId
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(18.dp)
+                            )
+                            .combinedClickable(
+                                onClick = {
+                                    selectedId = if (isSelected) null else code.id
+                                }
+                            )
+                            .padding(12.dp)
+                    ) {
+                        Text(code.title, fontWeight = FontWeight.Bold)
+                        Text(
+                            formatHomeworkCodePreview(code.code),
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            formatter.format(Date(code.createdAt)),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (selectedCode != null) {
+        SeaGlassPanel(
+            title = "Azioni codice",
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .fillMaxWidth()
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Codice selezionato: ${selectedCode.title}")
+                Button(
+                    onClick = { onShareCode(selectedCode) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Condividi codice")
+                }
+                Button(
+                    onClick = { showDeleteConfirm = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Elimina codice", color = MaterialTheme.colorScheme.onErrorContainer)
+                }
+            }
+        }
+    }
+
+    if (showDeleteConfirm && selectedCode != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Eliminare questo codice?") },
+            text = { Text("Il codice selezionato verrà eliminato definitivamente.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val code = selectedCode
+                        showDeleteConfirm = false
+                        selectedId = null
+                        onDeleteCode(code)
+                    }
+                ) { Text("Elimina") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Annulla")
+                }
+            }
+        )
     }
 }
 
