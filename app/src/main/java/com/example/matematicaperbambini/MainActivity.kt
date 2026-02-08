@@ -192,6 +192,7 @@ enum class LeaderboardTab {
 // -----------------------------
 private enum class Screen {
     HOME,
+    IMPARA_MENU,
     GAME_MENU,
     HOMEWORK_MENU,
     DIGITS_PICKER,     // Add/Sub
@@ -547,6 +548,12 @@ private fun AppShell() {
         screen = Screen.GAME
     }
 
+    fun openGuidedSession() {
+        helpPreset = HelpPreset.GUIDED
+        sessionHelpSettings = HelpPreset.GUIDED.toHelpSettings()
+        startMode = StartMode.RANDOM
+    }
+
     fun openStartMenu(m: GameMode) {
         pendingStartMenuMode = m
         navAnim = NavAnim.SLIDE
@@ -584,9 +591,35 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
                 onOpenGameMenu = { navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                onOpenLearnMenu = { navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
                 onOpenHomeworkMenu = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
                 onOpenReports = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
                 savedHomeworks = savedHomeworks,
+            )
+
+            Screen.IMPARA_MENU -> LearnMenuKids(
+                soundEnabled = soundEnabled,
+                onToggleSound = { soundEnabled = !soundEnabled },
+                onOpenLeaderboard = { openLb() },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onStartAddition = {
+                    openGuidedSession()
+                    openGame(GameMode.ADD, digits, StartMode.RANDOM)
+                },
+                onStartSubtraction = {
+                    openGuidedSession()
+                    openGame(GameMode.SUB, digits, StartMode.RANDOM)
+                },
+                onStartMultiplication = {
+                    openGuidedSession()
+                    navAnim = NavAnim.EXPAND
+                    screen = Screen.MULT_HARD_GAME
+                },
+                onStartDivision = {
+                    openGuidedSession()
+                    navAnim = NavAnim.EXPAND
+                    screen = Screen.DIV_STEP_GAME
+                }
             )
 
             Screen.GAME_MENU -> GameMenuKids(
@@ -888,6 +921,7 @@ private fun HomeMenuKids(
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onOpenGameMenu: () -> Unit,
+    onOpenLearnMenu: () -> Unit,
     onOpenHomeworkMenu: () -> Unit,
     onOpenReports: () -> Unit,
     savedHomeworks: List<SavedHomework>
@@ -904,6 +938,12 @@ private fun HomeMenuKids(
                     baseColor = Color(0xFF8B5CF6),
                     iconText = "🎮",
                     onClick = onOpenGameMenu
+                ),
+                MenuButtonData(
+                    title = "Impara",
+                    baseColor = Color(0xFFF59E0B),
+                    iconText = "📖",
+                    onClick = onOpenLearnMenu
                 ),
                 MenuButtonData(
                     title = "Compiti",
@@ -1038,6 +1078,166 @@ private fun HomeMenuKids(
                                 )
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LearnMenuKids(
+    soundEnabled: Boolean,
+    onToggleSound: () -> Unit,
+    onOpenLeaderboard: () -> Unit,
+    onBack: () -> Unit,
+    onStartAddition: () -> Unit,
+    onStartSubtraction: () -> Unit,
+    onStartMultiplication: () -> Unit,
+    onStartDivision: () -> Unit
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenH = maxHeight
+        val screenW = maxWidth
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            val sizing = menuSizing(screenH)
+            val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
+            val buttons = listOf(
+                MenuButtonData(
+                    title = "Addizioni guidate",
+                    baseColor = Color(0xFFE74C3C),
+                    iconText = "＋",
+                    onClick = onStartAddition
+                ),
+                MenuButtonData(
+                    title = "Sottrazioni guidate",
+                    baseColor = Color(0xFF2ECC71),
+                    iconText = "−",
+                    onClick = onStartSubtraction
+                ),
+                MenuButtonData(
+                    title = "Moltiplicazioni guidate",
+                    baseColor = Color(0xFF8B5CF6),
+                    iconText = "××",
+                    onClick = onStartMultiplication
+                ),
+                MenuButtonData(
+                    title = "Divisioni guidate",
+                    baseColor = Color(0xFF3498DB),
+                    iconText = "÷",
+                    onClick = onStartDivision
+                )
+            )
+
+            val animationsReady = remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { animationsReady.value = true }
+
+            val density = LocalDensity.current
+            var headerHeightPx by remember { mutableStateOf(0) }
+            var firstButtonHeightPx by remember { mutableStateOf(0) }
+            var logoHeightPx by remember { mutableStateOf(0) }
+
+            val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
+            val screenHeightPx = with(density) { screenH.toPx() }
+            val midScreenPx = screenHeightPx * 0.5f
+            val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
+            val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
+            val logoTopPx = headerHeightPx + (logoGapPx - logoHeightPx) / 2f
+
+            val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
+            val logoOffset = with(density) { logoTopPx.toDp() }
+            val logoMaxHeight = with(density) { logoGapPx.toDp() }
+            val offsetPx = with(density) { sizing.offset.toPx() }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFF0EA5E9).copy(alpha = 0.00f))
+                    .padding(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .onSizeChanged { headerHeightPx = it.height }
+                ) {
+                    MenuHeader(
+                        soundEnabled = soundEnabled,
+                        onToggleSound = onToggleSound,
+                        onOpenLeaderboard = onOpenLeaderboard,
+                        onBack = onBack
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = logoOffset)
+                        .onSizeChanged { logoHeightPx = it.height },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (logoPainter != null) {
+                        Image(
+                            painter = logoPainter,
+                            contentDescription = "Math Kids",
+                            modifier = Modifier
+                                .fillMaxWidth(1.00f)
+                                .heightIn(max = logoMaxHeight),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.HelpOutline,
+                            contentDescription = "Logo mancante",
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = firstButtonOffset),
+                    verticalArrangement = Arrangement.spacedBy(sizing.buttonSpacing)
+                ) {
+                    buttons.forEachIndexed { index, data ->
+                        val alpha by animateFloatAsState(
+                            targetValue = if (animationsReady.value) 1f else 0f,
+                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                            label = "menuAlpha$index"
+                        )
+                        val offsetY by animateFloatAsState(
+                            targetValue = if (animationsReady.value) 0f else offsetPx,
+                            animationSpec = tween(durationMillis = 220, delayMillis = index * 60),
+                            label = "menuOffset$index"
+                        )
+
+                        val sizeModifier = if (index == 0) {
+                            Modifier.onSizeChanged { firstButtonHeightPx = it.height }
+                        } else {
+                            Modifier
+                        }
+                        KidsMenuButton(
+                            title = data.title,
+                            baseColor = data.baseColor,
+                            icon = {
+                                Text(
+                                    data.iconText,
+                                    color = Color.White,
+                                    fontSize = if (data.iconText.length > 1) 20.sp else 22.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            },
+                            onClick = data.onClick,
+                            height = sizing.buttonHeight,
+                            textSize = sizing.buttonTextSize,
+                            modifier = sizeModifier.graphicsLayer {
+                                this.alpha = alpha
+                                translationY = offsetY
+                            }
+                        )
                     }
                 }
             }
