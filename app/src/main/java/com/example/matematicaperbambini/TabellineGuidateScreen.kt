@@ -349,25 +349,12 @@ fun TabellineGuidateScreen(
                     enabled = allFilled,
                     modifier = Modifier.fillMaxWidth().height(54.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFF59E0B),
-                        disabledContainerColor = Color(0xFFFCD34D),
-                        disabledContentColor = Color(0xFF9A3412)
+                        containerColor = Color(0xFF3B82F6),
+                        disabledContainerColor = Color(0xFFBFDBFE),
+                        disabledContentColor = Color(0xFF1E3A8A)
                     )
                 ) {
                     Text(primaryLabel, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                }
-                Button(
-                    onClick = {
-                        showAllResults = true
-                        infoMessage = "Puoi guardare tutti i risultati e copiarli con calma."
-                    },
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFE0F2FE),
-                        contentColor = Color(0xFF1D4ED8)
-                    )
-                ) {
-                    Text("Mostra tutti i risultati", fontWeight = FontWeight.Bold)
                 }
             }
         }
