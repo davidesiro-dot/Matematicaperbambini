@@ -568,6 +568,9 @@ private fun AppShell() {
 
     fun openStartMenu(m: GameMode) {
         pendingStartMenuMode = m
+        if (!isLearnFlow) {
+            helpPreset = HelpPreset.TRAINING
+        }
         navAnim = NavAnim.SLIDE
         screen = Screen.OPERATION_START_MENU
     }
@@ -698,7 +701,11 @@ private fun AppShell() {
                     },
                     selectedHelpPreset = helpPreset,
                     onSelectHelpPreset = { helpPreset = it },
-                    availableHelpPresets = if (isLearnFlow) listOf(HelpPreset.GUIDED) else HelpPreset.values().toList()
+                    availableHelpPresets = if (isLearnFlow) {
+                        listOf(HelpPreset.GUIDED)
+                    } else {
+                        listOf(HelpPreset.TRAINING, HelpPreset.CHALLENGE)
+                    }
                 )
             }
 
