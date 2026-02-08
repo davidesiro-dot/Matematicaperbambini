@@ -1033,7 +1033,7 @@ private fun HomeMenuKids(
             var firstButtonHeightPx by remember { mutableStateOf(0) }
             var logoHeightPx by remember { mutableStateOf(0) }
 
-            val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
+            val contentTopInsetPx = with(density) { sizing.contentTopInset.toPx() }
             val screenHeightPx = with(density) { screenH.toPx() }
             val midScreenPx = screenHeightPx * 0.5f
             val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
@@ -1210,7 +1210,7 @@ private fun LearnMenuKids(
             var firstButtonHeightPx by remember { mutableStateOf(0) }
             var logoHeightPx by remember { mutableStateOf(0) }
 
-            val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
+            val contentTopInsetPx = with(density) { sizing.contentTopInset.toPx() }
             val screenHeightPx = with(density) { screenH.toPx() }
             val midScreenPx = screenHeightPx * 0.5f
             val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
@@ -1380,7 +1380,7 @@ private fun GameMenuKids(
             var firstButtonHeightPx by remember { mutableStateOf(0) }
             var logoHeightPx by remember { mutableStateOf(0) }
 
-            val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
+            val contentTopInsetPx = with(density) { sizing.contentTopInset.toPx() }
             val screenHeightPx = with(density) { screenH.toPx() }
             val midScreenPx = screenHeightPx * 0.5f
             val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
@@ -1632,7 +1632,7 @@ private fun HomeworkMenu(
             var firstButtonHeightPx by remember { mutableStateOf(0) }
             var logoHeightPx by remember { mutableStateOf(0) }
 
-            val contentTopInsetPx = with(density) { (16.dp + 12.dp).toPx() }
+            val contentTopInsetPx = with(density) { sizing.contentTopInset.toPx() }
             val screenHeightPx = with(density) { screenH.toPx() }
             val midScreenPx = screenHeightPx * 0.5f
             val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
@@ -1909,7 +1909,8 @@ private data class MenuSizing(
     val buttonSpacing: Dp,
     val buttonTextSize: TextUnit,
     val bonusTextSize: TextUnit,
-    val offset: Dp
+    val offset: Dp,
+    val contentTopInset: Dp
 )
 
 private fun menuSizing(maxHeight: Dp): MenuSizing {
@@ -1946,13 +1947,19 @@ private fun menuSizing(maxHeight: Dp): MenuSizing {
         MenuSizeProfile.Normal -> 16.dp
         MenuSizeProfile.Large -> 18.dp
     }
+    val contentTopInset = when (sizeProfile) {
+        MenuSizeProfile.Small -> 16.dp
+        MenuSizeProfile.Normal -> 18.dp
+        MenuSizeProfile.Large -> 20.dp
+    }
 
     return MenuSizing(
         buttonHeight = buttonHeight,
         buttonSpacing = buttonSpacing,
         buttonTextSize = buttonTextSize,
         bonusTextSize = bonusTextSize,
-        offset = offset
+        offset = offset,
+        contentTopInset = contentTopInset
     )
 }
 
