@@ -931,6 +931,13 @@ private fun AppShell() {
                         homeworkReports = listOf(report) + homeworkReports
                     }
                 },
+                onFinishHomework = { results ->
+                    lastHomeworkResults = results
+                    runningHomeworkId = null
+                    homeworkQueue = emptyList()
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.HOME
+                },
                 homeworkId = runningHomeworkId,
                 onHomeworkCompleted = { homeworkId ->
                     savedHomeworks = savedHomeworks.filterNot { it.id == homeworkId }
