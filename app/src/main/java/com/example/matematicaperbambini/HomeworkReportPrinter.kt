@@ -326,14 +326,18 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
             lines += PdfLine.TextLine("Operazione: ${exerciseLabel(result.instance)}", TextStyle.BODY)
             if (result.wrongAnswers.isNotEmpty()) {
                 val expected = expectedAnswer(result.instance)
-                val wrongAnswer = result.wrongAnswers.last()
-                lines += PdfLine.TextLine("Errore:", TextStyle.BODY)
-                lines += PdfLine.TextLine("• Risposta inserita: $wrongAnswer", TextStyle.BODY)
+                lines += PdfLine.TextLine("Risposte errate:", TextStyle.BODY)
+                lines += PdfLine.TextLine("• ${result.wrongAnswers.joinToString()}", TextStyle.BODY)
                 lines += PdfLine.TextLine(
                     "• Risposta corretta: ${expected ?: "non disponibile"}",
                     TextStyle.BODY
                 )
-                lines += PdfLine.TextLine("• Tipo di errore: Risposta finale errata", TextStyle.BODY)
+            } else if (!result.correct) {
+                val expected = expectedAnswer(result.instance)
+                lines += PdfLine.TextLine(
+                    "Risposta corretta: ${expected ?: "non disponibile"}",
+                    TextStyle.BODY
+                )
             }
             if (result.stepErrors.isNotEmpty()) {
                 lines += PdfLine.TextLine("Errori nei passaggi:", TextStyle.BODY)
