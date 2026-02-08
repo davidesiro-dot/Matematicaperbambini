@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,31 +59,31 @@ fun TabellineGuidateScreen(
     val phases = remember {
         listOf(
             GuidedPhase(
-                title = "Fase 1/5 - Aiuto completo",
+                title = "Fase 1/5 – Aiuto completo",
                 message = "Guarda e riscrivi con calma 🙂",
                 visibleRows = (1..10).toSet(),
                 validate = false
             ),
             GuidedPhase(
-                title = "Fase 2/5 - Aiuto con 3 numeri mancanti",
+                title = "Fase 2/5 – Aiuto con 3 numeri mancanti",
                 message = "Prova da solo, guarda gli altri numeri se ti aiutano",
                 visibleRows = (1..10).filterNot { it in setOf(3, 6, 8) }.toSet(),
                 validate = true
             ),
             GuidedPhase(
-                title = "Fase 3/5 - Aiuto con 7 numeri mancanti",
+                title = "Fase 3/5 – Aiuto con 7 numeri mancanti",
                 message = "Bravo! Ora sai quasi tutta la tabellina 💪",
                 visibleRows = setOf(1, 5, 10),
                 validate = true
             ),
             GuidedPhase(
-                title = "Fase 4/5 - Aiuto minimo",
+                title = "Fase 4/5 – Aiuto minimo",
                 message = "Usa quello che sai per ricostruire tutto",
                 visibleRows = setOf(5, 10),
                 validate = true
             ),
             GuidedPhase(
-                title = "Fase 5/5 - Nessun aiuto",
+                title = "Fase 5/5 – Nessun aiuto",
                 message = "Se sbagli va bene, impariamo insieme ❤️",
                 visibleRows = emptySet(),
                 validate = true
@@ -152,150 +155,221 @@ fun TabellineGuidateScreen(
     }
 
     val phase = phases[phaseIndex]
+    val allFilled = inputs.all { it.isNotBlank() }
+    val primaryLabel = when {
+        phaseIndex == phases.lastIndex -> "Ho finito"
+        phase.validate -> "Prossima fase"
+        else -> "Continua"
+    }
+    val rowHeight = 64.dp
+    val listHeight = rowHeight * 5
 
     Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SmallCircleButton("⬅") { onBack() }
-                    Column {
-                        Text(
-                            "Tabellina del $table",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp,
-                            color = Color(0xFF111827),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            phase.title,
-                            color = Color(0xFF6B7280),
-                            fontSize = 12.sp,
-                            maxLines = 1
-                        )
-                    }
-                }
-                SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-            }
-
-            SeaGlassPanel(title = "AIUTO e TU") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("AIUTO", fontWeight = FontWeight.Black, color = Color(0xFF2563EB))
-                        for (i in 1..10) {
-                            val showResult = showAllResults || phase.visibleRows.contains(i)
-                            val value = if (showResult) results[i - 1].toString() else "__"
-                            val color = if (showResult) Color(0xFF111827) else Color(0xFF94A3B8)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SmallCircleButton("⬅") { onBack() }
+                        Column {
                             Text(
-                                text = "$table × $i = $value",
-                                fontWeight = FontWeight.Bold,
-                                color = color
+                                "Tabellina del $table",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp,
+                                color = Color(0xFF111827),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                phase.title,
+                                color = Color(0xFF6B7280),
+                                fontSize = 12.sp,
+                                maxLines = 1
                             )
                         }
                     }
+                    SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFF1F5F9))
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = infoMessage,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1F2937),
+                        fontSize = 14.sp
+                    )
+                }
+            }
 
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+            SeaGlassPanel(title = "AIUTO e TU") {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text("TU", fontWeight = FontWeight.Black, color = Color(0xFF16A34A))
-                        for (i in 1..10) {
+                        Text(
+                            "AIUTO",
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF2563EB),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            "TU",
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF16A34A),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(listHeight),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items((1..10).toList()) { i ->
                             val index = i - 1
+                            val showResult = showAllResults || phase.visibleRows.contains(i)
+                            val value = if (showResult) results[index].toString() else "__"
+                            val color = if (showResult) Color(0xFF111827) else Color(0xFF94A3B8)
+                            val borderColor = when (correctness[index]) {
+                                true -> Color(0xFF22C55E)
+                                false -> Color(0xFFF59E0B)
+                                null -> Color(0xFF94A3B8)
+                            }
+
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(rowHeight),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "$table × $i =",
+                                    text = "$table × $i = $value",
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.width(72.dp)
-                                )
-                                OutlinedTextField(
-                                    value = inputs[index],
-                                    onValueChange = { value ->
-                                        inputs[index] = value.filter { it.isDigit() }.take(3)
-                                        correctness[index] = null
-                                    },
-                                    singleLine = true,
-                                    isError = correctness[index] == false,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    color = color,
                                     modifier = Modifier.weight(1f)
                                 )
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "$table × $i =",
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.width(72.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp)
+                                            .border(3.dp, borderColor, RoundedCornerShape(16.dp))
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(Color.White)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = inputs[index],
+                                            onValueChange = { value ->
+                                                val sanitized = value.filter { it.isDigit() }.take(3)
+                                                inputs[index] = sanitized
+                                                correctness[index] = when {
+                                                    sanitized.isBlank() -> null
+                                                    else -> sanitized.toIntOrNull() == results[index]
+                                                }
+                                            },
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier.fillMaxSize(),
+                                            textStyle = androidx.compose.ui.text.TextStyle(
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            ),
+                                            shape = RoundedCornerShape(16.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = Color.Transparent,
+                                                unfocusedBorderColor = Color.Transparent,
+                                                disabledBorderColor = Color.Transparent,
+                                                errorBorderColor = Color.Transparent,
+                                                focusedContainerColor = Color.White,
+                                                unfocusedContainerColor = Color.White
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            SeaGlassPanel(title = "Messaggio") {
-                Text(
-                    text = infoMessage,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1F2937)
-                )
+            Button(
+                onClick = { fillOneExample() },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Text("Fammi vedere come si fa", fontWeight = FontWeight.Bold)
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Spacer(Modifier.weight(1f))
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = {
+                        if (phase.validate) {
+                            if (validatePhase(phase)) {
+                                if (phaseIndex == phases.lastIndex) {
+                                    completed = true
+                                    infoMessage = "Hai imparato la tabellina del $table! 🌟"
+                                } else {
+                                    phaseIndex += 1
+                                }
+                            }
+                        } else {
+                            if (allFilled) {
+                                phaseIndex += 1
+                            } else {
+                                infoMessage = "Completa tutte le righe con calma 🙂"
+                            }
+                        }
+                    },
+                    enabled = allFilled,
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFF59E0B),
+                        disabledContainerColor = Color(0xFFFCD34D),
+                        disabledContentColor = Color(0xFF9A3412)
+                    )
+                ) {
+                    Text(primaryLabel, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
                 Button(
                     onClick = {
                         showAllResults = true
                         infoMessage = "Puoi guardare tutti i risultati e copiarli con calma."
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE0F2FE),
+                        contentColor = Color(0xFF1D4ED8)
+                    )
                 ) {
-                    Text("Mostra tutti i risultati")
-                }
-                Button(
-                    onClick = { fillOneExample() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
-                ) {
-                    Text("Fammi vedere come si fa")
+                    Text("Mostra tutti i risultati", fontWeight = FontWeight.Bold)
                 }
             }
-
-            Button(
-                onClick = {
-                    if (phase.validate) {
-                        if (validatePhase(phase)) {
-                            if (phaseIndex == phases.lastIndex) {
-                                completed = true
-                                infoMessage = "Hai imparato la tabellina del $table! 🌟"
-                            } else {
-                                phaseIndex += 1
-                            }
-                        }
-                    } else {
-                        val ready = inputs.all { it.isNotBlank() }
-                        if (!ready) {
-                            infoMessage = "Completa tutte le righe con calma 🙂"
-                        } else {
-                            phaseIndex += 1
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
-            ) {
-                Text("Continua", fontWeight = FontWeight.Black, fontSize = 18.sp)
-            }
-
-            Spacer(Modifier.weight(1f))
         }
 
         if (completed) {
