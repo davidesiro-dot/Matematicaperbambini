@@ -1955,11 +1955,28 @@ fun HomeworkReportsScreen(
                                 report.results.forEachIndexed { index, result ->
                                     val outcome = outcomeLabel(result.outcome())
                                     val exerciseDuration = formatDurationMillis(result.endedAt - result.startedAt)
+                                    val expected = expectedAnswer(result.instance)
                                     Spacer(Modifier.height(6.dp))
                                     Text("Esercizio ${index + 1}", fontWeight = FontWeight.SemiBold)
                                     Text("Tipo di gioco: ${result.instance.game.title}")
                                     Text("Operazione: ${exerciseLabel(result.instance)}")
                                     Text("Esito: $outcome")
+                                    if (result.outcome() != ExerciseOutcome.PERFECT) {
+                                        if (result.wrongAnswers.isNotEmpty()) {
+                                            Text("Risposte errate: ${result.wrongAnswers.joinToString()}")
+                                            if (expected != null) {
+                                                Text("Risposta corretta: $expected")
+                                            }
+                                        } else if (expected != null) {
+                                            Text("Risposta corretta: $expected")
+                                        }
+                                        if (result.stepErrors.isNotEmpty()) {
+                                            Text("Passaggi errati:")
+                                            result.stepErrors.forEach { error ->
+                                                Text("• ${stepErrorDescription(error)}")
+                                            }
+                                        }
+                                    }
                                     Text("Tentativi: ${result.attempts}")
                                     Text("Tempo impiegato: $exerciseDuration")
                                     Text(
