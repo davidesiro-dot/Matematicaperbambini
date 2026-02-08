@@ -1235,6 +1235,7 @@ fun HomeworkRunnerScreen(
     previousReports: List<HomeworkReport>,
     onExit: (List<ExerciseResult>) -> Unit,
     onSaveReport: (HomeworkReport) -> Unit,
+    onFinishHomework: (List<ExerciseResult>) -> Unit,
     homeworkId: String?,
     onHomeworkCompleted: (String) -> Unit
 ) {
@@ -1244,6 +1245,7 @@ fun HomeworkRunnerScreen(
     var showExitDialog by remember { mutableStateOf(false) }
     var showCompletionDialog by remember { mutableStateOf(false) }
     var completionHandled by remember { mutableStateOf(false) }
+    var completionName by remember { mutableStateOf("") }
 
     LaunchedEffect(index) {
         startAt = System.currentTimeMillis()
@@ -1252,35 +1254,55 @@ fun HomeworkRunnerScreen(
     if (index >= queue.size) {
         if (!completionHandled) {
             completionHandled = true
-            val defaultName = previousReports.firstOrNull()?.childName?.ifBlank { null }
-                ?: "Senza nome"
-            val totalExercises = queue.size
-            val report = HomeworkReport(
-                childName = defaultName,
-                createdAt = System.currentTimeMillis(),
-                results = results.toList(),
-                interrupted = false,
-                completedExercises = totalExercises,
-                totalExercises = totalExercises
-            )
-            onSaveReport(report)
             showCompletionDialog = true
         }
 
         if (showCompletionDialog) {
+            val trimmedName = completionName.trim()
+            val nameMissing = trimmedName.isBlank()
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = {},
-                title = { Text("Complimenti!") },
-                text = { Text("Hai completato il compito 🎉") },
+                title = { Text("🎉 Bravo! Hai finito i compiti!") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Prima di andare alla Home, scrivi il tuo nome.")
+                        OutlinedTextField(
+                            value = completionName,
+                            onValueChange = { completionName = it.take(24) },
+                            label = { Text("Scrivi il tuo nome") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (nameMissing) {
+                            Text(
+                                "Scrivi il tuo nome per salvare il risultato 🙂",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                },
                 confirmButton = {
                     Button(
                         onClick = {
+                            val totalExercises = queue.size
+                            val report = HomeworkReport(
+                                childName = trimmedName,
+                                createdAt = System.currentTimeMillis(),
+                                results = results.toList(),
+                                interrupted = false,
+                                completedExercises = totalExercises,
+                                totalExercises = totalExercises
+                            )
+                            onSaveReport(report)
                             showCompletionDialog = false
                             homeworkId?.let(onHomeworkCompleted)
-                            onExit(results.toList())
-                        }
+                            onFinishHomework(results.toList())
+                        },
+                        enabled = !nameMissing,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Torna alla Home")
+                        Text("Salva e torna alla Home")
                     }
                 }
             )
@@ -1542,22 +1564,33 @@ private fun HomeworkReportScreen(
     var currentReport by remember { mutableStateOf<HomeworkReport?>(null) }
 
     if (showNameDialog && !reportSaved) {
+        val trimmedName = childName.trim()
+        val nameMissing = trimmedName.isBlank()
         androidx.compose.material3.AlertDialog(
             onDismissRequest = {},
-            title = { Text("Nome del bambino") },
+            title = { Text("Scrivi il tuo nome") },
             text = {
-                OutlinedTextField(
-                    value = childName,
-                    onValueChange = { childName = it.take(24) },
-                    label = { Text("Inserisci il nome") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = childName,
+                        onValueChange = { childName = it.take(24) },
+                        label = { Text("Scrivi il tuo nome") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (nameMissing) {
+                        Text(
+                            "Scrivi il tuo nome per salvare il risultato 🙂",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        val safeName = childName.trim().ifBlank { "Senza nome" }
+                        val safeName = trimmedName
                         val report = HomeworkReport(
                             childName = safeName,
                             createdAt = System.currentTimeMillis(),
@@ -1571,7 +1604,7 @@ private fun HomeworkReportScreen(
                         reportSaved = true
                         showNameDialog = false
                     },
-                    enabled = childName.isNotBlank()
+                    enabled = !nameMissing
                 ) { Text("OK") }
             }
         )

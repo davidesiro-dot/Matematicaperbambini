@@ -28,8 +28,10 @@ class HomeworkReportStorage(private val context: Context) {
 
     // Persistenza locale dei report (DataStore): nessun backend, solo dispositivo.
     suspend fun saveReport(report: HomeworkReport) {
+        val safeName = report.childName.trim().ifBlank { "Senza nome" }
+        val safeReport = if (safeName == report.childName) report else report.copy(childName = safeName)
         val existing = loadReports()
-        val limited = (listOf(report) + existing).take(MAX_REPORTS)
+        val limited = (listOf(safeReport) + existing).take(MAX_REPORTS)
         persistReports(limited)
     }
 
