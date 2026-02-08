@@ -1033,7 +1033,7 @@ private fun HomeMenuKids(
             var logoHeightPx by remember { mutableStateOf(0) }
 
             val headerLogoSpacing = 8.dp
-            val logoButtonSpacing = 40.dp
+            val logoButtonSpacing = 50.dp
             val headerLogoSpacingPx = with(density) { headerLogoSpacing.toPx() }
             val logoButtonSpacingPx = with(density) { logoButtonSpacing.toPx() }
             val logoTopPx = headerHeightPx + headerLogoSpacingPx
@@ -1211,7 +1211,7 @@ private fun LearnMenuKids(
             var logoHeightPx by remember { mutableStateOf(0) }
 
             val headerLogoSpacing = 8.dp
-            val logoButtonSpacing = 40.dp
+            val logoButtonSpacing = 50.dp
             val headerLogoSpacingPx = with(density) { headerLogoSpacing.toPx() }
             val logoButtonSpacingPx = with(density) { logoButtonSpacing.toPx() }
             val logoTopPx = headerHeightPx + headerLogoSpacingPx
@@ -1382,7 +1382,7 @@ private fun GameMenuKids(
             var logoHeightPx by remember { mutableStateOf(0) }
 
             val headerLogoSpacing = 8.dp
-            val logoButtonSpacing = 40.dp
+            val logoButtonSpacing = 50.dp
             val headerLogoSpacingPx = with(density) { headerLogoSpacing.toPx() }
             val logoButtonSpacingPx = with(density) { logoButtonSpacing.toPx() }
             val logoTopPx = headerHeightPx + headerLogoSpacingPx
@@ -1635,7 +1635,7 @@ private fun HomeworkMenu(
             var logoHeightPx by remember { mutableStateOf(0) }
 
             val headerLogoSpacing = 8.dp
-            val logoButtonSpacing = 40.dp
+            val logoButtonSpacing = 50.dp
             val headerLogoSpacingPx = with(density) { headerLogoSpacing.toPx() }
             val logoButtonSpacingPx = with(density) { logoButtonSpacing.toPx() }
             val logoTopPx = headerHeightPx + headerLogoSpacingPx
