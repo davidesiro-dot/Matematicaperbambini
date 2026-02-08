@@ -1030,19 +1030,25 @@ private fun HomeMenuKids(
 
             val density = LocalDensity.current
             var headerHeightPx by remember { mutableStateOf(0) }
-            var firstButtonHeightPx by remember { mutableStateOf(0) }
             var logoHeightPx by remember { mutableStateOf(0) }
 
-            val contentTopInsetPx = with(density) { sizing.contentTopInset.toPx() }
-            val screenHeightPx = with(density) { screenH.toPx() }
-            val midScreenPx = screenHeightPx * 0.5f
-            val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
-            val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
-            val logoTopPx = headerHeightPx + (logoGapPx - logoHeightPx) / 2f
+            val headerLogoSpacing = 20.dp
+            val logoButtonSpacing = 30.dp
+            val headerLogoSpacingPx = with(density) { headerLogoSpacing.toPx() }
+            val logoButtonSpacingPx = with(density) { logoButtonSpacing.toPx() }
+            val logoTopPx = headerHeightPx + headerLogoSpacingPx
+            val firstButtonTopPx = logoTopPx + logoHeightPx + logoButtonSpacingPx
+            val headerHeightDp = with(density) { headerHeightPx.toDp() }
+            val buttonCount = buttons.size
+            val totalButtonsHeight =
+                (sizing.buttonHeight * buttonCount.toFloat()) +
+                    (sizing.buttonSpacing * (buttonCount - 1).coerceAtLeast(0).toFloat())
+            val logoMaxHeight =
+                (screenH - headerHeightDp - headerLogoSpacing - logoButtonSpacing - totalButtonsHeight)
+                    .coerceAtLeast(0.dp)
 
             val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
             val logoOffset = with(density) { logoTopPx.toDp() }
-            val logoMaxHeight = with(density) { logoGapPx.toDp() }
             val offsetPx = with(density) { sizing.offset.toPx() }
 
             Box(
@@ -1110,11 +1116,6 @@ private fun HomeMenuKids(
                         )
 
                         Box {
-                            val sizeModifier = if (index == 0) {
-                                Modifier.onSizeChanged { firstButtonHeightPx = it.height }
-                            } else {
-                                Modifier
-                            }
                             KidsMenuButton(
                                 title = data.title,
                                 baseColor = data.baseColor,
@@ -1129,7 +1130,7 @@ private fun HomeMenuKids(
                                 onClick = data.onClick,
                                 height = sizing.buttonHeight,
                                 textSize = sizing.buttonTextSize,
-                                modifier = sizeModifier.graphicsLayer {
+                                modifier = Modifier.graphicsLayer {
                                     this.alpha = alpha
                                     translationY = offsetY
                                 }
@@ -1207,19 +1208,25 @@ private fun LearnMenuKids(
 
             val density = LocalDensity.current
             var headerHeightPx by remember { mutableStateOf(0) }
-            var firstButtonHeightPx by remember { mutableStateOf(0) }
             var logoHeightPx by remember { mutableStateOf(0) }
 
-            val contentTopInsetPx = with(density) { sizing.contentTopInset.toPx() }
-            val screenHeightPx = with(density) { screenH.toPx() }
-            val midScreenPx = screenHeightPx * 0.5f
-            val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
-            val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
-            val logoTopPx = headerHeightPx + (logoGapPx - logoHeightPx) / 2f
+            val headerLogoSpacing = 20.dp
+            val logoButtonSpacing = 30.dp
+            val headerLogoSpacingPx = with(density) { headerLogoSpacing.toPx() }
+            val logoButtonSpacingPx = with(density) { logoButtonSpacing.toPx() }
+            val logoTopPx = headerHeightPx + headerLogoSpacingPx
+            val firstButtonTopPx = logoTopPx + logoHeightPx + logoButtonSpacingPx
+            val headerHeightDp = with(density) { headerHeightPx.toDp() }
+            val buttonCount = buttons.size
+            val totalButtonsHeight =
+                (sizing.buttonHeight * buttonCount.toFloat()) +
+                    (sizing.buttonSpacing * (buttonCount - 1).coerceAtLeast(0).toFloat())
+            val logoMaxHeight =
+                (screenH - headerHeightDp - headerLogoSpacing - logoButtonSpacing - totalButtonsHeight)
+                    .coerceAtLeast(0.dp)
 
             val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
             val logoOffset = with(density) { logoTopPx.toDp() }
-            val logoMaxHeight = with(density) { logoGapPx.toDp() }
             val offsetPx = with(density) { sizing.offset.toPx() }
 
             Box(
@@ -1287,11 +1294,6 @@ private fun LearnMenuKids(
                             label = "menuOffset$index"
                         )
 
-                        val sizeModifier = if (index == 0) {
-                            Modifier.onSizeChanged { firstButtonHeightPx = it.height }
-                        } else {
-                            Modifier
-                        }
                         KidsMenuButton(
                             title = data.title,
                             baseColor = data.baseColor,
@@ -1306,7 +1308,7 @@ private fun LearnMenuKids(
                             onClick = data.onClick,
                             height = sizing.buttonHeight,
                             textSize = sizing.buttonTextSize,
-                            modifier = sizeModifier.graphicsLayer {
+                            modifier = Modifier.graphicsLayer {
                                 this.alpha = alpha
                                 translationY = offsetY
                             }
@@ -1377,19 +1379,25 @@ private fun GameMenuKids(
 
             val density = LocalDensity.current
             var headerHeightPx by remember { mutableStateOf(0) }
-            var firstButtonHeightPx by remember { mutableStateOf(0) }
             var logoHeightPx by remember { mutableStateOf(0) }
 
-            val contentTopInsetPx = with(density) { sizing.contentTopInset.toPx() }
-            val screenHeightPx = with(density) { screenH.toPx() }
-            val midScreenPx = screenHeightPx * 0.5f
-            val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
-            val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
-            val logoTopPx = headerHeightPx + (logoGapPx - logoHeightPx) / 2f
+            val headerLogoSpacing = 20.dp
+            val logoButtonSpacing = 30.dp
+            val headerLogoSpacingPx = with(density) { headerLogoSpacing.toPx() }
+            val logoButtonSpacingPx = with(density) { logoButtonSpacing.toPx() }
+            val logoTopPx = headerHeightPx + headerLogoSpacingPx
+            val firstButtonTopPx = logoTopPx + logoHeightPx + logoButtonSpacingPx
+            val headerHeightDp = with(density) { headerHeightPx.toDp() }
+            val buttonCount = buttons.size
+            val totalButtonsHeight =
+                (sizing.buttonHeight * buttonCount.toFloat()) +
+                    (sizing.buttonSpacing * (buttonCount - 1).coerceAtLeast(0).toFloat())
+            val logoMaxHeight =
+                (screenH - headerHeightDp - headerLogoSpacing - logoButtonSpacing - totalButtonsHeight)
+                    .coerceAtLeast(0.dp)
 
             val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
             val logoOffset = with(density) { logoTopPx.toDp() }
-            val logoMaxHeight = with(density) { logoGapPx.toDp() }
             val offsetPx = with(density) { sizing.offset.toPx() }
 
             Box(
@@ -1464,11 +1472,6 @@ private fun GameMenuKids(
                             label = "menuOffset$index"
                         )
 
-                        val sizeModifier = if (index == 0) {
-                            Modifier.onSizeChanged { firstButtonHeightPx = it.height }
-                        } else {
-                            Modifier
-                        }
                         KidsMenuButton(
                             title = data.title,
                             baseColor = data.baseColor,
@@ -1483,7 +1486,7 @@ private fun GameMenuKids(
                             onClick = data.onClick,
                             height = sizing.buttonHeight,
                             textSize = sizing.buttonTextSize,
-                            modifier = sizeModifier.graphicsLayer {
+                            modifier = Modifier.graphicsLayer {
                                 this.alpha = alpha
                                 translationY = offsetY
                             }
@@ -1629,19 +1632,25 @@ private fun HomeworkMenu(
 
             val density = LocalDensity.current
             var headerHeightPx by remember { mutableStateOf(0) }
-            var firstButtonHeightPx by remember { mutableStateOf(0) }
             var logoHeightPx by remember { mutableStateOf(0) }
 
-            val contentTopInsetPx = with(density) { sizing.contentTopInset.toPx() }
-            val screenHeightPx = with(density) { screenH.toPx() }
-            val midScreenPx = screenHeightPx * 0.5f
-            val firstButtonTopPx = midScreenPx - contentTopInsetPx - (firstButtonHeightPx / 2f)
-            val logoGapPx = (firstButtonTopPx - headerHeightPx).coerceAtLeast(0f)
-            val logoTopPx = headerHeightPx + (logoGapPx - logoHeightPx) / 2f
+            val headerLogoSpacing = 20.dp
+            val logoButtonSpacing = 30.dp
+            val headerLogoSpacingPx = with(density) { headerLogoSpacing.toPx() }
+            val logoButtonSpacingPx = with(density) { logoButtonSpacing.toPx() }
+            val logoTopPx = headerHeightPx + headerLogoSpacingPx
+            val firstButtonTopPx = logoTopPx + logoHeightPx + logoButtonSpacingPx
+            val headerHeightDp = with(density) { headerHeightPx.toDp() }
+            val buttonCount = buttons.size
+            val totalButtonsHeight =
+                (sizing.buttonHeight * buttonCount.toFloat()) +
+                    (sizing.buttonSpacing * (buttonCount - 1).coerceAtLeast(0).toFloat())
+            val logoMaxHeight =
+                (screenH - headerHeightDp - headerLogoSpacing - logoButtonSpacing - totalButtonsHeight)
+                    .coerceAtLeast(0.dp)
 
             val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
             val logoOffset = with(density) { logoTopPx.toDp() }
-            val logoMaxHeight = with(density) { logoGapPx.toDp() }
             val offsetPx = with(density) { sizing.offset.toPx() }
 
             Box(
@@ -1709,11 +1718,6 @@ private fun HomeworkMenu(
                             label = "menuOffset$index"
                         )
 
-                        val sizeModifier = if (index == 0) {
-                            Modifier.onSizeChanged { firstButtonHeightPx = it.height }
-                        } else {
-                            Modifier
-                        }
                         KidsMenuButton(
                             title = data.title,
                             baseColor = data.baseColor,
@@ -1728,7 +1732,7 @@ private fun HomeworkMenu(
                             onClick = data.onClick,
                             height = sizing.buttonHeight,
                             textSize = sizing.buttonTextSize,
-                            modifier = sizeModifier.graphicsLayer {
+                            modifier = Modifier.graphicsLayer {
                                 this.alpha = alpha
                                 translationY = offsetY
                             }
