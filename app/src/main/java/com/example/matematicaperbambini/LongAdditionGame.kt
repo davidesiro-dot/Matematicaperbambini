@@ -412,7 +412,6 @@ fun LongAdditionGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
-            hintText = hint,
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {

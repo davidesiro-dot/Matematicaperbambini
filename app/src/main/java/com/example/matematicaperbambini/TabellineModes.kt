@@ -83,7 +83,6 @@ fun TabellineMixedGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
-            hintText = "Scrivi il risultato della moltiplicazione.",
             ui = ui,
             message = msg,
             content = {
@@ -241,11 +240,6 @@ fun TabellineGapsGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = if (isHomeworkMode) 0 else correctCount,
-            hintText = if (helps?.hintsEnabled == false) {
-                "Inserisci i risultati mancanti."
-            } else {
-                "Completa solo i risultati mancanti."
-            },
             ui = ui,
             bonusLabelOverride = bonusLabelOverride,
             bonusProgressOverride = bonusProgressOverride,
@@ -536,11 +530,6 @@ fun TabellinaReverseGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = if (isHomeworkMode) 0 else correctCount,
-            hintText = if (helps?.hintsEnabled == false) {
-                "Inserisci la risposta."
-            } else {
-                "Inserisci il numero mancante per completare l’operazione."
-            },
             ui = ui,
             bonusLabelOverride = bonusLabelOverride,
             bonusProgressOverride = bonusProgressOverride,
@@ -746,11 +735,6 @@ fun TabellineMultipleChoiceGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = if (isHomeworkMode) 0 else correctCount,
-            hintText = if (helps?.hintsEnabled == false) {
-                "Seleziona la risposta corretta."
-            } else {
-                "Scegli il risultato corretto."
-            },
             ui = ui,
             bonusLabelOverride = bonusLabelOverride,
             bonusProgressOverride = bonusProgressOverride,

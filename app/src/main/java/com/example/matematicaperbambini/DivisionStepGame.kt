@@ -440,7 +440,6 @@ fun DivisionStepGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
-            hintText = hint,
             ui = ui,
             message = message,
             content = {
