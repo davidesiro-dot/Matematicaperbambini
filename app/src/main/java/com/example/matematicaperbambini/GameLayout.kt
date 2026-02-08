@@ -5,16 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,7 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 /**
  * Cornice unica stile "Sottrazioni":
  * - Header (back/suono/classifica)
- * - CompactHud (bonus + hint)
+ * - CompactHud (bonus)
  * - Contenuto (slot)
  * - Bottom bar (slot)
  */
@@ -39,7 +34,6 @@ fun GameScreenFrame(
     onOpenLeaderboard: () -> Unit,
     correctCount: Int,
     bonusTarget: Int = BONUS_TARGET,
-    hintText: String,
     ui: UiSizing,
     modifier: Modifier = Modifier,
     bonusLabelOverride: String? = null,
@@ -88,7 +82,6 @@ fun GameScreenFrame(
                         CompactHud(
                             correctCount = correctCount,
                             bonusTarget = bonusTarget,
-                            hintText = hintText,
                             ui = ui,
                             bonusLabelOverride = bonusLabelOverride,
                             bonusProgressOverride = bonusProgressOverride
@@ -145,7 +138,6 @@ fun GameScreenFrame(
 private fun CompactHud(
     correctCount: Int,
     bonusTarget: Int,
-    hintText: String,
     ui: UiSizing,
     bonusLabelOverride: String? = null,
     bonusProgressOverride: Float? = null
@@ -163,7 +155,6 @@ private fun CompactHud(
     val isCompact = ui.isCompact
     val fontSize = if (isCompact) 12.sp else 14.sp
     val progressHeight = if (isCompact) 6.dp else 8.dp
-    var showHintDialog by remember { mutableStateOf(false) }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -185,43 +176,6 @@ private fun CompactHud(
                 trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = hintText,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = fontSize,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            TextButton(
-                onClick = { showHintDialog = true },
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("?", fontSize = fontSize)
-            }
-        }
-    }
-
-    if (showHintDialog) {
-        AlertDialog(
-            onDismissRequest = { showHintDialog = false },
-            confirmButton = {
-                TextButton(onClick = { showHintDialog = false }) {
-                    Text("Chiudi")
-                }
-            },
-            title = { Text("Cosa fare") },
-            text = { Text(hintText) }
-        )
     }
 }
 

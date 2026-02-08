@@ -737,7 +737,6 @@ fun LongSubtractionGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
-            hintText = hint,
             ui = ui,
             message = message,
             content = {

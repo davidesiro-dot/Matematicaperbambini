@@ -101,7 +101,6 @@ fun MoneyCountGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
-            hintText = "Somma il valore delle monete e delle banconote e scrivi il totale in euro.",
             ui = ui,
             message = message,
             content = {

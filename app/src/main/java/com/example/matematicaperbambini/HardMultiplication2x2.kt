@@ -1249,7 +1249,6 @@ fun HardMultiplication2x2Game(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
-            hintText = hint,
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {

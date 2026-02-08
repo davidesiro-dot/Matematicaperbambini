@@ -146,7 +146,6 @@ private fun BasicColumnGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
-            hintText = "Scrivi il risultato e premi Controlla.",
             ui = ui,
             message = msg,
             content = {
@@ -324,11 +323,6 @@ fun MultiplicationTableGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = if (isHomeworkMode) 0 else correctCount,
-            hintText = if (helps?.hintsEnabled == false) {
-                "Inserisci tutti i risultati."
-            } else {
-                "Completa la tabellina scrivendo tutti i risultati."
-            },
             ui = ui,
             bonusLabelOverride = bonusLabelOverride,
             bonusProgressOverride = bonusProgressOverride,
@@ -645,7 +639,6 @@ fun MoneyGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
-            hintText = "Somma le monete e scrivi il totale.",
             ui = ui,
             message = msg,
             content = {

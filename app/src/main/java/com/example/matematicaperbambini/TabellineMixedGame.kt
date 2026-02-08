@@ -82,11 +82,6 @@ fun TabellineMixedGame(
     }
 
     val correct = a * b
-    val hintText = if (helps?.hintsEnabled == false) {
-        "Inserisci la risposta."
-    } else {
-        "Scrivi il risultato e premi Controlla."
-    }
     val titleText = titleOverride ?: "Tabelline miste"
 
     fun next() {
@@ -109,7 +104,6 @@ fun TabellineMixedGame(
             onBack = onBack,
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = if (isHomeworkMode) 0 else correctCount,
-            hintText = hintText,
             ui = ui,
             bonusLabelOverride = bonusLabelOverride,
             bonusProgressOverride = bonusProgressOverride,
