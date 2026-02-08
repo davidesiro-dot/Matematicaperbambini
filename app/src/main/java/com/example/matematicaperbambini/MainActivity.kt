@@ -275,15 +275,22 @@ private fun AppBackground(content: @Composable () -> Unit) {
 fun SeaGlassPanel(
     title: String? = null,
     modifier: Modifier = Modifier,
+    wrapContentHeight: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val heightModifier = if (wrapContentHeight) {
+        Modifier.wrapContentHeight()
+    } else {
+        Modifier.fillMaxHeight()
+    }
+
     Surface(
         shape = RoundedCornerShape(26.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
         tonalElevation = 0.dp,
         modifier = modifier
             .fillMaxWidth()
-            .wrapContentHeight()
+            .then(heightModifier)
             .shadow(12.dp, RoundedCornerShape(26.dp))
             .border(2.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(26.dp))
     ) {

@@ -162,14 +162,14 @@ fun TabellineGuidateScreen(
         else -> "Continua"
     }
     val rowHeight = 64.dp
-    val listHeight = rowHeight * 5
+    val listMinHeight = rowHeight * 7
 
     Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -202,7 +202,7 @@ fun TabellineGuidateScreen(
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color(0xFFF1F5F9))
                         .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
-                        .padding(10.dp)
+                        .padding(8.dp)
                 ) {
                     Text(
                         text = infoMessage,
@@ -213,8 +213,15 @@ fun TabellineGuidateScreen(
                 }
             }
 
-            SeaGlassPanel(title = "AIUTO e TU") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SeaGlassPanel(
+                title = "AIUTO e TU",
+                modifier = Modifier.weight(0.68f),
+                wrapContentHeight = false
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -235,7 +242,8 @@ fun TabellineGuidateScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(listHeight),
+                            .weight(1f)
+                            .heightIn(min = listMinHeight),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items((1..10).toList()) { i ->
@@ -318,7 +326,7 @@ fun TabellineGuidateScreen(
                         Button(
                             onClick = { fillOneExample() },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                            modifier = Modifier.fillMaxWidth().height(44.dp)
                         ) {
                             Text("Fammi vedere come si fa", fontWeight = FontWeight.Bold)
                         }
@@ -343,7 +351,7 @@ fun TabellineGuidateScreen(
                                 }
                             },
                             enabled = allFilled,
-                            modifier = Modifier.fillMaxWidth().height(54.dp),
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFF3B82F6),
                                 disabledContainerColor = Color(0xFFBFDBFE),
