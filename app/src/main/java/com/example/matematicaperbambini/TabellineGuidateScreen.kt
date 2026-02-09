@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 
 private data class GuidedPhase(
@@ -100,11 +102,15 @@ fun TabellineGuidateScreen(
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val correctness = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
     val focusRequesters = remember { List(10) { FocusRequester() } }
+    val fieldVisibility = remember { mutableStateListOf<Boolean>().apply { repeat(10) { add(false) } } }
     var activeInputIndex by remember { mutableStateOf<Int?>(null) }
+    var pendingFocusIndex by remember { mutableStateOf<Int?>(null) }
     var phaseIndex by remember { mutableStateOf(0) }
     var showAllResults by remember { mutableStateOf(false) }
     var infoMessage by remember { mutableStateOf(phases.first().message) }
     var completed by remember { mutableStateOf(false) }
+    var hasInitialized by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
     fun resetPhase() {
         for (i in 0 until 10) {
@@ -119,13 +125,22 @@ fun TabellineGuidateScreen(
     LaunchedEffect(table, phaseIndex) {
         resetPhase()
         completed = false
+        if (hasInitialized) {
+            pendingFocusIndex = activeInputIndex
+        } else {
+            hasInitialized = true
+        }
     }
 
-    LaunchedEffect(activeInputIndex, completed) {
-        val targetIndex = activeInputIndex
-        if (!completed && targetIndex != null) {
+    LaunchedEffect(pendingFocusIndex, completed, listState.isScrollInProgress) {
+        val targetIndex = pendingFocusIndex
+        if (completed || targetIndex == null) return@LaunchedEffect
+        val isVisible = fieldVisibility.getOrNull(targetIndex) == true
+        val isVisibleInList = listState.layoutInfo.visibleItemsInfo.any { it.index == targetIndex }
+        if (isVisible && isVisibleInList && !listState.isScrollInProgress) {
             withFrameNanos { }
             focusRequesters[targetIndex].requestFocus()
+            pendingFocusIndex = null
         }
     }
 
@@ -261,6 +276,7 @@ fun TabellineGuidateScreen(
                             .fillMaxWidth()
                             .weight(1f)
                             .heightIn(min = listMinHeight),
+                        state = listState,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items((1..10).toList()) { i ->
@@ -327,7 +343,10 @@ fun TabellineGuidateScreen(
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .focusRequester(focusRequesters[index]),
+                                                .focusRequester(focusRequesters[index])
+                                                .onGloballyPositioned { coords ->
+                                                    fieldVisibility[index] = coords.isAttached && coords.size.height > 0
+                                                },
                                             textStyle = androidx.compose.ui.text.TextStyle(
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.Bold,
