@@ -66,7 +66,7 @@ private fun ProofNineCell(
 ) {
     Column(
         modifier = modifier
-            .weight(1f)
+            .then(Modifier.weight(1f))
             .border(
                 width = 2.dp,
                 color = Color.White.copy(alpha = 0.55f),
