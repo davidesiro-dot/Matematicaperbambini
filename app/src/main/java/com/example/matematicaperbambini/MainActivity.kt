@@ -435,7 +435,6 @@ fun GameHeader(
     val iconSize = if (isCompact) 18.dp else 22.dp
     val buttonFont = if (isCompact) 16.sp else 18.sp
     val spacing = if (isCompact) 6.dp else 10.dp
-    var showHelpDialog by remember { mutableStateOf(false) }
 
     Row(
         Modifier.fillMaxWidth().statusBarsPadding(),
@@ -472,13 +471,6 @@ fun GameHeader(
                 fontSize = buttonFont
             )
             SmallCircleButton(
-                "❓",
-                onClick = { showHelpDialog = true },
-                size = buttonSize,
-                iconSize = iconSize,
-                fontSize = buttonFont
-            )
-            SmallCircleButton(
                 "🏆",
                 onClick = onLeaderboard,
                 size = buttonSize,
@@ -486,10 +478,6 @@ fun GameHeader(
                 fontSize = buttonFont
             )
         }
-    }
-
-    if (showHelpDialog) {
-        HelpInfoDialog(onDismiss = { showHelpDialog = false })
     }
 }
 
@@ -1483,19 +1471,12 @@ private fun GameMenuKids(
                         .align(Alignment.TopCenter)
                         .onSizeChanged { headerHeightPx = it.height }
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        SmallCircleButton("⬅") { onBack() }
-                        TopActionsPill(modifier = Modifier.padding(top = 6.dp)) {
-                            SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-                            SmallCircleButton("🏆") { onOpenLeaderboard() }
-                        }
-                    }
+                    MenuHeader(
+                        soundEnabled = soundEnabled,
+                        onToggleSound = onToggleSound,
+                        onOpenLeaderboard = onOpenLeaderboard,
+                        onBack = onBack
+                    )
                 }
 
                 Box(
@@ -2024,10 +2005,10 @@ private fun MenuHeader(
     onOpenLeaderboard: () -> Unit,
     onBack: (() -> Unit)? = null
 ) {
+    var showHelpDialog by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding(),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2038,8 +2019,13 @@ private fun MenuHeader(
         }
         TopActionsPill {
             SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
+            SmallCircleButton("❓") { showHelpDialog = true }
             SmallCircleButton("🏆") { onOpenLeaderboard() }
         }
+    }
+
+    if (showHelpDialog) {
+        HelpInfoDialog(onDismiss = { showHelpDialog = false })
     }
 }
 
