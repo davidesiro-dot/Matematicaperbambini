@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 
 /**
  * Cornice unica stile "Sottrazioni":
- * - Header (back/suono/classifica)
+ * - Header (back/suono/aiuto/classifica)
  * - CompactHud (bonus)
  * - Contenuto (slot)
  * - Bottom bar (slot)

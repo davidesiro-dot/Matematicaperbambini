@@ -435,6 +435,7 @@ fun GameHeader(
     val iconSize = if (isCompact) 18.dp else 22.dp
     val buttonFont = if (isCompact) 16.sp else 18.sp
     val spacing = if (isCompact) 6.dp else 10.dp
+    var showHelpDialog by remember { mutableStateOf(false) }
 
     Row(
         Modifier.fillMaxWidth().statusBarsPadding(),
@@ -471,6 +472,13 @@ fun GameHeader(
                 fontSize = buttonFont
             )
             SmallCircleButton(
+                "❓",
+                onClick = { showHelpDialog = true },
+                size = buttonSize,
+                iconSize = iconSize,
+                fontSize = buttonFont
+            )
+            SmallCircleButton(
                 "🏆",
                 onClick = onLeaderboard,
                 size = buttonSize,
@@ -478,6 +486,10 @@ fun GameHeader(
                 fontSize = buttonFont
             )
         }
+    }
+
+    if (showHelpDialog) {
+        HelpInfoDialog(onDismiss = { showHelpDialog = false })
     }
 }
 
@@ -2628,6 +2640,50 @@ fun LeaderboardDialog(
                             )
                         }
                     }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) { Text("Chiudi") }
+        }
+    )
+}
+
+@Composable
+private fun HelpInfoDialog(onDismiss: () -> Unit) {
+    val scrollState = rememberScrollState()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("GDPR e istruzioni") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Privacy e GDPR",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("• Nessun dato viene inviato all'esterno: l'app funziona offline e non trasmette informazioni a server o terze parti.")
+                    Text("• Non usiamo analytics, profilazione o pubblicità: niente tracciamenti.")
+                    Text("• I dati salvati (punteggi, compiti salvati e preferenze come il suono) restano solo sul dispositivo.")
+                    Text("• Puoi cancellare i dati locali quando vuoi: dalla classifica puoi azzerare i punteggi e nelle sezioni compiti puoi eliminare i salvataggi.")
+                }
+                Text(
+                    "Istruzioni per l'uso",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("• Scegli la modalità di gioco dal menu principale e avvia l'attività desiderata.")
+                    Text("• Rispondi inserendo il numero corretto: ad ogni risposta giusta accumuli bonus e punti.")
+                    Text("• Usa il pulsante 🔊 per attivare/disattivare i suoni e 🏆 per vedere la classifica locale.")
+                    Text("• Il pulsante ❓ mostra queste informazioni in qualsiasi momento.")
                 }
             }
         },
