@@ -98,7 +98,8 @@ fun TabellineGuidateScreen(
     val results = remember(table) { (1..10).map { table * it } }
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val correctness = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
-    val focusRequesters = remember { List(10) { FocusRequester() } }
+    val focusRequester = remember { FocusRequester() }
+    var activeInputIndex by remember { mutableStateOf<Int?>(null) }
     var phaseIndex by remember { mutableStateOf(0) }
     var showAllResults by remember { mutableStateOf(false) }
     var infoMessage by remember { mutableStateOf(phases.first().message) }
@@ -111,14 +112,17 @@ fun TabellineGuidateScreen(
         }
         showAllResults = false
         infoMessage = phases[phaseIndex].message
+        activeInputIndex = inputs.indexOfFirst { it.isBlank() }.takeIf { it >= 0 }
     }
 
     LaunchedEffect(table, phaseIndex) {
         resetPhase()
         completed = false
-        val firstEmpty = inputs.indexOfFirst { it.isBlank() }
-        if (firstEmpty >= 0) {
-            focusRequesters[firstEmpty].requestFocus()
+    }
+
+    LaunchedEffect(activeInputIndex, completed) {
+        if (!completed && activeInputIndex != null) {
+            focusRequester.requestFocus()
         }
     }
 
@@ -161,6 +165,7 @@ fun TabellineGuidateScreen(
         inputs[index] = results[index].toString()
         correctness[index] = true
         infoMessage = "Fammi vedere: ${table} × ${index + 1} = ${results[index]}. ${progressionHint()}"
+        activeInputIndex = inputs.indexOfFirst { it.isBlank() }.takeIf { it >= 0 }
     }
 
     val phase = phases[phaseIndex]
@@ -311,13 +316,21 @@ fun TabellineGuidateScreen(
                                                     val nextIndex = (index + 1 until 10).firstOrNull { inputs[it].isBlank() }
                                                         ?: (0 until index).firstOrNull { inputs[it].isBlank() }
                                                     if (nextIndex != null) {
-                                                        focusRequesters[nextIndex].requestFocus()
+                                                        activeInputIndex = nextIndex
                                                     }
                                                 }
                                             },
                                             singleLine = true,
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            modifier = Modifier.fillMaxSize().focusRequester(focusRequesters[index]),
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .then(
+                                                    if (activeInputIndex == index) {
+                                                        Modifier.focusRequester(focusRequester)
+                                                    } else {
+                                                        Modifier
+                                                    }
+                                                ),
                                             textStyle = androidx.compose.ui.text.TextStyle(
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.Bold,

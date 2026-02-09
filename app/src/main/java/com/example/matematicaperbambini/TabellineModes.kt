@@ -205,7 +205,8 @@ fun TabellineGapsGame(
     var completed by remember { mutableStateOf(false) }
     var gameState by remember { mutableStateOf(GameState.INIT) }
     val inputGuard = remember { StepInputGuard() }
-    val focusRequesters = remember { List(10) { FocusRequester() } }
+    val focusRequester = remember { FocusRequester() }
+    var activeBlankIndex by remember { mutableStateOf<Int?>(null) }
 
     fun resetRound() {
         blanks = (1..10).shuffled(rng).take(4).toSet()
@@ -218,16 +219,14 @@ fun TabellineGapsGame(
         completed = false
         gameState = GameState.AWAITING_INPUT
         inputGuard.reset()
+        activeBlankIndex = (0 until 10).firstOrNull { blanks.contains(it + 1) && inputs[it].isBlank() }
     }
 
     LaunchedEffect(resolvedTable, exerciseKey) { resetRound() }
 
-    LaunchedEffect(blanks, completed) {
-        if (!completed) {
-            val firstBlank = (0 until 10).firstOrNull { blanks.contains(it + 1) && inputs[it].isBlank() }
-            if (firstBlank != null) {
-                focusRequesters[firstBlank].requestFocus()
-            }
+    LaunchedEffect(activeBlankIndex, completed) {
+        if (!completed && activeBlankIndex != null) {
+            focusRequester.requestFocus()
         }
     }
 
@@ -264,8 +263,6 @@ fun TabellineGapsGame(
                             val expected = resolvedTable * i
                             val expectedLength = expected.toString().length
                             val isBlank = blanks.contains(i)
-                            val focusRequester = focusRequesters[index]
-
                             Row(
                                 Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -333,7 +330,7 @@ fun TabellineGapsGame(
                                                         blanks.contains(it + 1) && ok[it] != true
                                                     }
                                                     if (nextBlank != null) {
-                                                        focusRequesters[nextBlank].requestFocus()
+                                                        activeBlankIndex = nextBlank
                                                     }
                                                 }
                                             } else {
@@ -367,7 +364,7 @@ fun TabellineGapsGame(
                                                             blanks.contains(it + 1) && ok[it] != true
                                                         }
                                                         if (nextBlank != null) {
-                                                            focusRequesters[nextBlank].requestFocus()
+                                                            activeBlankIndex = nextBlank
                                                         }
                                                     }
                                                 }
@@ -377,7 +374,13 @@ fun TabellineGapsGame(
                                         modifier = Modifier
                                             .width(boxW)
                                             .height(boxH)
-                                            .focusRequester(focusRequester),
+                                            .then(
+                                                if (activeBlankIndex == index) {
+                                                    Modifier.focusRequester(focusRequester)
+                                                } else {
+                                                    Modifier
+                                                }
+                                            ),
                                         textStyle = TextStyle(
                                             fontSize = fontSize,
                                             fontWeight = FontWeight.ExtraBold,
