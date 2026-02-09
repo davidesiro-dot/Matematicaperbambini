@@ -2027,8 +2027,8 @@ private fun MenuHeader(
         }
         TopActionsPill {
             SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
-            SmallCircleButton("❓") { showHelpDialog = true }
             SmallCircleButton("🏆") { onOpenLeaderboard() }
+            SmallCircleButton("❓") { showHelpDialog = true }
         }
     }
 
@@ -2649,7 +2649,7 @@ private fun HelpInfoDialog(onDismiss: () -> Unit) {
     val scrollState = rememberScrollState()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("GDPR e istruzioni") },
+        title = { Text("Informazioni") },
         text = {
             Column(
                 modifier = Modifier
@@ -2658,27 +2658,109 @@ private fun HelpInfoDialog(onDismiss: () -> Unit) {
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    "Privacy e GDPR",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("• Nessun dato viene inviato all'esterno: l'app funziona offline e non trasmette informazioni a server o terze parti.")
-                    Text("• Non usiamo analytics, profilazione o pubblicità: niente tracciamenti.")
-                    Text("• I dati salvati (punteggi, compiti salvati e preferenze come il suono) restano solo sul dispositivo.")
-                    Text("• Puoi cancellare i dati locali quando vuoi: dalla classifica puoi azzerare i punteggi e nelle sezioni compiti puoi eliminare i salvataggi.")
+                Text("OBIETTIVO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Migliorare e completare il contenuto della schermata “Informazioni” (icona ❓) rendendola:")
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("• chiara per genitori e bambini")
+                    Text("• conforme al GDPR (minori)")
+                    Text("• completa nelle istruzioni d’uso")
                 }
-                Text(
-                    "Istruzioni per l'uso",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("• Scegli la modalità di gioco dal menu principale e avvia l'attività desiderata.")
-                    Text("• Rispondi inserendo il numero corretto: ad ogni risposta giusta accumuli bonus e punti.")
-                    Text("• Usa il pulsante 🔊 per attivare/disattivare i suoni e 🏆 per vedere la classifica locale.")
-                    Text("• Il pulsante ❓ mostra queste informazioni in qualsiasi momento.")
+                Text("IMPORTANTE:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("❌ NON modificare layout, navigazione o logica")
+                    Text("❌ NON cambiare flussi esistenti")
+                    Text("❌ SOLO testo e contenuti informativi")
+                }
+                Text("📘 SEZIONE 1 — COME USARE L’APP", fontWeight = FontWeight.Bold)
+                Text("L’app Matematica per Bambini è pensata per aiutare i bambini a imparare la matematica in modo graduale, guidato e divertente.")
+                Text("🎮 Gioco libero", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Il bambino può scegliere il tipo di operazione (addizioni, sottrazioni, moltiplicazioni, divisioni).")
+                    Text("Sono disponibili diverse modalità (allenamento, sfida).")
+                    Text("Ideale per esercitarsi in autonomia.")
+                    Text("Al termine di un certo numero di operazioni corrette si accede ad un gioco bonus con una classifica mostrata nella Leaderboard.")
+                }
+                Text("📖 Impara (modalità guidata)", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Tutti i giochi sono sempre guidati.")
+                    Text("Non sono presenti modalità sfida o allenamento.")
+                    Text("L’app spiega passo dopo passo come risolvere le operazioni con una serie di test di aiuto che spiegano le operazioni da compiere.")
+                    Text("Gli errori fanno parte dell’apprendimento e non vengono penalizzati.")
+                }
+                Text("📝 SEZIONE 2 — COMPITI", fontWeight = FontWeight.Bold)
+                Text("👨‍👩‍👧‍👦 Genera compiti (genitore/insegnante)", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Il genitore può creare una serie di esercizi personalizzati.")
+                    Text("È possibile salvare i compiti per svolgerli in un secondo momento.")
+                    Text("Usando dei che indicano anche il giorno della settimana si può decidere quando far fare i compiti al bambino.")
+                    Text("È possibile generare un codice compito per condividere lo stesso esercizio su un altro dispositivo.")
+                }
+                Text("🧒 Fai i compiti (bambino)", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Il bambino svolge i compiti assegnati.")
+                    Text("Al termine deve inserire il proprio nome.")
+                    Text("Viene generato un report dettagliato dei risultati.")
+                    Text("Al termine si ritorna automaticamente alla schermata principale.")
+                }
+                Text("🔑 SEZIONE 3 — CODICI COMPITO", fontWeight = FontWeight.Bold)
+                Text("🔐 Genera codice compito", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Il codice rappresenta solo la configurazione del compito.")
+                    Text("Non contiene nomi, dati personali o informazioni identificative.")
+                    Text("Dopo la generazione, è possibile assegnare un titolo al codice.")
+                    Text("I codici vengono salvati solo localmente sul dispositivo.")
+                }
+                Text("📥 Ripristina codice compito", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Il bambino può inserire un codice compito ricevuto.")
+                    Text("Prima di iniziare viene mostrata una breve descrizione del compito.")
+                    Text("Il compito viene ricostruito esattamente come creato dal genitore/Insegnante.")
+                    Text("Al termine viene richiesto il nome del bambino e creato un report.")
+                }
+                Text("📊 SEZIONE 4 — REPORT", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("I report mostrano i risultati degli esercizi svolti.")
+                    Text("Servono per aiutare genitori e insegnanti a capire i progressi del bambino.")
+                    Text("I report rimangono solo sul dispositivo.")
+                    Text("Possono essere eliminati in qualsiasi momento.")
+                }
+                Text("🔐 SEZIONE 5 — PRIVACY POLICY / GDPR", fontWeight = FontWeight.Bold)
+                Text("Questa applicazione è progettata nel rispetto totale della privacy dei bambini e delle famiglie.")
+                Text("✅ Cosa FA l’app", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Funziona completamente offline.")
+                    Text("Salva dati solo localmente sul dispositivo.")
+                    Text("Consente l’inserimento del nome del bambino solo per visualizzare i report.")
+                }
+                Text("❌ Cosa NON FA l’app", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("NON raccoglie dati personali sensibili.")
+                    Text("NON richiede registrazione o login.")
+                    Text("NON utilizza internet.")
+                    Text("NON invia dati a server esterni.")
+                    Text("NON usa pubblicità.")
+                    Text("NON effettua tracciamento o profilazione.")
+                    Text("NON condivide dati con terze parti.")
+                }
+                Text("👶 Minori", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("L’app è pensata per l’uso da parte di bambini.")
+                    Text("Tutte le funzionalità sono utilizzabili senza creare account.")
+                    Text("I dati inseriti possono essere cancellati in qualsiasi momento dall’app.")
+                }
+                Text("⚖️ Conformità GDPR", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("I dati sono minimizzati e limitati allo stretto necessario.")
+                    Text("Nessun dato lascia il dispositivo.")
+                    Text("Nessun dato viene utilizzato per fini commerciali.")
+                }
+                Text("© COPYRIGHT", fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Matematica per Bambini")
+                    Text("© 2025 – Davide Sironi")
+                    Text("Tutti i diritti riservati.")
+                    Text("L’app e i suoi contenuti sono protetti da copyright.")
+                    Text("È vietata la copia, la distribuzione o l’uso commerciale senza autorizzazione.")
                 }
             }
         },
