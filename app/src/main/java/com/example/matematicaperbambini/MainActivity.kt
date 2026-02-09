@@ -2742,27 +2742,27 @@ private fun HelpInfoDialog(onDismiss: () -> Unit) {
             ) {
                 Text("📘 SEZIONE 1 — COME USARE L’APP", fontWeight = FontWeight.Bold)
                 Text("L’app Matematica per Bambini è pensata per aiutare i bambini a imparare la matematica in modo graduale, guidato e divertente.")
+                Text("La particolarità dell'app che non si trova in altri prodotti è che le operazioni di calcolo sono guidate passo-passo con riporti, prestiti, resti.")
                 Text("🎮 Gioco libero", fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Il bambino può scegliere il tipo di operazione (addizioni, sottrazioni, moltiplicazioni, divisioni).")
-                    Text("Sono disponibili diverse modalità (allenamento, sfida).")
+                    Text("Sono disponibili diverse modalità (allenamento, sfida) differenti per la quantità di aiuto disponibile.")
                     Text("Ideale per esercitarsi in autonomia.")
                     Text("Al termine di un certo numero di operazioni corrette si accede ad un gioco bonus con una classifica mostrata nella Leaderboard.")
                 }
                 Text("📖 Impara (modalità guidata)", fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Tutti i giochi sono sempre guidati.")
-                    Text("Non sono presenti modalità sfida o allenamento.")
                     Text("L’app spiega passo dopo passo come risolvere le operazioni con una serie di test di aiuto che spiegano le operazioni da compiere.")
                     Text("Gli errori fanno parte dell’apprendimento e non vengono penalizzati.")
                 }
                 Text("📝 SEZIONE 2 — COMPITI", fontWeight = FontWeight.Bold)
                 Text("👨‍👩‍👧‍👦 Genera compiti (genitore/insegnante)", fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Il genitore può creare una serie di esercizi personalizzati.")
-                    Text("È possibile salvare i compiti per svolgerli in un secondo momento.")
-                    Text("Usando dei che indicano anche il giorno della settimana si può decidere quando far fare i compiti al bambino.")
-                    Text("È possibile generare un codice compito per condividere lo stesso esercizio su un altro dispositivo.")
+                    Text("Il genitore può creare una serie di esercizi personalizzati con numeri random oppure con operazioni determinate, salvarli per farli svolgere in un secondo momento oppure far partire immediatamente il compito da svolgere.")
+                    Text("I compiti salvati possono essere descritti per tipologia e tempistica i modo da indicare al bambino quando svolgerli.")
+                    Text("Se un compito è presente nell'area compiti verrà visualizzata un'icona rossa sul tasto compiti nella Home.")
+                    Text("Insegnanti o genitori possono generare un compito e salvarlo con un  codice alfanumerico per  avviare lo stesso esercizio su un altro dispositivo e/o eventualmente inviarlo a un gruppo condividendo il codice.")
                 }
                 Text("🧒 Fai i compiti (bambino)", fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2788,7 +2788,7 @@ private fun HelpInfoDialog(onDismiss: () -> Unit) {
                 }
                 Text("📊 SEZIONE 4 — REPORT", fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("I report mostrano i risultati degli esercizi svolti.")
+                    Text("I report mostrano i risultati degli esercizi svolti, gli eventuali errori, gli aiuti utilizzati.")
                     Text("Servono per aiutare genitori e insegnanti a capire i progressi del bambino.")
                     Text("I report rimangono solo sul dispositivo.")
                     Text("Possono essere eliminati in qualsiasi momento.")
@@ -2825,7 +2825,7 @@ private fun HelpInfoDialog(onDismiss: () -> Unit) {
                 }
                 Text("© COPYRIGHT", fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Matematica per Bambini")
+                    Text("MateMatt")
                     Text("© 2025 – Davide Sironi")
                     Text("Tutti i diritti riservati.")
                     Text("L’app e i suoi contenuti sono protetti da copyright.")
