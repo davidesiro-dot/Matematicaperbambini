@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -98,7 +99,7 @@ fun TabellineGuidateScreen(
     val results = remember(table) { (1..10).map { table * it } }
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val correctness = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
-    val focusRequester = remember { FocusRequester() }
+    val focusRequesters = remember { List(10) { FocusRequester() } }
     var activeInputIndex by remember { mutableStateOf<Int?>(null) }
     var phaseIndex by remember { mutableStateOf(0) }
     var showAllResults by remember { mutableStateOf(false) }
@@ -121,8 +122,10 @@ fun TabellineGuidateScreen(
     }
 
     LaunchedEffect(activeInputIndex, completed) {
-        if (!completed && activeInputIndex != null) {
-            focusRequester.requestFocus()
+        val targetIndex = activeInputIndex
+        if (!completed && targetIndex != null) {
+            withFrameNanos { }
+            focusRequesters[targetIndex].requestFocus()
         }
     }
 
@@ -324,13 +327,7 @@ fun TabellineGuidateScreen(
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .then(
-                                                    if (activeInputIndex == index) {
-                                                        Modifier.focusRequester(focusRequester)
-                                                    } else {
-                                                        Modifier
-                                                    }
-                                                ),
+                                                .focusRequester(focusRequesters[index]),
                                             textStyle = androidx.compose.ui.text.TextStyle(
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.Bold,
