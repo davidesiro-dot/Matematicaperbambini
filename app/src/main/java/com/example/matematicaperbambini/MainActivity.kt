@@ -1259,23 +1259,27 @@ private fun HomeMenuKids(
             text = { Text("Scegli il gioco bonus") },
             confirmButton = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(
-                        onClick = {
-                            showBonusMenu = false
-                            activeBonusGame = BonusHomeGame.Balloons
-                        }
-                    ) { Text("Palloncini 🎈") }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = {
+                                showBonusMenu = false
+                                activeBonusGame = BonusHomeGame.Balloons
+                            }
+                        ) { Text("Palloncini 🎈") }
+                        Button(
+                            onClick = {
+                                showBonusMenu = false
+                                activeBonusGame = BonusHomeGame.Stars
+                            }
+                        ) { Text("Stelle ⭐") }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            showBonusMenu = false
-                            activeBonusGame = BonusHomeGame.Stars
-                        }
-                    ) { Text("Stelle ⭐") }
+                    TextButton(onClick = { showBonusMenu = false }) { Text("Annulla") }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBonusMenu = false }) { Text("Annulla") }
             }
         )
     }
