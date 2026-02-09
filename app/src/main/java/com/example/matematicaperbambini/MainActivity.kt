@@ -426,7 +426,8 @@ fun GameHeader(
     onLeaderboard: () -> Unit,
     ui: UiSizing? = null,
     bonusTarget: Int = BONUS_TARGET,
-    showBack: Boolean = true
+    showBack: Boolean = true,
+    useStatusBarsPadding: Boolean = true
 ) {
     val isCompact = ui?.isCompact == true
     val titleSize = (ui?.title ?: 18).sp
@@ -436,8 +437,14 @@ fun GameHeader(
     val buttonFont = if (isCompact) 16.sp else 18.sp
     val spacing = if (isCompact) 6.dp else 10.dp
 
+    val headerModifier = if (useStatusBarsPadding) {
+        Modifier.fillMaxWidth().statusBarsPadding()
+    } else {
+        Modifier.fillMaxWidth()
+    }
+
     Row(
-        Modifier.fillMaxWidth().statusBarsPadding(),
+        headerModifier,
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1827,7 +1834,8 @@ private fun HomeworkCodesScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = onToggleSound,
                 onBack = onBack,
-                onLeaderboard = onOpenLeaderboard
+                onLeaderboard = onOpenLeaderboard,
+                useStatusBarsPadding = false
             )
         }
     ) { padding ->
@@ -2390,7 +2398,8 @@ fun MultTablePickerScreen(
             soundEnabled = soundEnabled,
             onToggleSound = onToggleSound,
             onBack = onBack,
-            onLeaderboard = {}
+            onLeaderboard = {},
+            useStatusBarsPadding = false
         )
 
         SeaGlassPanel(title = "Tabelline") {
