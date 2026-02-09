@@ -27,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -203,6 +205,7 @@ fun TabellineGapsGame(
     var completed by remember { mutableStateOf(false) }
     var gameState by remember { mutableStateOf(GameState.INIT) }
     val inputGuard = remember { StepInputGuard() }
+    val focusRequesters = remember { List(10) { FocusRequester() } }
 
     fun resetRound() {
         blanks = (1..10).shuffled(rng).take(4).toSet()
@@ -218,6 +221,15 @@ fun TabellineGapsGame(
     }
 
     LaunchedEffect(resolvedTable, exerciseKey) { resetRound() }
+
+    LaunchedEffect(blanks, completed) {
+        if (!completed) {
+            val firstBlank = (0 until 10).firstOrNull { blanks.contains(it + 1) && inputs[it].isBlank() }
+            if (firstBlank != null) {
+                focusRequesters[firstBlank].requestFocus()
+            }
+        }
+    }
 
     LaunchedEffect(msg) {
         if (!msg.isNullOrBlank()) {
@@ -252,6 +264,7 @@ fun TabellineGapsGame(
                             val expected = resolvedTable * i
                             val expectedLength = expected.toString().length
                             val isBlank = blanks.contains(i)
+                            val focusRequester = focusRequesters[index]
 
                             Row(
                                 Modifier.fillMaxWidth(),
@@ -313,6 +326,15 @@ fun TabellineGapsGame(
                                                     } else {
                                                         resetRound()
                                                     }
+                                                } else {
+                                                    val nextBlank = (index + 1 until 10).firstOrNull {
+                                                        blanks.contains(it + 1) && ok[it] != true
+                                                    } ?: (0 until index).firstOrNull {
+                                                        blanks.contains(it + 1) && ok[it] != true
+                                                    }
+                                                    if (nextBlank != null) {
+                                                        focusRequesters[nextBlank].requestFocus()
+                                                    }
                                                 }
                                             } else {
                                                 val locked = inputGuard.registerAttempt(stepId)
@@ -338,6 +360,15 @@ fun TabellineGapsGame(
                                                         } else {
                                                             resetRound()
                                                         }
+                                                    } else {
+                                                        val nextBlank = (index + 1 until 10).firstOrNull {
+                                                            blanks.contains(it + 1) && ok[it] != true
+                                                        } ?: (0 until index).firstOrNull {
+                                                            blanks.contains(it + 1) && ok[it] != true
+                                                        }
+                                                        if (nextBlank != null) {
+                                                            focusRequesters[nextBlank].requestFocus()
+                                                        }
                                                     }
                                                 }
                                             }
@@ -345,7 +376,8 @@ fun TabellineGapsGame(
                                         singleLine = true,
                                         modifier = Modifier
                                             .width(boxW)
-                                            .height(boxH),
+                                            .height(boxH)
+                                            .focusRequester(focusRequester),
                                         textStyle = TextStyle(
                                             fontSize = fontSize,
                                             fontWeight = FontWeight.ExtraBold,

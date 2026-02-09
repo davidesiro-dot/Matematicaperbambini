@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -290,6 +292,7 @@ fun MultiplicationTableGame(
     var completed by remember { mutableStateOf(false) }
     var gameState by remember { mutableStateOf(GameState.INIT) }
     val inputGuard = remember { StepInputGuard() }
+    val focusRequesters = remember { List(10) { FocusRequester() } }
 
     fun reset() {
         step = 1
@@ -307,6 +310,12 @@ fun MultiplicationTableGame(
 
     LaunchedEffect(resolvedTable, exerciseKey) {
         reset()
+    }
+
+    LaunchedEffect(step, completed) {
+        if (!completed && step in 1..10) {
+            focusRequesters[step - 1].requestFocus()
+        }
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -335,6 +344,7 @@ fun MultiplicationTableGame(
                             val active = (i == step)
                             val expected = resolvedTable * i
                             val expectedLength = expected.toString().length
+                            val focusRequester = focusRequesters[index]
 
                             Row(
                                 Modifier.fillMaxWidth(),
@@ -412,7 +422,8 @@ fun MultiplicationTableGame(
                                     singleLine = true,
                                     modifier = Modifier
                                         .width(boxW)
-                                        .height(boxH),
+                                        .height(boxH)
+                                        .focusRequester(focusRequester),
                                     textStyle = TextStyle(
                                         fontSize = fontSize,
                                         fontWeight = FontWeight.ExtraBold,
