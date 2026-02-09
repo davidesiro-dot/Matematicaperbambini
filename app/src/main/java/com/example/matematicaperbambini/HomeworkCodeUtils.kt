@@ -1,16 +1,8 @@
 package com.example.matematicaperbambini
 
-import android.util.Base64
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import java.security.SecureRandom
 import java.util.UUID
-
-private val homeworkCodeJson = Json {
-    ignoreUnknownKeys = true
-    encodeDefaults = true
-}
 
 @Serializable
 data class HomeworkCodePayload(
@@ -25,41 +17,39 @@ data class GeneratedHomeworkCode(
     val code: String
 )
 
+private val homeworkCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+private val homeworkCodeRandom = SecureRandom()
+
 fun generateHomeworkCode(tasks: List<HomeworkTaskConfig>): GeneratedHomeworkCode {
     val payload = HomeworkCodePayload(
         id = UUID.randomUUID().toString(),
         createdAt = System.currentTimeMillis(),
         tasks = tasks
     )
-    return GeneratedHomeworkCode(payload = payload, code = encodeHomeworkCode(payload))
+    return GeneratedHomeworkCode(payload = payload, code = generateReadableHomeworkCode())
 }
 
-fun encodeHomeworkCode(payload: HomeworkCodePayload): String {
-    val json = homeworkCodeJson.encodeToString(payload)
-    val encoded = Base64.encodeToString(
-        json.toByteArray(Charsets.UTF_8),
-        Base64.URL_SAFE or Base64.NO_WRAP
+fun generateReadableHomeworkCode(): String {
+    val raw = CharArray(8) {
+        homeworkCodeAlphabet[homeworkCodeRandom.nextInt(homeworkCodeAlphabet.length)]
+    }.concatToString()
+    return "${raw.substring(0, 4)}-${raw.substring(4)}"
+}
+
+fun normalizeHomeworkCode(code: String): String {
+    return code.trim().uppercase().filter { it.isLetterOrDigit() }
+}
+
+fun findHomeworkCodePayload(code: String, entries: List<HomeworkCodeEntry>): HomeworkCodePayload? {
+    val normalized = normalizeHomeworkCode(code)
+    if (normalized.length !in 6..10) return null
+    val entry = entries.firstOrNull { normalizeHomeworkCode(it.code) == normalized } ?: return null
+    if (entry.tasks.isEmpty()) return null
+    return HomeworkCodePayload(
+        id = entry.id,
+        createdAt = entry.createdAt,
+        tasks = entry.tasks
     )
-    return "HW1-$encoded"
-}
-
-fun decodeHomeworkCode(code: String): HomeworkCodePayload? {
-    val trimmed = code.trim()
-    if (trimmed.isBlank()) return null
-    val payloadPart = trimmed.removePrefix("HW1-")
-    if (payloadPart.isBlank()) return null
-    val json = try {
-        val decoded = Base64.decode(payloadPart, Base64.URL_SAFE or Base64.NO_WRAP)
-        String(decoded, Charsets.UTF_8)
-    } catch (e: Exception) {
-        return null
-    }
-    return try {
-        val payload = homeworkCodeJson.decodeFromString<HomeworkCodePayload>(json)
-        if (payload.tasks.isEmpty()) null else payload
-    } catch (e: Exception) {
-        null
-    }
 }
 
 fun formatHomeworkCodePreview(code: String): String {
