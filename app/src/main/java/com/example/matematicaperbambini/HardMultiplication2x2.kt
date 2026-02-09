@@ -1471,7 +1471,7 @@ fun HardMultiplication2x2Game(
             },
             bottomBar = {
                 GameBottomActions(
-                    leftText = "Ricomincia",
+                    leftText = "Riparti",
                     onLeft = {
                         if (startMode == StartMode.MANUAL) {
                             val manual = manualNumbers
