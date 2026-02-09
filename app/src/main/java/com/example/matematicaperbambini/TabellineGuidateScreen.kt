@@ -33,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 
 
 private data class GuidedPhase(
@@ -102,7 +103,7 @@ fun TabellineGuidateScreen(
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val correctness = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
     val focusRequesters = remember { List(10) { FocusRequester() } }
-    val fieldVisibility = remember { mutableStateListOf<Boolean>().apply { repeat(10) { add(false) } } }
+    val bringIntoViewRequesters = remember { List(10) { BringIntoViewRequester() } }
     var activeInputIndex by remember { mutableStateOf<Int?>(null) }
     var pendingFocusIndex by remember { mutableStateOf<Int?>(null) }
     var phaseIndex by remember { mutableStateOf(0) }
@@ -132,16 +133,21 @@ fun TabellineGuidateScreen(
         }
     }
 
-    LaunchedEffect(pendingFocusIndex, completed, listState.isScrollInProgress) {
+    LaunchedEffect(activeInputIndex, completed) {
+        if (completed) return@LaunchedEffect
+        if (activeInputIndex != null) {
+            pendingFocusIndex = activeInputIndex
+        }
+    }
+
+    LaunchedEffect(pendingFocusIndex, completed) {
         val targetIndex = pendingFocusIndex
         if (completed || targetIndex == null) return@LaunchedEffect
-        val isVisible = fieldVisibility.getOrNull(targetIndex) == true
-        val isVisibleInList = listState.layoutInfo.visibleItemsInfo.any { it.index == targetIndex }
-        if (isVisible && isVisibleInList && !listState.isScrollInProgress) {
-            withFrameNanos { }
-            focusRequesters[targetIndex].requestFocus()
-            pendingFocusIndex = null
-        }
+        listState.animateScrollToItem(targetIndex)
+        withFrameNanos { }
+        bringIntoViewRequesters[targetIndex].bringIntoView()
+        focusRequesters[targetIndex].requestFocus()
+        pendingFocusIndex = null
     }
 
     fun progressionHint(): String {
@@ -196,7 +202,7 @@ fun TabellineGuidateScreen(
     val rowHeight = 64.dp
     val listMinHeight = rowHeight * 7
 
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Box(modifier = Modifier.fillMaxSize().imePadding().padding(16.dp)) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -344,9 +350,7 @@ fun TabellineGuidateScreen(
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .focusRequester(focusRequesters[index])
-                                                .onGloballyPositioned { coords ->
-                                                    fieldVisibility[index] = coords.isAttached && coords.size.height > 0
-                                                },
+                                                .bringIntoViewRequester(bringIntoViewRequesters[index]),
                                             textStyle = androidx.compose.ui.text.TextStyle(
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.Bold,
