@@ -458,13 +458,6 @@ fun GameHeader(
                     fontSize = titleSize,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    "Fai $bonusTarget giuste per il BONUS 🎈",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    fontSize = subtitleSize,
-                    maxLines = if (isCompact) 1 else 2,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
