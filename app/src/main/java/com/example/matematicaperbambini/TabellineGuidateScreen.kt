@@ -324,11 +324,14 @@ fun TabellineGuidateScreen(
                         }
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         Button(
                             onClick = { fillOneExample() },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                            modifier = Modifier.fillMaxWidth().height(44.dp)
+                            modifier = Modifier.weight(1f).height(44.dp)
                         ) {
                             Text("Fammi vedere come si fa", fontWeight = FontWeight.Bold)
                         }
@@ -353,7 +356,7 @@ fun TabellineGuidateScreen(
                                 }
                             },
                             enabled = allFilled,
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            modifier = Modifier.weight(1f).height(50.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFF3B82F6),
                                 disabledContainerColor = Color(0xFFBFDBFE),
