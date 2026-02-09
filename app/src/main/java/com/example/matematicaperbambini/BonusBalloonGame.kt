@@ -85,40 +85,48 @@ fun BonusRewardHost(
 ) {
     val normalizedRewardEvery = rewardEvery.coerceAtLeast(1)
     val nextRewardAt = (rewardsEarned + 1) * normalizedRewardEvery
-    val rng = remember { Random(System.currentTimeMillis()) }
     var showPrompt by remember { mutableStateOf(false) }
     var showGame by remember { mutableStateOf(false) }
     var pickedGame by remember { mutableStateOf<BonusGame?>(null) }
 
     LaunchedEffect(correctCount, rewardsEarned) {
         if (correctCount >= nextRewardAt) {
-            if (pickedGame == null) {
-                pickedGame = if (rng.nextInt(2) == 0) BonusGame.Balloons else BonusGame.Stars
-            }
             showPrompt = true
         }
     }
 
     if (showPrompt) {
-        val bonusLabel = if (pickedGame == BonusGame.Stars) "Bonus: Stelle ⭐" else "Bonus: Palloncini 🎈"
         AlertDialog(
             onDismissRequest = {},
             title = { Text("Complimenti! 🎉") },
             text = {
                 Text(
                     "Hai fatto $nextRewardAt operazioni corrette."
-                        + "\nÈ ora del Bonus Round! $bonusLabel"
+                        + "\nScegli il gioco bonus!"
                 )
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        onBonusPromptAction()
-                        showPrompt = false
-                        showGame = true
-                        if (soundEnabled) fx.bonus()
-                    }
-                ) { Text("Gioca") }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(
+                        onClick = {
+                            onBonusPromptAction()
+                            pickedGame = BonusGame.Balloons
+                            showPrompt = false
+                            showGame = true
+                            if (soundEnabled) fx.bonus()
+                        }
+                    ) { Text("Palloncini 🎈") }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            onBonusPromptAction()
+                            pickedGame = BonusGame.Stars
+                            showPrompt = false
+                            showGame = true
+                            if (soundEnabled) fx.bonus()
+                        }
+                    ) { Text("Stelle ⭐") }
+                }
             },
             dismissButton = {
                 TextButton(
