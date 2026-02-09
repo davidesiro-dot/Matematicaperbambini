@@ -1009,7 +1009,6 @@ fun AssignedHomeworksScreen(
     onToggleSound: () -> Unit,
     onBack: () -> Unit,
     savedHomeworks: List<SavedHomework>,
-    homeworkCodes: List<HomeworkCodeEntry>,
     onStartHomework: (SavedHomework) -> Unit,
     onStartHomeworkFromCode: (HomeworkCodePayload) -> Unit
 ) {
@@ -1106,7 +1105,7 @@ fun AssignedHomeworksScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = restoreCodeInput,
-                        onValueChange = { restoreCodeInput = it.take(12) },
+                        onValueChange = { restoreCodeInput = it.take(256) },
                         label = { Text("Codice compito") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -1119,9 +1118,9 @@ fun AssignedHomeworksScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val payload = findHomeworkCodePayload(restoreCodeInput, homeworkCodes)
+                        val payload = decodeHomeworkCode(restoreCodeInput)
                         if (payload == null) {
-                            restoreError = "Non ho trovato questo codice. Controlla e riprova 🙂"
+                            restoreError = "Codice non valido, controlla e riprova 🙂"
                         } else {
                             pendingPayload = payload
                             showRestoreDialog = false
