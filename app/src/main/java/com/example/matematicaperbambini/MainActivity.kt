@@ -695,7 +695,15 @@ private fun AppShell() {
                         homeworkCodes = homeworkCodeRepository.getAll()
                     }
                 },
-                onShareCode = { entry -> shareHomeworkCode(context, entry) }
+                onShareCode = { entry -> shareHomeworkCode(context, entry) },
+                onStartHomeworkFromCode = { payload ->
+                    homeworkQueue = buildExerciseQueue(payload.tasks)
+                    homeworkReturnScreen = Screen.HOMEWORK_CODES
+                    runningHomeworkId = null
+                    runningHomeworkFromCode = true
+                    navAnim = NavAnim.SLIDE
+                    screen = Screen.HOMEWORK_RUNNER
+                }
             )
 
             Screen.OPERATION_START_MENU -> {
@@ -1815,7 +1823,8 @@ private fun HomeworkCodesScreen(
     onBack: () -> Unit,
     codes: List<HomeworkCodeEntry>,
     onDeleteCode: (HomeworkCodeEntry) -> Unit,
-    onShareCode: (HomeworkCodeEntry) -> Unit
+    onShareCode: (HomeworkCodeEntry) -> Unit,
+    onStartHomeworkFromCode: (HomeworkCodePayload) -> Unit
 ) {
     val formatter = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
     val sortedCodes = remember(codes) { codes.sortedByDescending { it.createdAt } }
@@ -1896,6 +1905,21 @@ private fun HomeworkCodesScreen(
                 SeaGlassPanel(title = "Azioni codice") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Codice selezionato: ${selectedCode.title}")
+                        Button(
+                            onClick = {
+                                onStartHomeworkFromCode(
+                                    HomeworkCodePayload(
+                                        id = selectedCode.id,
+                                        createdAt = selectedCode.createdAt,
+                                        tasks = selectedCode.tasks
+                                    )
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = selectedCode.tasks.isNotEmpty()
+                        ) {
+                            Text("Avvio compito")
+                        }
                         Button(
                             onClick = { onShareCode(selectedCode) },
                             modifier = Modifier.fillMaxWidth()
