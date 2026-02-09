@@ -597,7 +597,7 @@ fun LongAdditionGame(
             },
             bottomBar = {
                 GameBottomActions(
-                    leftText = "Ricomincia",
+                    leftText = "Riparti",
                     onLeft = {
                         if (startMode == StartMode.MANUAL) {
                             val manual = manualNumbers
