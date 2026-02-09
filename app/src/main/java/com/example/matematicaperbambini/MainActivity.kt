@@ -58,7 +58,7 @@ import java.text.DateFormat
 import java.util.Date
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -1145,7 +1145,7 @@ private fun HomeMenuKids(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.HelpOutline,
+                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                             contentDescription = "Logo mancante",
                             tint = Color.White.copy(alpha = 0.9f),
                             modifier = Modifier.size(48.dp)
@@ -1324,7 +1324,7 @@ private fun LearnMenuKids(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.HelpOutline,
+                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                             contentDescription = "Logo mancante",
                             tint = Color.White.copy(alpha = 0.9f),
                             modifier = Modifier.size(48.dp)
@@ -1502,7 +1502,7 @@ private fun GameMenuKids(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.HelpOutline,
+                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                             contentDescription = "Logo mancante",
                             tint = Color.White.copy(alpha = 0.9f),
                             modifier = Modifier.size(48.dp)
@@ -1755,7 +1755,7 @@ private fun HomeworkMenu(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.HelpOutline,
+                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                             contentDescription = "Logo mancante",
                             tint = Color.White.copy(alpha = 0.9f),
                             modifier = Modifier.size(48.dp)
