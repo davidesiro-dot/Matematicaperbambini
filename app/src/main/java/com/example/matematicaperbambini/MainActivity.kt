@@ -24,6 +24,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -31,6 +32,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
@@ -45,6 +47,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -227,6 +230,11 @@ private enum class Screen {
 }
 
 private enum class NavAnim { SLIDE, EXPAND }
+
+private enum class BonusHomeGame {
+    Balloons,
+    Stars
+}
 
 // -----------------------------
 // APP
@@ -624,6 +632,7 @@ private fun AppShell() {
                 onOpenHomeworkMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
                 onOpenReports = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
                 savedHomeworks = savedHomeworks,
+                fx = fx,
             )
 
             Screen.IMPARA_MENU -> LearnMenuKids(
@@ -1055,8 +1064,32 @@ private fun HomeMenuKids(
     onOpenLearnMenu: () -> Unit,
     onOpenHomeworkMenu: () -> Unit,
     onOpenReports: () -> Unit,
-    savedHomeworks: List<SavedHomework>
+    savedHomeworks: List<SavedHomework>,
+    fx: SoundFx
 ) {
+    val bonusTapWindowMs = 600L
+    val bonusTapTarget = 10
+    var bonusTapCount by remember { mutableStateOf(0) }
+    var lastBonusTapMs by remember { mutableStateOf(0L) }
+    var showBonusMenu by remember { mutableStateOf(false) }
+    var activeBonusGame by remember { mutableStateOf<BonusHomeGame?>(null) }
+
+    fun onLogoTapped() {
+        val now = System.currentTimeMillis()
+        bonusTapCount = if (now - lastBonusTapMs <= bonusTapWindowMs) {
+            bonusTapCount + 1
+        } else {
+            1
+        }
+        lastBonusTapMs = now
+
+        if (bonusTapCount >= bonusTapTarget) {
+            bonusTapCount = 0
+            lastBonusTapMs = 0L
+            showBonusMenu = true
+        }
+    }
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
         val screenW = maxWidth
@@ -1140,7 +1173,10 @@ private fun HomeMenuKids(
                     modifier = Modifier
                         .fillMaxWidth()
                         .offset(y = logoOffset)
-                        .onSizeChanged { logoHeightPx = it.height },
+                        .onSizeChanged { logoHeightPx = it.height }
+                        .pointerInput(Unit) {
+                            detectTapGestures { onLogoTapped() }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (logoPainter != null) {
@@ -1214,6 +1250,46 @@ private fun HomeMenuKids(
                 }
             }
         }
+    }
+
+    if (showBonusMenu) {
+        AlertDialog(
+            onDismissRequest = { showBonusMenu = false },
+            title = { Text("Modalità bonus") },
+            text = { Text("Scegli il gioco bonus") },
+            confirmButton = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(
+                        onClick = {
+                            showBonusMenu = false
+                            activeBonusGame = BonusHomeGame.Balloons
+                        }
+                    ) { Text("Palloncini 🎈") }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            showBonusMenu = false
+                            activeBonusGame = BonusHomeGame.Stars
+                        }
+                    ) { Text("Stelle ⭐") }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBonusMenu = false }) { Text("Annulla") }
+            }
+        )
+    }
+
+    when (activeBonusGame) {
+        BonusHomeGame.Balloons -> BonusBalloonGame(
+            onFinish = { activeBonusGame = null }
+        )
+        BonusHomeGame.Stars -> FallingStarsGame(
+            soundEnabled = soundEnabled,
+            fx = fx,
+            onFinish = { activeBonusGame = null }
+        )
+        null -> Unit
     }
 }
 
