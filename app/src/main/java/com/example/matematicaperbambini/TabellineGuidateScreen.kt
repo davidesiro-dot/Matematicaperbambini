@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,6 +98,7 @@ fun TabellineGuidateScreen(
     val results = remember(table) { (1..10).map { table * it } }
     val inputs = remember { mutableStateListOf<String>().apply { repeat(10) { add("") } } }
     val correctness = remember { mutableStateListOf<Boolean?>().apply { repeat(10) { add(null) } } }
+    val focusRequesters = remember { List(10) { FocusRequester() } }
     var phaseIndex by remember { mutableStateOf(0) }
     var showAllResults by remember { mutableStateOf(false) }
     var infoMessage by remember { mutableStateOf(phases.first().message) }
@@ -113,6 +116,10 @@ fun TabellineGuidateScreen(
     LaunchedEffect(table, phaseIndex) {
         resetPhase()
         completed = false
+        val firstEmpty = inputs.indexOfFirst { it.isBlank() }
+        if (firstEmpty >= 0) {
+            focusRequesters[firstEmpty].requestFocus()
+        }
     }
 
     fun progressionHint(): String {
@@ -299,10 +306,18 @@ fun TabellineGuidateScreen(
                                                     sanitized.isBlank() -> null
                                                     else -> sanitized.toIntOrNull() == results[index]
                                                 }
+                                                val expectedLength = results[index].toString().length
+                                                if (sanitized.length >= expectedLength) {
+                                                    val nextIndex = (index + 1 until 10).firstOrNull { inputs[it].isBlank() }
+                                                        ?: (0 until index).firstOrNull { inputs[it].isBlank() }
+                                                    if (nextIndex != null) {
+                                                        focusRequesters[nextIndex].requestFocus()
+                                                    }
+                                                }
                                             },
                                             singleLine = true,
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            modifier = Modifier.fillMaxSize(),
+                                            modifier = Modifier.fillMaxSize().focusRequester(focusRequesters[index]),
                                             textStyle = androidx.compose.ui.text.TextStyle(
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.Bold,
