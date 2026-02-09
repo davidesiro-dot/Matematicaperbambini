@@ -1678,19 +1678,19 @@ private fun HomeworkMenu(
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
                 MenuButtonData(
-                    title = "Genera compiti",
-                    baseColor = Color(0xFFE74C3C),
-                    iconText = "📝",
-                    onClick = onOpenHomeworkBuilder
-                ),
-                MenuButtonData(
                     title = "Fai i compiti",
                     baseColor = Color(0xFF22C55E),
                     iconText = "✅",
                     onClick = onOpenAssignedHomeworks
                 ),
                 MenuButtonData(
-                    title = "Codici compito",
+                    title = "Genera compiti",
+                    baseColor = Color(0xFFE74C3C),
+                    iconText = "📝",
+                    onClick = onOpenHomeworkBuilder
+                ),
+                MenuButtonData(
+                    title = "Lista codici compito",
                     baseColor = Color(0xFF6366F1),
                     iconText = "🔑",
                     onClick = onOpenHomeworkCodes
