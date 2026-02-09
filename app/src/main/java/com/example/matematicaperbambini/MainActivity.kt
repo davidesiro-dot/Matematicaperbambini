@@ -35,6 +35,7 @@ import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,11 +60,14 @@ import java.util.Date
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Spacer
 
@@ -77,6 +81,8 @@ data class ScoreEntry(val name: String, val value: Long)
 private const val PREFS_NAME = "math_kids_prefs"
 const val GLOBAL_STARS_LEADERBOARD_ID = "global_stars_score"
 const val GLOBAL_BALLOONS_LEADERBOARD_ID = "global_balloons_time"
+
+private val LocalInfoAction = staticCompositionLocalOf<() -> Unit> { {} }
 private fun encodeName(name: String) = URLEncoder.encode(name, "UTF-8")
 private fun decodeName(name: String) = URLDecoder.decode(name, "UTF-8")
 
@@ -361,6 +367,32 @@ fun SmallCircleButton(
     }
 }
 
+@Composable
+fun SmallCircleIconButton(
+    imageVector: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    size: Dp = 40.dp,
+    iconSize: Dp = 22.dp,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.31f))
+            .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            tint = Color(0xFF111827),
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
 
 
 @Composable
@@ -433,6 +465,7 @@ fun GameHeader(
     val iconSize = if (isCompact) 18.dp else 22.dp
     val buttonFont = if (isCompact) 16.sp else 18.sp
     val spacing = if (isCompact) 6.dp else 10.dp
+    val onOpenInfo = LocalInfoAction.current
 
     Row(
         Modifier.fillMaxWidth().statusBarsPadding(),
@@ -475,6 +508,13 @@ fun GameHeader(
                 iconSize = iconSize,
                 fontSize = buttonFont
             )
+            SmallCircleIconButton(
+                imageVector = Icons.Outlined.HelpOutline,
+                contentDescription = "Informazioni",
+                size = buttonSize,
+                iconSize = iconSize,
+                onClick = onOpenInfo
+            )
         }
     }
 }
@@ -488,6 +528,7 @@ private fun AppShell() {
     var navAnim by remember { mutableStateOf(NavAnim.SLIDE) }
     var returnScreenAfterLeaderboard by remember { mutableStateOf<Screen?>(null) }
     var leaderboardTab by remember { mutableStateOf(LeaderboardTab.STARS) }
+    var showInfo by remember { mutableStateOf(false) }
 
     var soundEnabled by remember { mutableStateOf(true) }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -592,89 +633,90 @@ private fun AppShell() {
         screen = Screen.LEADERBOARD
     }
 
-    AnimatedContent(
-        targetState = screen,
-        transitionSpec = {
-            if (navAnim == NavAnim.EXPAND) {
-                (scaleIn(initialScale = 0.90f, animationSpec = tween(260, easing = FastOutSlowInEasing)) + fadeIn(tween(200)))
-                    .togetherWith(fadeOut(tween(140)) + scaleOut(targetScale = 1.04f, animationSpec = tween(220)))
-            } else {
-                (slideInHorizontally { it } + fadeIn())
-                    .togetherWith(slideOutHorizontally { -it } + fadeOut())
-            }
-        },
-        label = "nav"
-    ) { s ->
-        when (s) {
-            Screen.HOME -> HomeMenuKids(
-                soundEnabled = soundEnabled,
-                onToggleSound = { soundEnabled = !soundEnabled },
-                onOpenLeaderboard = { openLb() },
-                onOpenGameMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
-                onOpenLearnMenu = { isLearnFlow = true; navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
-                onOpenHomeworkMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
-                onOpenReports = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
-                savedHomeworks = savedHomeworks,
-            )
-
-            Screen.IMPARA_MENU -> LearnMenuKids(
-                soundEnabled = soundEnabled,
-                onToggleSound = { soundEnabled = !soundEnabled },
-                onOpenLeaderboard = { openLb() },
-                onBack = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onStartAddition = {
-                    openGuidedSession()
-                    openStartMenu(GameMode.ADD)
-                },
-                onStartSubtraction = {
-                    openGuidedSession()
-                    openStartMenu(GameMode.SUB)
-                },
-                onStartMultiplication = {
-                    openGuidedSession()
-                    openStartMenu(GameMode.MULT_HARD)
-                },
-                onStartDivision = {
-                    openGuidedSession()
-                    openStartMenu(GameMode.DIV)
-                },
-                onStartGuidedTables = {
-                    openGuidedSession()
-                    navAnim = NavAnim.SLIDE
-                    screen = Screen.GUIDED_TABLE_PICKER
+    CompositionLocalProvider(LocalInfoAction provides { showInfo = true }) {
+        AnimatedContent(
+            targetState = screen,
+            transitionSpec = {
+                if (navAnim == NavAnim.EXPAND) {
+                    (scaleIn(initialScale = 0.90f, animationSpec = tween(260, easing = FastOutSlowInEasing)) + fadeIn(tween(200)))
+                        .togetherWith(fadeOut(tween(140)) + scaleOut(targetScale = 1.04f, animationSpec = tween(220)))
+                } else {
+                    (slideInHorizontally { it } + fadeIn())
+                        .togetherWith(slideOutHorizontally { -it } + fadeOut())
                 }
-            )
+            },
+            label = "nav"
+        ) { s ->
+            when (s) {
+                Screen.HOME -> HomeMenuKids(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = { soundEnabled = !soundEnabled },
+                    onOpenLeaderboard = { openLb() },
+                    onOpenGameMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
+                    onOpenLearnMenu = { isLearnFlow = true; navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
+                    onOpenHomeworkMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
+                    onOpenReports = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
+                    savedHomeworks = savedHomeworks,
+                )
 
-            Screen.GAME_MENU -> GameMenuKids(
-                soundEnabled = soundEnabled,
-                onToggleSound = { soundEnabled = !soundEnabled },
-                onOpenLeaderboard = { openLb() },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onPickDigitsFor = { m ->
-                    isLearnFlow = false
-                    openStartMenu(m)
-                },
-                onPlayDirect = { m ->
-                    isLearnFlow = false
-                    when (m) {
-                        GameMode.MULT -> openTabellineMenu()
-                        GameMode.MULT_HARD -> openStartMenu(m)
-                        GameMode.DIV -> openStartMenu(m) // ✅
-                        GameMode.MONEY -> openGame(m, digits, startMode)
-                        else -> openGame(m, digits)
+                Screen.IMPARA_MENU -> LearnMenuKids(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = { soundEnabled = !soundEnabled },
+                    onOpenLeaderboard = { openLb() },
+                    onBack = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onStartAddition = {
+                        openGuidedSession()
+                        openStartMenu(GameMode.ADD)
+                    },
+                    onStartSubtraction = {
+                        openGuidedSession()
+                        openStartMenu(GameMode.SUB)
+                    },
+                    onStartMultiplication = {
+                        openGuidedSession()
+                        openStartMenu(GameMode.MULT_HARD)
+                    },
+                    onStartDivision = {
+                        openGuidedSession()
+                        openStartMenu(GameMode.DIV)
+                    },
+                    onStartGuidedTables = {
+                        openGuidedSession()
+                        navAnim = NavAnim.SLIDE
+                        screen = Screen.GUIDED_TABLE_PICKER
                     }
-                }
-            )
+                )
 
-            Screen.HOMEWORK_MENU -> HomeworkMenu(
-                soundEnabled = soundEnabled,
-                onToggleSound = { soundEnabled = !soundEnabled },
-                onOpenLeaderboard = { openLb() },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
-                onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
-                onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
-                onOpenHomeworkCodes = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_CODES }
-            )
+                Screen.GAME_MENU -> GameMenuKids(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = { soundEnabled = !soundEnabled },
+                    onOpenLeaderboard = { openLb() },
+                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onPickDigitsFor = { m ->
+                        isLearnFlow = false
+                        openStartMenu(m)
+                    },
+                    onPlayDirect = { m ->
+                        isLearnFlow = false
+                        when (m) {
+                            GameMode.MULT -> openTabellineMenu()
+                            GameMode.MULT_HARD -> openStartMenu(m)
+                            GameMode.DIV -> openStartMenu(m) // ✅
+                            GameMode.MONEY -> openGame(m, digits, startMode)
+                            else -> openGame(m, digits)
+                        }
+                    }
+                )
+
+                Screen.HOMEWORK_MENU -> HomeworkMenu(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = { soundEnabled = !soundEnabled },
+                    onOpenLeaderboard = { openLb() },
+                    onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                    onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
+                    onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
+                    onOpenHomeworkCodes = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_CODES }
+                )
 
             Screen.HOMEWORK_CODES -> HomeworkCodesScreen(
                 soundEnabled = soundEnabled,
@@ -1032,6 +1074,11 @@ private fun AppShell() {
             )
         }
     }
+
+    InfoDialog(
+        show = showInfo,
+        onDismiss = { showInfo = false }
+    )
 }
 
 // -----------------------------
@@ -1469,6 +1516,7 @@ private fun GameMenuKids(
                         .align(Alignment.TopCenter)
                         .onSizeChanged { headerHeightPx = it.height }
                 ) {
+                    val onOpenInfo = LocalInfoAction.current
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1480,6 +1528,11 @@ private fun GameMenuKids(
                         TopActionsPill(modifier = Modifier.padding(top = 6.dp)) {
                             SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
                             SmallCircleButton("🏆") { onOpenLeaderboard() }
+                            SmallCircleIconButton(
+                                imageVector = Icons.Outlined.HelpOutline,
+                                contentDescription = "Informazioni",
+                                onClick = onOpenInfo
+                            )
                         }
                     }
                 }
@@ -2010,6 +2063,7 @@ private fun MenuHeader(
     onOpenLeaderboard: () -> Unit,
     onBack: (() -> Unit)? = null
 ) {
+    val onOpenInfo = LocalInfoAction.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2025,6 +2079,125 @@ private fun MenuHeader(
         TopActionsPill {
             SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
             SmallCircleButton("🏆") { onOpenLeaderboard() }
+            SmallCircleIconButton(
+                imageVector = Icons.Outlined.HelpOutline,
+                contentDescription = "Informazioni",
+                onClick = onOpenInfo
+            )
+        }
+    }
+}
+
+@Composable
+private fun InfoDialog(
+    show: Boolean,
+    onDismiss: () -> Unit
+) {
+    if (!show) return
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SmallCircleButton("⬅") { onDismiss() }
+                    Text(
+                        text = "Informazioni",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.size(40.dp))
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "📘 Come usare l'app",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "L'app è pensata per aiutare i bambini a imparare la matematica divertendosi.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "• Gioco libero: scegli le operazioni e gioca liberamente.\n" +
+                                "• Impara: modalità guidata con spiegazioni e aiuti passo passo.\n" +
+                                "• Compiti: esercizi assegnati con report dei risultati.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "📜 Privacy Policy / GDPR",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Questa app rispetta la privacy dei bambini e delle famiglie:",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "• NON raccoglie dati personali.\n" +
+                                "• NON richiede login.\n" +
+                                "• NON usa internet.\n" +
+                                "• NON condivide dati con terze parti.\n" +
+                                "• Tutti i dati (compiti, report, nomi inseriti) restano solo sul dispositivo.\n" +
+                                "• L'app è offline-first e segue i principi GDPR di minimizzazione dei dati.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "© Copyright",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Matematica per Bambini\n" +
+                                "© 2025 – Autore/Sviluppatore\n" +
+                                "Tutti i diritti riservati.\n" +
+                                "Uso consentito solo tramite l'app.\n" +
+                                "Nessun contenuto copiabile per fini commerciali.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Chiudi")
+                }
+            }
         }
     }
 }
@@ -2292,6 +2465,7 @@ private fun DigitsPickerScreen(
 ) {
     val title = if (mode == GameMode.ADD) "Addizioni" else "Sottrazioni"
     val accent = if (mode == GameMode.ADD) Color(0xFFE74C3C) else Color(0xFF2ECC71)
+    val onOpenInfo = LocalInfoAction.current
 
     Column(
         Modifier.fillMaxSize().padding(16.dp),
@@ -2312,6 +2486,11 @@ private fun DigitsPickerScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 SmallCircleButton(if (soundEnabled) "🔊" else "🔇") { onToggleSound() }
                 SmallCircleButton("🏆") { onOpenLeaderboard() }
+                SmallCircleIconButton(
+                    imageVector = Icons.Outlined.HelpOutline,
+                    contentDescription = "Informazioni",
+                    onClick = onOpenInfo
+                )
             }
         }
 
