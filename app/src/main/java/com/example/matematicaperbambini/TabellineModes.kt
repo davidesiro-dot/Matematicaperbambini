@@ -205,7 +205,7 @@ fun TabellineGapsGame(
     var completed by remember { mutableStateOf(false) }
     var gameState by remember { mutableStateOf(GameState.INIT) }
     val inputGuard = remember { StepInputGuard() }
-    val focusRequester = remember { FocusRequester() }
+    val focusRequesters = remember { List(10) { FocusRequester() } }
     var activeBlankIndex by remember { mutableStateOf<Int?>(null) }
 
     fun resetRound() {
@@ -225,8 +225,9 @@ fun TabellineGapsGame(
     LaunchedEffect(resolvedTable, exerciseKey) { resetRound() }
 
     LaunchedEffect(activeBlankIndex, completed) {
-        if (!completed && activeBlankIndex != null) {
-            focusRequester.requestFocus()
+        val targetIndex = activeBlankIndex
+        if (!completed && targetIndex != null) {
+            focusRequesters[targetIndex].requestFocus()
         }
     }
 
@@ -374,13 +375,7 @@ fun TabellineGapsGame(
                                         modifier = Modifier
                                             .width(boxW)
                                             .height(boxH)
-                                            .then(
-                                                if (activeBlankIndex == index) {
-                                                    Modifier.focusRequester(focusRequester)
-                                                } else {
-                                                    Modifier
-                                                }
-                                            ),
+                                            .focusRequester(focusRequesters[index]),
                                         textStyle = TextStyle(
                                             fontSize = fontSize,
                                             fontWeight = FontWeight.ExtraBold,
