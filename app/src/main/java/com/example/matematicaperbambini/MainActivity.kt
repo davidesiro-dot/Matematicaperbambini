@@ -2658,19 +2658,6 @@ private fun HelpInfoDialog(onDismiss: () -> Unit) {
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("OBIETTIVO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text("Migliorare e completare il contenuto della schermata “Informazioni” (icona ❓) rendendola:")
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("• chiara per genitori e bambini")
-                    Text("• conforme al GDPR (minori)")
-                    Text("• completa nelle istruzioni d’uso")
-                }
-                Text("IMPORTANTE:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("❌ NON modificare layout, navigazione o logica")
-                    Text("❌ NON cambiare flussi esistenti")
-                    Text("❌ SOLO testo e contenuti informativi")
-                }
                 Text("📘 SEZIONE 1 — COME USARE L’APP", fontWeight = FontWeight.Bold)
                 Text("L’app Matematica per Bambini è pensata per aiutare i bambini a imparare la matematica in modo graduale, guidato e divertente.")
                 Text("🎮 Gioco libero", fontWeight = FontWeight.Bold)
