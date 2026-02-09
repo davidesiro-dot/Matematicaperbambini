@@ -1039,11 +1039,6 @@ fun AssignedHomeworksScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Button(
-                onClick = { showRestoreDialog = true },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Ripristina codice") }
-
             if (sortedHomeworks.isEmpty()) {
                 SeaGlassPanel {
                     Text(
@@ -1057,9 +1052,10 @@ fun AssignedHomeworksScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
+                Spacer(modifier = Modifier.weight(1f))
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(vertical = 2.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
@@ -1091,6 +1087,10 @@ fun AssignedHomeworksScreen(
                     }
                 }
             }
+            Button(
+                onClick = { showRestoreDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Ripristina codice") }
         }
     }
 
@@ -1110,6 +1110,11 @@ fun AssignedHomeworksScreen(
                         label = { Text("Codice compito") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "Se hai un codice generato dall'insegnante o dal genitore, inseriscilo qui.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     restoreError?.let { error ->
                         Text(error, color = MaterialTheme.colorScheme.error)
