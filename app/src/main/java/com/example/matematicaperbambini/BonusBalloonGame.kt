@@ -107,36 +107,40 @@ fun BonusRewardHost(
             },
             confirmButton = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(
-                        onClick = {
-                            onBonusPromptAction()
-                            pickedGame = BonusGame.Balloons
-                            showPrompt = false
-                            showGame = true
-                            if (soundEnabled) fx.bonus()
-                        }
-                    ) { Text("Palloncini 🎈") }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            onBonusPromptAction()
-                            pickedGame = BonusGame.Stars
-                            showPrompt = false
-                            showGame = true
-                            if (soundEnabled) fx.bonus()
-                        }
-                    ) { Text("Stelle ⭐") }
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        onBonusPromptAction()
-                        showPrompt = false
-                        pickedGame = null
-                        onRewardSkipped()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = {
+                                onBonusPromptAction()
+                                pickedGame = BonusGame.Balloons
+                                showPrompt = false
+                                showGame = true
+                                if (soundEnabled) fx.bonus()
+                            }
+                        ) { Text("Palloncini 🎈") }
+                        Button(
+                            onClick = {
+                                onBonusPromptAction()
+                                pickedGame = BonusGame.Stars
+                                showPrompt = false
+                                showGame = true
+                                if (soundEnabled) fx.bonus()
+                            }
+                        ) { Text("Stelle ⭐") }
                     }
-                ) { Text("Torna agli esercizi") }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = {
+                            onBonusPromptAction()
+                            showPrompt = false
+                            pickedGame = null
+                            onRewardSkipped()
+                        }
+                    ) { Text("Annulla") }
+                }
             }
         )
     }
