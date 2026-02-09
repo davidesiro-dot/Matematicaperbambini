@@ -201,7 +201,6 @@ private enum class Screen {
     IMPARA_MENU,
     GAME_MENU,
     HOMEWORK_MENU,
-    HOMEWORK_CODES,
     DIGITS_PICKER,     // Add/Sub
     OPERATION_START_MENU,
     TABELLINE_MENU,
@@ -680,22 +679,14 @@ private fun AppShell() {
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
                 onOpenHomeworkBuilder = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_BUILDER },
                 onOpenAssignedHomeworks = { navAnim = NavAnim.SLIDE; screen = Screen.ASSIGNED_HOMEWORKS },
-                onOpenHomeworkCodes = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_CODES }
-            )
-
-            Screen.HOMEWORK_CODES -> HomeworkCodesScreen(
-                soundEnabled = soundEnabled,
-                onToggleSound = { soundEnabled = !soundEnabled },
-                onOpenLeaderboard = { openLb() },
-                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
-                codes = homeworkCodes,
-                onDeleteCode = { entry ->
+                homeworkCodes = homeworkCodes,
+                onDeleteHomeworkCode = { entry ->
                     homeworkCodeScope.launch {
                         homeworkCodeRepository.delete(entry.id)
                         homeworkCodes = homeworkCodeRepository.getAll()
                     }
                 },
-                onShareCode = { entry -> shareHomeworkCode(context, entry) }
+                onShareHomeworkCode = { entry -> shareHomeworkCode(context, entry) }
             )
 
             Screen.OPERATION_START_MENU -> {
@@ -1011,7 +1002,6 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onBack = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
                 savedHomeworks = savedHomeworks,
-                homeworkCodes = homeworkCodes,
                 onStartHomework = { savedHomework ->
                     homeworkQueue = buildExerciseQueue(savedHomework.tasks)
                     homeworkReturnScreen = Screen.ASSIGNED_HOMEWORKS
@@ -1660,7 +1650,9 @@ private fun HomeworkMenu(
     onBack: () -> Unit,
     onOpenHomeworkBuilder: () -> Unit,
     onOpenAssignedHomeworks: () -> Unit,
-    onOpenHomeworkCodes: () -> Unit
+    homeworkCodes: List<HomeworkCodeEntry>,
+    onDeleteHomeworkCode: (HomeworkCodeEntry) -> Unit,
+    onShareHomeworkCode: (HomeworkCodeEntry) -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
@@ -1680,12 +1672,6 @@ private fun HomeworkMenu(
                     baseColor = Color(0xFF22C55E),
                     iconText = "✅",
                     onClick = onOpenAssignedHomeworks
-                ),
-                MenuButtonData(
-                    title = "Codici compito",
-                    baseColor = Color(0xFF6366F1),
-                    iconText = "🔑",
-                    onClick = onOpenHomeworkCodes
                 )
             )
 
@@ -1799,6 +1785,13 @@ private fun HomeworkMenu(
                                 translationY = offsetY
                             }
                         )
+                        if (index == 0) {
+                            HomeworkCodesSection(
+                                codes = homeworkCodes,
+                                onDeleteCode = onDeleteHomeworkCode,
+                                onShareCode = onShareHomeworkCode
+                            )
+                        }
                     }
                 }
             }
@@ -1808,11 +1801,7 @@ private fun HomeworkMenu(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HomeworkCodesScreen(
-    soundEnabled: Boolean,
-    onToggleSound: () -> Unit,
-    onOpenLeaderboard: () -> Unit,
-    onBack: () -> Unit,
+private fun HomeworkCodesSection(
     codes: List<HomeworkCodeEntry>,
     onDeleteCode: (HomeworkCodeEntry) -> Unit,
     onShareCode: (HomeworkCodeEntry) -> Unit
@@ -1823,93 +1812,73 @@ private fun HomeworkCodesScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val selectedCode = sortedCodes.firstOrNull { it.id == selectedId }
 
-    Scaffold(
-        topBar = {
-            GameHeader(
-                title = "Codici compito",
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = onOpenLeaderboard
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SeaGlassPanel {
-                if (sortedCodes.isEmpty()) {
-                    Text("Nessun codice salvato.")
-                } else {
+    Spacer(modifier = Modifier.height(12.dp))
+    SeaGlassPanel(title = "Codici compito") {
+        if (sortedCodes.isEmpty()) {
+            Text("Nessun codice salvato.")
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 260.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                sortedCodes.forEach { code ->
+                    val isSelected = code.id == selectedId
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 360.dp)
-                            .verticalScroll(rememberScrollState())
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(18.dp)
+                            )
+                            .combinedClickable(
+                                onClick = {
+                                    selectedId = if (isSelected) null else code.id
+                                }
+                            )
+                            .padding(12.dp)
                     ) {
-                        sortedCodes.forEach { code ->
-                            val isSelected = code.id == selectedId
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected)
-                                            MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                                        shape = RoundedCornerShape(18.dp)
-                                    )
-                                    .combinedClickable(
-                                        onClick = {
-                                            selectedId = if (isSelected) null else code.id
-                                        }
-                                    )
-                                    .padding(12.dp)
-                            ) {
-                                Text(code.title, fontWeight = FontWeight.Bold)
-                                Text(
-                                    formatHomeworkCodePreview(code.code),
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 16.sp
-                                )
-                                Text(
-                                    buildHomeworkCodeDescription(code.tasks),
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-                                )
-                                Text(
-                                    formatter.format(Date(code.createdAt)),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                        Text(code.title, fontWeight = FontWeight.Bold)
+                        Text(
+                            formatHomeworkCodePreview(code.code),
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            formatter.format(Date(code.createdAt)),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
+        }
+    }
 
-            if (selectedCode != null) {
-                SeaGlassPanel(title = "Azioni codice") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Codice selezionato: ${selectedCode.title}")
-                        Button(
-                            onClick = { onShareCode(selectedCode) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Condividi codice")
-                        }
-                        Button(
-                            onClick = { showDeleteConfirm = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Elimina codice", color = MaterialTheme.colorScheme.onErrorContainer)
-                        }
-                    }
+    if (selectedCode != null) {
+        SeaGlassPanel(
+            title = "Azioni codice",
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .fillMaxWidth()
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Codice selezionato: ${selectedCode.title}")
+                Button(
+                    onClick = { onShareCode(selectedCode) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Condividi codice")
+                }
+                Button(
+                    onClick = { showDeleteConfirm = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Elimina codice", color = MaterialTheme.colorScheme.onErrorContainer)
                 }
             }
         }
