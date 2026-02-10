@@ -13,10 +13,13 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.input.KeyboardType
 import kotlin.math.pow
 import kotlin.random.Random
 import androidx.compose.foundation.layout.Spacer
@@ -58,15 +61,15 @@ private fun generateDivision(rng: Random, mode: DivMode): Pair<Int, Int> {
 }
 
 @Composable
-private fun ProofNineCell(
+private fun ProofNineInputCell(
     label: String,
-    value: Int,
+    value: String,
+    onValueChange: (String) -> Unit,
     fontSize: TextUnit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
-            .then(Modifier.weight(1f))
             .border(
                 width = 2.dp,
                 color = Color.White.copy(alpha = 0.55f),
@@ -80,7 +83,22 @@ private fun ProofNineCell(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-        Text(value.toString(), fontSize = fontSize, fontWeight = FontWeight.Bold)
+        androidx.compose.foundation.text.BasicTextField(
+            value = value,
+            onValueChange = { input ->
+                val filtered = input.filter { it.isDigit() }.take(1)
+                onValueChange(filtered)
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontSize = fontSize,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -882,8 +900,34 @@ fun DivisionStepGame(
                             val dividendNine = digitalRootNine(p.dividend)
                             val productNine = digitalRootNine(divisorNine * quotientNine)
                             val checkNine = digitalRootNine(productNine + remainderNine)
-                            val proofMatches = checkNine == dividendNine
                             val crossLineColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            var inputDivisor by remember(p.dividend, p.divisor) { mutableStateOf("") }
+                            var inputQuotient by remember(p.dividend, p.divisor) { mutableStateOf("") }
+                            var inputProduct by remember(p.dividend, p.divisor) { mutableStateOf("") }
+                            var inputDividend by remember(p.dividend, p.divisor) { mutableStateOf("") }
+                            var inputRemainder by remember(p.dividend, p.divisor) { mutableStateOf("") }
+                            var inputCheck by remember(p.dividend, p.divisor) { mutableStateOf("") }
+                            val parsedDivisor = inputDivisor.toIntOrNull()
+                            val parsedQuotient = inputQuotient.toIntOrNull()
+                            val parsedProduct = inputProduct.toIntOrNull()
+                            val parsedDividend = inputDividend.toIntOrNull()
+                            val parsedRemainder = inputRemainder.toIntOrNull()
+                            val parsedCheck = inputCheck.toIntOrNull()
+                            val proofComplete = listOf(
+                                parsedDivisor,
+                                parsedQuotient,
+                                parsedProduct,
+                                parsedDividend,
+                                parsedRemainder,
+                                parsedCheck
+                            ).all { it != null }
+                            val proofMatches = proofComplete &&
+                                parsedDivisor == divisorNine &&
+                                parsedQuotient == quotientNine &&
+                                parsedProduct == productNine &&
+                                parsedDividend == dividendNine &&
+                                parsedRemainder == remainderNine &&
+                                parsedCheck == checkNine
 
                             SeaGlassPanel(title = "Prova del 9") {
                                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -893,10 +937,20 @@ fun DivisionStepGame(
                                         fontSize = 14.sp
                                     )
                                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("Sommiamo le cifre del divisore e del quoziente")
-                                        Text("Moltiplichiamo i risultati")
-                                        Text("Aggiungiamo il resto")
-                                        Text("Confrontiamo con il dividendo")
+                                        Text(
+                                            text = "Come fare: in ogni casella scrivi la somma delle cifre " +
+                                                "ridotta a un numero da 1 a 9 (se la somma è 9, scrivi 9; " +
+                                                "se il resto è 0, scrivi 0). Questo serve a controllare " +
+                                                "se la divisione è coerente.",
+                                            fontSize = 13.sp
+                                        )
+                                        Text("1) Divisore: somma le cifre del divisore e riduci.")
+                                        Text("2) Quoziente: somma le cifre del quoziente e riduci.")
+                                        Text("3) Prodotto: moltiplica i due risultati e riduci.")
+                                        Text("4) Resto: somma le cifre del resto e riduci (0 resta 0).")
+                                        Text("5) Controllo: Prodotto + Resto, poi riduci.")
+                                        Text("6) Dividendo: somma le cifre del dividendo e riduci.")
+                                        Text("Se Controllo e Dividendo sono uguali, la divisione è corretta.")
                                     }
 
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -910,10 +964,12 @@ fun DivisionStepGame(
                                                     modifier = Modifier.weight(1f),
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
-                                                    ProofNineCell(
+                                                    ProofNineInputCell(
                                                         label = "Divisore",
-                                                        value = divisorNine,
-                                                        fontSize = if (ui.isCompact) 18.sp else 22.sp
+                                                        value = inputDivisor,
+                                                        onValueChange = { inputDivisor = it },
+                                                        fontSize = if (ui.isCompact) 18.sp else 22.sp,
+                                                        modifier = Modifier.weight(1f)
                                                     )
                                                     Box(
                                                         modifier = Modifier
@@ -926,10 +982,12 @@ fun DivisionStepGame(
                                                     modifier = Modifier.weight(1f),
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
-                                                    ProofNineCell(
+                                                    ProofNineInputCell(
                                                         label = "Prodotto",
-                                                        value = productNine,
-                                                        fontSize = if (ui.isCompact) 18.sp else 22.sp
+                                                        value = inputProduct,
+                                                        onValueChange = { inputProduct = it },
+                                                        fontSize = if (ui.isCompact) 18.sp else 22.sp,
+                                                        modifier = Modifier.weight(1f)
                                                     )
                                                 }
                                             }
@@ -944,10 +1002,12 @@ fun DivisionStepGame(
                                                     modifier = Modifier.weight(1f),
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
-                                                    ProofNineCell(
+                                                    ProofNineInputCell(
                                                         label = "Quoziente",
-                                                        value = quotientNine,
-                                                        fontSize = if (ui.isCompact) 18.sp else 22.sp
+                                                        value = inputQuotient,
+                                                        onValueChange = { inputQuotient = it },
+                                                        fontSize = if (ui.isCompact) 18.sp else 22.sp,
+                                                        modifier = Modifier.weight(1f)
                                                     )
                                                     Box(
                                                         modifier = Modifier
@@ -960,22 +1020,53 @@ fun DivisionStepGame(
                                                     modifier = Modifier.weight(1f),
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
-                                                    ProofNineCell(
+                                                    ProofNineInputCell(
                                                         label = "Dividendo",
-                                                        value = dividendNine,
-                                                        fontSize = if (ui.isCompact) 18.sp else 22.sp
+                                                        value = inputDividend,
+                                                        onValueChange = { inputDividend = it },
+                                                        fontSize = if (ui.isCompact) 18.sp else 22.sp,
+                                                        modifier = Modifier.weight(1f)
                                                     )
                                                 }
                                             }
                                         }
                                     }
 
-                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text("Aggiungiamo il resto: $productNine + $remainderNine = $checkNine")
-                                        Text("Confronto finale: $checkNine ${if (proofMatches) "✔" else "✖"} $dividendNine")
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text("Resto:", fontWeight = FontWeight.SemiBold)
+                                            ProofNineInputCell(
+                                                label = "",
+                                                value = inputRemainder,
+                                                onValueChange = { inputRemainder = it },
+                                                fontSize = if (ui.isCompact) 18.sp else 22.sp,
+                                                modifier = Modifier.weight(0.6f)
+                                            )
+                                        }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text("Controllo:", fontWeight = FontWeight.SemiBold)
+                                            ProofNineInputCell(
+                                                label = "",
+                                                value = inputCheck,
+                                                onValueChange = { inputCheck = it },
+                                                fontSize = if (ui.isCompact) 18.sp else 22.sp,
+                                                modifier = Modifier.weight(0.6f)
+                                            )
+                                        }
                                     }
 
-                                    if (proofMatches) {
+                                    if (!proofComplete) {
+                                        Text(
+                                            text = "Compila tutte le caselle per verificare la prova.",
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    } else if (proofMatches) {
                                         Text(
                                             text = "✅ Bravo! La prova del 9 conferma che la divisione è corretta 🎉",
                                             fontWeight = FontWeight.Bold
