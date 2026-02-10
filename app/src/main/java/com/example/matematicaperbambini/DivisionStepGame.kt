@@ -956,7 +956,7 @@ fun DivisionStepGame(
                                 inputQuotient.isBlank() -> "Quoziente" to quotientNine
                                 inputProduct.isBlank() -> "Prodotto" to productNine
                                 inputRemainder.isBlank() -> "Resto" to remainderNine
-                                inputCheck.isBlank() -> "Controllo" to checkNine
+                                inputCheck.isBlank() -> "Nuovo Prodotto" to checkNine
                                 inputDividend.isBlank() -> "Dividendo" to dividendNine
                                 else -> null
                             }
@@ -966,7 +966,7 @@ fun DivisionStepGame(
                                     "Quoziente" -> "${nineReductionStepsText(p.finalQuotient)} → segna $value"
                                     "Prodotto" -> "$divisorNine × $quotientNine = $productBase → ${nineReductionStepsText(productBase)} → segna $value"
                                     "Resto" -> "${nineReductionStepsText(p.finalRemainder)} → segna $value"
-                                    "Controllo" -> "$productNine + $remainderNine = $checkBase → ${nineReductionStepsText(checkBase)} → segna $value"
+                                    "Nuovo Prodotto" -> "$productNine + $remainderNine = $checkBase → ${nineReductionStepsText(checkBase)} → segna $value"
                                     "Dividendo" -> "${nineReductionStepsText(p.dividend)} → segna $value"
                                     else -> "Segna $value"
                                 }
@@ -994,7 +994,7 @@ fun DivisionStepGame(
                                                 "Qui sotto vedi solo l'aiuto della casella da completare.",
                                             fontSize = 13.sp
                                         )
-                                        Text("Se Controllo e Dividendo sono uguali, la divisione è corretta.")
+                                        Text("Se Nuovo Prodotto e Dividendo sono uguali, la divisione è corretta.")
                                         if (!proofComplete && proofHelpMessage != null) {
                                             Text(
                                                 text = proofHelpMessage,
@@ -1106,13 +1106,16 @@ fun DivisionStepGame(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text("Controllo:", fontWeight = FontWeight.SemiBold)
+                                            Text("Nuovo Prodotto:", fontWeight = FontWeight.SemiBold)
                                             ProofNineInputCell(
                                                 label = "",
                                                 value = inputCheck,
-                                                onValueChange = { inputCheck = it },
+                                                onValueChange = {
+                                                    inputCheck = it
+                                                    inputProduct = it
+                                                },
                                                 fontSize = if (ui.isCompact) 18.sp else 22.sp,
-                                                highlight = proofHelpTarget?.first == "Controllo",
+                                                highlight = proofHelpTarget?.first == "Nuovo Prodotto",
                                                 modifier = Modifier.weight(0.6f)
                                             )
                                         }
