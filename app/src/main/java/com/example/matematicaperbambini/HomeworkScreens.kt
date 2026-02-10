@@ -1567,6 +1567,7 @@ fun HomeworkRunnerScreen(
                     attempts = partial.attempts,
                     wrongAnswers = partial.wrongAnswers,
                     stepErrors = partial.stepErrors,
+                    proofOfNine = partial.proofOfNine,
                     solutionUsed = partial.solutionUsed,
                     startedAt = startAt,
                     endedAt = endAt
@@ -1959,6 +1960,16 @@ private fun HomeworkReportScreen(
                                     Text("• ${stepErrorDescription(err)}")
                                 }
                             }
+                            result.proofOfNine?.let { proof ->
+                                if (proof.used) {
+                                    Text("Prova del 9: ${if (proof.completed) if (proof.correct == true) "giusta" else "sbagliata" else "avviata non completata"}")
+                                    Text("Aiuti testo prova del 9: ${if (proof.textHelpEnabled) "ON" else "OFF"}")
+                                    if (proof.errors.isNotEmpty()) {
+                                        Text("Errori prova del 9:")
+                                        proof.errors.forEach { error -> Text("• $error") }
+                                    }
+                                }
+                            }
                             if (result.solutionUsed) {
                                 Text("Soluzione guidata usata")
                             }
@@ -2051,6 +2062,7 @@ fun HomeworkReportsScreen(
                     val durationMillis = report.results.sumOf { (it.endedAt - it.startedAt).coerceAtLeast(0) }
                     val errorPatterns = analyzeErrorPatterns(report.results)
                     val solutionUsedCount = report.results.count { it.solutionUsed }
+                    val proofOfNineTextHelpCount = report.results.count { it.proofOfNine?.used == true && it.proofOfNine.textHelpEnabled }
                     val homeworkTypes = report.results.map { it.instance.game.title }.distinct().ifEmpty { listOf("Compito") }
 
                     SeaGlassPanel(
@@ -2137,6 +2149,7 @@ fun HomeworkReportsScreen(
                                 Text("Evidenziazioni: non registrate nei report salvati")
                                 Text("Soluzione guidata: $solutionUsedCount utilizzi")
                                 Text("Auto-check: non registrato nei report salvati")
+                                Text("Aiuti testo prova del 9: $proofOfNineTextHelpCount utilizzi")
 
                                 Spacer(Modifier.height(8.dp))
                                 SeaGlassPanel(title = "Errori della sessione") {
@@ -2190,6 +2203,23 @@ fun HomeworkReportsScreen(
                                     }
                                     Text("Tentativi: ${result.attempts}")
                                     Text("Tempo impiegato: $exerciseDuration")
+                                    result.proofOfNine?.let { proof ->
+                                        if (proof.used) {
+                                            Text(
+                                                "Prova del 9: " +
+                                                    if (!proof.completed) "avviata non completata"
+                                                    else if (proof.correct == true) "giusta"
+                                                    else "sbagliata"
+                                            )
+                                            Text("Aiuti testo prova del 9: ${if (proof.textHelpEnabled) "ON" else "OFF"}")
+                                            if (proof.errors.isNotEmpty()) {
+                                                Text("Errori prova del 9:")
+                                                proof.errors.forEach { error ->
+                                                    Text("• $error")
+                                                }
+                                            }
+                                        }
+                                    }
                                     Text(
                                         if (result.solutionUsed) {
                                             "Soluzione guidata: sì"
