@@ -128,6 +128,7 @@ data class ExerciseResult(
     val attempts: Int,
     val wrongAnswers: List<String>,
     val stepErrors: List<StepError> = emptyList(),
+    val proofOfNine: ProofOfNineReport? = null,
     val solutionUsed: Boolean,
     val startedAt: Long,
     val endedAt: Long
@@ -163,7 +164,17 @@ data class ExerciseResultPartial(
     val attempts: Int,
     val wrongAnswers: List<String>,
     val stepErrors: List<StepError> = emptyList(),
+    val proofOfNine: ProofOfNineReport? = null,
     val solutionUsed: Boolean
+)
+
+@Serializable
+data class ProofOfNineReport(
+    val used: Boolean,
+    val textHelpEnabled: Boolean = false,
+    val completed: Boolean = false,
+    val correct: Boolean? = null,
+    val errors: List<String> = emptyList()
 )
 
 @Serializable

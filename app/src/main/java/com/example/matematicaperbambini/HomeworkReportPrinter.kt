@@ -348,6 +348,26 @@ private fun buildSingleReportLines(report: HomeworkReport, index: Int, totalRepo
                     lines += PdfLine.TextLine("• ${stepErrorDescription(error)}", TextStyle.BODY)
                 }
             }
+            result.proofOfNine?.let { proof ->
+                if (proof.used) {
+                    val esito = when {
+                        !proof.completed -> "avviata non completata"
+                        proof.correct == true -> "giusta"
+                        else -> "sbagliata"
+                    }
+                    lines += PdfLine.TextLine("Prova del 9: $esito", TextStyle.BODY)
+                    lines += PdfLine.TextLine(
+                        "Aiuti testo prova del 9: ${if (proof.textHelpEnabled) "ON" else "OFF"}",
+                        TextStyle.BODY
+                    )
+                    if (proof.errors.isNotEmpty()) {
+                        lines += PdfLine.TextLine("Errori prova del 9:", TextStyle.BODY)
+                        proof.errors.forEach { error ->
+                            lines += PdfLine.TextLine("• $error", TextStyle.BODY)
+                        }
+                    }
+                }
+            }
             lines += PdfLine.TextLine("", TextStyle.BODY)
         }
     }

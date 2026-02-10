@@ -176,6 +176,14 @@ fun DivisionStepGame(
     var gameState by remember { mutableStateOf(GameState.INIT) }
     val inputGuard = remember { StepInputGuard() }
     var showProofOfNine by remember { mutableStateOf(false) }
+    var proofTextHelpEnabled by remember { mutableStateOf(false) }
+    var proofWasOpened by remember { mutableStateOf(false) }
+    var inputDivisorReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
+    var inputQuotientReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
+    var inputProductReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
+    var inputDividendReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
+    var inputRemainderReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
+    var inputCheckReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
 
     val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
@@ -203,6 +211,14 @@ fun DivisionStepGame(
         showSuccessDialog = false
         solutionUsed = false
         showProofOfNine = false
+        proofTextHelpEnabled = false
+        proofWasOpened = false
+        inputDivisorReport = ""
+        inputQuotientReport = ""
+        inputProductReport = ""
+        inputDividendReport = ""
+        inputRemainderReport = ""
+        inputCheckReport = ""
         attempts = 0
         wrongAnswers.clear()
         stepErrors.clear()
@@ -241,6 +257,8 @@ fun DivisionStepGame(
             showSuccessDialog = false
             solutionUsed = false
             showProofOfNine = false
+            proofTextHelpEnabled = false
+            proofWasOpened = false
             gameState = GameState.AWAITING_INPUT
             inputGuard.reset()
         }
@@ -442,6 +460,54 @@ fun DivisionStepGame(
             append(normalized)
             steps.forEach { step -> append(" → ").append(step) }
         }
+    }
+
+    fun buildProofOfNineReport(): ProofOfNineReport {
+        val activePlan = p ?: return ProofOfNineReport(used = false)
+        if (!proofWasOpened) return ProofOfNineReport(used = false)
+
+        val divisorNine = digitalRootNine(activePlan.divisor)
+        val quotientNine = digitalRootNine(activePlan.finalQuotient)
+        val remainderNine = digitalRootNine(activePlan.finalRemainder)
+        val dividendNine = digitalRootNine(activePlan.dividend)
+        val productNine = digitalRootNine(divisorNine * quotientNine)
+        val checkNine = digitalRootNine(productNine + remainderNine)
+
+        val parsedDivisor = inputDivisorReport.toIntOrNull()
+        val parsedQuotient = inputQuotientReport.toIntOrNull()
+        val parsedProduct = inputProductReport.toIntOrNull()
+        val parsedDividend = inputDividendReport.toIntOrNull()
+        val parsedRemainder = inputRemainderReport.toIntOrNull()
+        val parsedCheck = inputCheckReport.toIntOrNull()
+
+        val completed = listOf(
+            parsedDivisor,
+            parsedQuotient,
+            parsedProduct,
+            parsedDividend,
+            parsedRemainder,
+            parsedCheck
+        ).all { it != null }
+
+        val errors = mutableListOf<String>()
+        if (completed) {
+            if (parsedDivisor != divisorNine) errors += "Divisore: atteso $divisorNine, inserito ${parsedDivisor ?: "-"}"
+            if (parsedQuotient != quotientNine) errors += "Quoziente: atteso $quotientNine, inserito ${parsedQuotient ?: "-"}"
+            if (parsedProduct != productNine && parsedProduct != parsedCheck) {
+                errors += "Prodotto: atteso $productNine, inserito ${parsedProduct ?: "-"}"
+            }
+            if (parsedRemainder != remainderNine) errors += "Resto: atteso $remainderNine, inserito ${parsedRemainder ?: "-"}"
+            if (parsedCheck != checkNine) errors += "Nuovo Prodotto: atteso $checkNine, inserito ${parsedCheck ?: "-"}"
+            if (parsedDividend != dividendNine) errors += "Dividendo: atteso $dividendNine, inserito ${parsedDividend ?: "-"}"
+        }
+
+        return ProofOfNineReport(
+            used = true,
+            textHelpEnabled = proofTextHelpEnabled,
+            completed = completed,
+            correct = if (completed) errors.isEmpty() else null,
+            errors = errors
+        )
     }
 
     LaunchedEffect(done) {
@@ -915,7 +981,10 @@ fun DivisionStepGame(
 
                     if (done && p != null) {
                         Button(
-                            onClick = { showProofOfNine = !showProofOfNine },
+                            onClick = {
+                                showProofOfNine = !showProofOfNine
+                                if (showProofOfNine) proofWasOpened = true
+                            },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("🔍 Prova del 9 (facoltativa)")
@@ -931,18 +1000,12 @@ fun DivisionStepGame(
                             val checkBase = productNine + remainderNine
                             val checkNine = digitalRootNine(checkBase)
                             val crossLineColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                            var inputDivisor by remember(p.dividend, p.divisor) { mutableStateOf("") }
-                            var inputQuotient by remember(p.dividend, p.divisor) { mutableStateOf("") }
-                            var inputProduct by remember(p.dividend, p.divisor) { mutableStateOf("") }
-                            var inputDividend by remember(p.dividend, p.divisor) { mutableStateOf("") }
-                            var inputRemainder by remember(p.dividend, p.divisor) { mutableStateOf("") }
-                            var inputCheck by remember(p.dividend, p.divisor) { mutableStateOf("") }
-                            val parsedDivisor = inputDivisor.toIntOrNull()
-                            val parsedQuotient = inputQuotient.toIntOrNull()
-                            val parsedProduct = inputProduct.toIntOrNull()
-                            val parsedDividend = inputDividend.toIntOrNull()
-                            val parsedRemainder = inputRemainder.toIntOrNull()
-                            val parsedCheck = inputCheck.toIntOrNull()
+                            val parsedDivisor = inputDivisorReport.toIntOrNull()
+                            val parsedQuotient = inputQuotientReport.toIntOrNull()
+                            val parsedProduct = inputProductReport.toIntOrNull()
+                            val parsedDividend = inputDividendReport.toIntOrNull()
+                            val parsedRemainder = inputRemainderReport.toIntOrNull()
+                            val parsedCheck = inputCheckReport.toIntOrNull()
                             val proofComplete = listOf(
                                 parsedDivisor,
                                 parsedQuotient,
@@ -952,12 +1015,12 @@ fun DivisionStepGame(
                                 parsedCheck
                             ).all { it != null }
                             val proofHelpTarget = when {
-                                inputDivisor.isBlank() -> "Divisore" to divisorNine
-                                inputQuotient.isBlank() -> "Quoziente" to quotientNine
-                                inputProduct.isBlank() -> "Prodotto" to productNine
-                                inputRemainder.isBlank() -> "Resto" to remainderNine
-                                inputCheck.isBlank() -> "Nuovo Prodotto" to checkNine
-                                inputDividend.isBlank() -> "Dividendo" to dividendNine
+                                inputDivisorReport.isBlank() -> "Divisore" to divisorNine
+                                inputQuotientReport.isBlank() -> "Quoziente" to quotientNine
+                                inputProductReport.isBlank() -> "Prodotto" to productNine
+                                inputRemainderReport.isBlank() -> "Resto" to remainderNine
+                                inputCheckReport.isBlank() -> "Nuovo Prodotto" to checkNine
+                                inputDividendReport.isBlank() -> "Dividendo" to dividendNine
                                 else -> null
                             }
                             val proofHelpMessage = proofHelpTarget?.let { (label, value) ->
@@ -996,7 +1059,17 @@ fun DivisionStepGame(
                                             fontSize = 13.sp
                                         )
                                         Text("Se Nuovo Prodotto e Dividendo sono uguali, la divisione è corretta.")
-                                        if (!proofComplete && proofHelpMessage != null) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Aiuti di testo")
+                                            OutlinedButton(onClick = { proofTextHelpEnabled = !proofTextHelpEnabled }) {
+                                                Text(if (proofTextHelpEnabled) "ON" else "OFF")
+                                            }
+                                        }
+                                        if (proofTextHelpEnabled && !proofComplete && proofHelpMessage != null) {
                                             Text(
                                                 text = proofHelpMessage,
                                                 fontWeight = FontWeight.SemiBold,
@@ -1018,8 +1091,8 @@ fun DivisionStepGame(
                                                 ) {
                                                     ProofNineInputCell(
                                                         label = "Divisore",
-                                                        value = inputDivisor,
-                                                        onValueChange = { inputDivisor = it },
+                                                        value = inputDivisorReport,
+                                                        onValueChange = { inputDivisorReport = it },
                                                         fontSize = if (ui.isCompact) 18.sp else 22.sp,
                                                         highlight = proofHelpTarget?.first == "Divisore",
                                                         modifier = Modifier.weight(1f)
@@ -1037,8 +1110,8 @@ fun DivisionStepGame(
                                                 ) {
                                                     ProofNineInputCell(
                                                         label = "Prodotto",
-                                                        value = inputProduct,
-                                                        onValueChange = { inputProduct = it },
+                                                        value = inputProductReport,
+                                                        onValueChange = { inputProductReport = it },
                                                         fontSize = if (ui.isCompact) 18.sp else 22.sp,
                                                         highlight = proofHelpTarget?.first == "Prodotto",
                                                         modifier = Modifier.weight(1f)
@@ -1058,8 +1131,8 @@ fun DivisionStepGame(
                                                 ) {
                                                     ProofNineInputCell(
                                                         label = "Quoziente",
-                                                        value = inputQuotient,
-                                                        onValueChange = { inputQuotient = it },
+                                                        value = inputQuotientReport,
+                                                        onValueChange = { inputQuotientReport = it },
                                                         fontSize = if (ui.isCompact) 18.sp else 22.sp,
                                                         highlight = proofHelpTarget?.first == "Quoziente",
                                                         modifier = Modifier.weight(1f)
@@ -1077,8 +1150,8 @@ fun DivisionStepGame(
                                                 ) {
                                                     ProofNineInputCell(
                                                         label = "Dividendo",
-                                                        value = inputDividend,
-                                                        onValueChange = { inputDividend = it },
+                                                        value = inputDividendReport,
+                                                        onValueChange = { inputDividendReport = it },
                                                         fontSize = if (ui.isCompact) 18.sp else 22.sp,
                                                         highlight = proofHelpTarget?.first == "Dividendo",
                                                         modifier = Modifier.weight(1f)
@@ -1096,8 +1169,8 @@ fun DivisionStepGame(
                                             Text("Resto:", fontWeight = FontWeight.SemiBold)
                                             ProofNineInputCell(
                                                 label = "",
-                                                value = inputRemainder,
-                                                onValueChange = { inputRemainder = it },
+                                                value = inputRemainderReport,
+                                                onValueChange = { inputRemainderReport = it },
                                                 fontSize = if (ui.isCompact) 18.sp else 22.sp,
                                                 highlight = proofHelpTarget?.first == "Resto",
                                                 modifier = Modifier.weight(0.6f)
@@ -1110,10 +1183,10 @@ fun DivisionStepGame(
                                             Text("Nuovo Prodotto:", fontWeight = FontWeight.SemiBold)
                                             ProofNineInputCell(
                                                 label = "",
-                                                value = inputCheck,
+                                                value = inputCheckReport,
                                                 onValueChange = {
-                                                    inputCheck = it
-                                                    inputProduct = it
+                                                    inputCheckReport = it
+                                                    inputProductReport = it
                                                 },
                                                 fontSize = if (ui.isCompact) 18.sp else 22.sp,
                                                 highlight = proofHelpTarget?.first == "Nuovo Prodotto",
@@ -1174,6 +1247,7 @@ fun DivisionStepGame(
                                         attempts = attempts,
                                         wrongAnswers = wrongAnswers.toList(),
                                         stepErrors = stepErrors.toList(),
+                                        proofOfNine = buildProofOfNineReport(),
                                         solutionUsed = solutionUsed
                                     )
                                 )
@@ -1228,6 +1302,7 @@ fun DivisionStepGame(
                             attempts = attempts,
                             wrongAnswers = wrongAnswers.toList(),
                             stepErrors = stepErrors.toList(),
+                            proofOfNine = buildProofOfNineReport(),
                             solutionUsed = solutionUsed
                         )
                     )
