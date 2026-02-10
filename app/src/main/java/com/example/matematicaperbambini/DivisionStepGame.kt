@@ -995,18 +995,34 @@ fun DivisionStepGame(
                                     )
                                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Text(
-                                            text = "Come fare: in ogni casella scrivi la somma delle cifre " +
-                                                "ridotta a un numero da 1 a 9 (se la somma è 9, scrivi 9; " +
-                                                "se il resto è 0, scrivi 0). Questo serve a controllare " +
-                                                "se la divisione è coerente.",
+                                            text = "Come fare: usa questi numeri per riempire le caselle. " +
+                                                "In ogni riga trovi i passaggi e il valore finale da scrivere.",
                                             fontSize = 13.sp
                                         )
-                                        Text("1) Divisore: somma le cifre del divisore e riduci.")
-                                        Text("2) Quoziente: somma le cifre del quoziente e riduci.")
-                                        Text("3) Prodotto: moltiplica i due risultati e riduci.")
-                                        Text("4) Resto: somma le cifre del resto e riduci (0 resta 0).")
-                                        Text("5) Controllo: Prodotto + Resto, poi riduci.")
-                                        Text("6) Dividendo: somma le cifre del dividendo e riduci.")
+                                        Text(
+                                            text = "1) Divisore (${p.divisor}): " +
+                                                "${nineReductionStepsText(p.divisor)} → scrivi $divisorNine"
+                                        )
+                                        Text(
+                                            text = "2) Quoziente (${p.finalQuotient}): " +
+                                                "${nineReductionStepsText(p.finalQuotient)} → scrivi $quotientNine"
+                                        )
+                                        Text(
+                                            text = "3) Prodotto: $divisorNine × $quotientNine = $productBase → " +
+                                                "${nineReductionStepsText(productBase)} → scrivi $productNine"
+                                        )
+                                        Text(
+                                            text = "4) Resto (${p.finalRemainder}): " +
+                                                "${nineReductionStepsText(p.finalRemainder)} → scrivi $remainderNine"
+                                        )
+                                        Text(
+                                            text = "5) Controllo: $productNine + $remainderNine = $checkBase → " +
+                                                "${nineReductionStepsText(checkBase)} → scrivi $checkNine"
+                                        )
+                                        Text(
+                                            text = "6) Dividendo (${p.dividend}): " +
+                                                "${nineReductionStepsText(p.dividend)} → scrivi $dividendNine"
+                                        )
                                         Text("Se Controllo e Dividendo sono uguali, la divisione è corretta.")
                                     }
 
