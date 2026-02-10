@@ -1,6 +1,8 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -184,6 +186,7 @@ fun DivisionStepGame(
     var inputDividendReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
     var inputRemainderReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
     var inputCheckReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
+    val proofSectionBringIntoView = remember { BringIntoViewRequester() }
 
     val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
@@ -529,6 +532,12 @@ fun DivisionStepGame(
         if (plan != null && gameState == GameState.INIT) {
             gameState = GameState.AWAITING_INPUT
             inputGuard.reset()
+        }
+    }
+
+    LaunchedEffect(showProofOfNine) {
+        if (showProofOfNine) {
+            proofSectionBringIntoView.bringIntoView()
         }
     }
 
@@ -1044,7 +1053,10 @@ fun DivisionStepGame(
                                 parsedRemainder == remainderNine &&
                                 parsedCheck == checkNine
 
-                            SeaGlassPanel(title = "Prova del 9") {
+                            SeaGlassPanel(
+                                title = "Prova del 9",
+                                modifier = Modifier.bringIntoViewRequester(proofSectionBringIntoView)
+                            ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Text(
                                         text = "Dati di partenza: ${p.dividend} ÷ ${p.divisor} = " +
