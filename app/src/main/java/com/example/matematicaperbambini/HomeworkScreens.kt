@@ -874,7 +874,7 @@ fun HomeworkBuilderScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = anyEnabled
-            ) { Text("Genera codice compito") }
+            ) { Text("Genera codice compito (BETA)") }
         }
     }
 
