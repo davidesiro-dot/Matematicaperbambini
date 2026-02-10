@@ -1312,7 +1312,13 @@ fun DivisionStepGame(
             },
             onDismiss = { showSuccessDialog = false },
             resultText = p?.let { "${it.finalQuotient} r. ${it.finalRemainder}" }.orEmpty(),
-            confirmText = if (isHomeworkMode) "Avanti" else "Nuova operazione"
+            confirmText = if (isHomeworkMode) "Avanti" else "Nuova operazione",
+            extraActionText = "Fai la prova del 9",
+            onExtraAction = {
+                showSuccessDialog = false
+                showProofOfNine = true
+                proofWasOpened = true
+            }
         )
     }
 }
