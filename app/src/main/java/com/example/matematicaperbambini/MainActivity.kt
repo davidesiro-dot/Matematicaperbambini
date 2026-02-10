@@ -1765,7 +1765,7 @@ private fun HomeworkMenu(
                     onClick = onOpenHomeworkBuilder
                 ),
                 MenuButtonData(
-                    title = "Lista codici compito",
+                    title = "Lista codici compito (BETA)",
                     baseColor = Color(0xFF6366F1),
                     iconText = "🔑",
                     onClick = onOpenHomeworkCodes
@@ -1915,7 +1915,7 @@ private fun HomeworkCodesScreen(
                 onToggleSound = onToggleSound,
                 onBack = onBack,
                 onLeaderboard = onOpenLeaderboard,
-                useStatusBarsPadding = false
+                useStatusBarsPadding = true
             )
         }
     ) { padding ->
