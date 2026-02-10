@@ -273,18 +273,20 @@ fun SuccessDialog(
                 }
 
                 if (!extraActionText.isNullOrBlank() && onExtraAction != null) {
-                    OutlinedButton(
+                    Button(
                         onClick = onExtraAction,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(extraActionText)
                     }
                 }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Chiudi")
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Chiudi")
+                }
             }
         }
     )

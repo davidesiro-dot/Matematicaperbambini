@@ -176,7 +176,7 @@ fun DivisionStepGame(
     var gameState by remember { mutableStateOf(GameState.INIT) }
     val inputGuard = remember { StepInputGuard() }
     var showProofOfNine by remember { mutableStateOf(false) }
-    var proofTextHelpEnabled by remember { mutableStateOf(false) }
+    var proofTextHelpEnabled by remember(helps?.hintsEnabled) { mutableStateOf(helps?.hintsEnabled == true) }
     var proofWasOpened by remember { mutableStateOf(false) }
     var inputDivisorReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
     var inputQuotientReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
@@ -211,7 +211,7 @@ fun DivisionStepGame(
         showSuccessDialog = false
         solutionUsed = false
         showProofOfNine = false
-        proofTextHelpEnabled = false
+        proofTextHelpEnabled = helps?.hintsEnabled == true
         proofWasOpened = false
         inputDivisorReport = ""
         inputQuotientReport = ""
@@ -257,7 +257,7 @@ fun DivisionStepGame(
             showSuccessDialog = false
             solutionUsed = false
             showProofOfNine = false
-            proofTextHelpEnabled = false
+            proofTextHelpEnabled = helps?.hintsEnabled == true
             proofWasOpened = false
             gameState = GameState.AWAITING_INPUT
             inputGuard.reset()
