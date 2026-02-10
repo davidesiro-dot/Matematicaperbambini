@@ -7,6 +7,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -245,7 +246,9 @@ fun SuccessDialog(
     onNew: () -> Unit,
     onDismiss: () -> Unit,
     resultText: String? = null,
-    confirmText: String = "Nuova operazione"
+    confirmText: String = "Nuova operazione",
+    extraActionText: String? = null,
+    onExtraAction: (() -> Unit)? = null
 ) {
     if (!show) return
 
@@ -261,11 +264,22 @@ fun SuccessDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = onNew,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(confirmText)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onNew,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(confirmText)
+                }
+
+                if (!extraActionText.isNullOrBlank() && onExtraAction != null) {
+                    OutlinedButton(
+                        onClick = onExtraAction,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(extraActionText)
+                    }
+                }
             }
         },
         dismissButton = {

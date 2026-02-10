@@ -24,6 +24,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -1440,6 +1441,7 @@ fun HomeworkRunnerScreen(
     var startAt by remember { mutableStateOf(System.currentTimeMillis()) }
     var showExitDialog by remember { mutableStateOf(false) }
     var showCompletionDialog by remember { mutableStateOf(false) }
+    var showCompletionProofDialog by remember { mutableStateOf(false) }
     var completionHandled by remember { mutableStateOf(false) }
     var completionName by remember { mutableStateOf("") }
 
@@ -1456,6 +1458,8 @@ fun HomeworkRunnerScreen(
         if (showCompletionDialog) {
             val trimmedName = completionName.trim()
             val nameMissing = trimmedName.isBlank()
+            val lastResult = results.lastOrNull()
+            val showProofOfNineButton = lastResult?.instance?.game == GameType.DIVISION_STEP
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = {},
                 title = { Text("🎉 Bravo! Hai finito i compiti!") },
@@ -1501,8 +1505,50 @@ fun HomeworkRunnerScreen(
                     ) {
                         Text("Salva e torna alla Home")
                     }
+                },
+                dismissButton = {
+                    if (showProofOfNineButton) {
+                        OutlinedButton(
+                            onClick = { showCompletionProofDialog = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Fai la prova del 9")
+                        }
+                    }
                 }
             )
+
+            if (showCompletionProofDialog && showProofOfNineButton) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showCompletionProofDialog = false },
+                    title = { Text("Prova del 9") },
+                    text = {
+                        val proof = lastResult?.proofOfNine
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                when {
+                                    proof == null || !proof.used -> "La prova del 9 non è stata avviata in questo esercizio."
+                                    !proof.completed -> "La prova del 9 è stata aperta ma non completata."
+                                    proof.correct == true -> "✅ La prova del 9 risulta corretta."
+                                    else -> "⚠️ La prova del 9 non coincide."
+                                }
+                            )
+                            if (proof != null && proof.errors.isNotEmpty()) {
+                                Text("Errori:")
+                                proof.errors.forEach { err -> Text("• $err") }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = { showCompletionProofDialog = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Chiudi")
+                        }
+                    }
+                )
+            }
         }
         return
     }
