@@ -3,6 +3,7 @@ package com.example.matematicaperbambini
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -268,6 +269,7 @@ private fun BasicColumnGame(
 // MULTIPLICATION TABLE GAME (10 CASELLE)
 // --------------------------------------------------
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun MultiplicationTableGame(
     table: Int,
     startMode: StartMode = StartMode.RANDOM,
