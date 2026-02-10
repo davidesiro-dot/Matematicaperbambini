@@ -1,6 +1,7 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.*
@@ -115,6 +116,7 @@ private fun ProofNineInputCell(
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun DivisionStepGame(
     startMode: StartMode = StartMode.RANDOM,
     soundEnabled: Boolean,
