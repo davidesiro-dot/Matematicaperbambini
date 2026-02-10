@@ -1112,7 +1112,6 @@ fun DivisionStepGame(
                                                 value = inputCheck,
                                                 onValueChange = {
                                                     inputCheck = it
-                                                    inputProduct = it
                                                 },
                                                 fontSize = if (ui.isCompact) 18.sp else 22.sp,
                                                 highlight = proofHelpTarget?.first == "Nuovo Prodotto",
