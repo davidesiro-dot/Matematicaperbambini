@@ -972,10 +972,11 @@ fun DivisionStepGame(
                                 }
                                 "Aiuto $label: $explanation."
                             }
+                            val productMatches = parsedProduct == productNine || parsedProduct == parsedCheck
                             val proofMatches = proofComplete &&
                                 parsedDivisor == divisorNine &&
                                 parsedQuotient == quotientNine &&
-                                parsedProduct == productNine &&
+                                productMatches &&
                                 parsedDividend == dividendNine &&
                                 parsedRemainder == remainderNine &&
                                 parsedCheck == checkNine
@@ -1112,6 +1113,7 @@ fun DivisionStepGame(
                                                 value = inputCheck,
                                                 onValueChange = {
                                                     inputCheck = it
+                                                    inputProduct = it
                                                 },
                                                 fontSize = if (ui.isCompact) 18.sp else 22.sp,
                                                 highlight = proofHelpTarget?.first == "Nuovo Prodotto",
