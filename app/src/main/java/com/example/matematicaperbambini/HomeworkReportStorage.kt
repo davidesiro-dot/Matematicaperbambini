@@ -1,6 +1,7 @@
 package com.example.matematicaperbambini
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -24,6 +25,7 @@ private val reportJson = Json {
 class HomeworkReportStorage(private val context: Context) {
     private companion object {
         const val MAX_REPORTS = 300
+        const val TAG = "HomeworkReportStorage"
     }
 
     // Persistenza locale dei report (DataStore): nessun backend, solo dispositivo.
@@ -47,11 +49,13 @@ class HomeworkReportStorage(private val context: Context) {
                             reportJson.decodeFromString<List<HomeworkReport>>(json)
                         }
                     } catch (e: Exception) {
+                        Log.w(TAG, "Invalid report payload, returning empty list", e)
                         emptyList()
                     }
                 }
                 .first()
         } catch (e: Exception) {
+            Log.w(TAG, "Unable to load reports, returning empty list", e)
             emptyList()
         }
     }
@@ -74,7 +78,7 @@ class HomeworkReportStorage(private val context: Context) {
                 prefs[reportsKey] = payload
             }
         } catch (e: Exception) {
-            // Ignora errori di persistenza per evitare crash.
+            Log.w(TAG, "Unable to persist reports, keeping runtime data only", e)
         }
     }
 }

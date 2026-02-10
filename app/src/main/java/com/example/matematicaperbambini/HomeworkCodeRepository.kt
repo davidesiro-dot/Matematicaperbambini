@@ -1,6 +1,7 @@
 package com.example.matematicaperbambini
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -24,6 +25,10 @@ private val homeworkCodeJson = Json {
 }
 
 class HomeworkCodeRepository(private val context: Context) {
+    private companion object {
+        const val TAG = "HomeworkCodeRepository"
+    }
+
     suspend fun save(code: HomeworkCodeEntry) {
         val existing = getAll().filterNot { it.id == code.id }
         persist(listOf(code) + existing)
@@ -41,11 +46,13 @@ class HomeworkCodeRepository(private val context: Context) {
                             homeworkCodeJson.decodeFromString<List<HomeworkCodeEntry>>(json)
                         }
                     } catch (e: Exception) {
+                        Log.w(TAG, "Invalid homework code payload, returning empty list", e)
                         emptyList()
                     }
                 }
                 .first()
         } catch (e: Exception) {
+            Log.w(TAG, "Unable to load homework codes, returning empty list", e)
             emptyList()
         }
     }
@@ -62,7 +69,7 @@ class HomeworkCodeRepository(private val context: Context) {
                 prefs[homeworkCodesKey] = payload
             }
         } catch (e: Exception) {
-            // Ignora errori di persistenza per evitare crash.
+            Log.w(TAG, "Unable to persist homework codes, keeping runtime data only", e)
         }
     }
 }

@@ -60,6 +60,9 @@ fun estimateQuotientDigit(partial: Int, divisor: Int): Int {
 }
 
 fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
+    require(dividend >= 0) { "Dividend must be >= 0" }
+    require(divisor > 0) { "Divisor must be > 0" }
+
     val digits = dividend.toString().map { it.digitToInt() }
     val n = digits.size
 
