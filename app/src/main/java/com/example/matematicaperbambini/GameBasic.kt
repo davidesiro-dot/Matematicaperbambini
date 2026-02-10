@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 import kotlin.math.pow
@@ -293,6 +294,7 @@ fun MultiplicationTableGame(
     var gameState by remember { mutableStateOf(GameState.INIT) }
     var showWarningDialog by remember { mutableStateOf(false) }
     var warningMessage by remember { mutableStateOf("") }
+    var warningConfirmEnabled by remember { mutableStateOf(false) }
     val inputGuard = remember { StepInputGuard() }
     val focusRequesters = remember { List(10) { FocusRequester() } }
     var pendingFocusIndex by remember { mutableStateOf<Int?>(null) }
@@ -312,6 +314,14 @@ fun MultiplicationTableGame(
         pendingFocusIndex = null
         gameState = GameState.AWAITING_INPUT
         inputGuard.reset()
+    }
+
+    LaunchedEffect(showWarningDialog) {
+        if (showWarningDialog) {
+            warningConfirmEnabled = false
+            delay(3_000)
+            warningConfirmEnabled = true
+        }
     }
 
     LaunchedEffect(resolvedTable, exerciseKey) {
@@ -504,10 +514,11 @@ fun MultiplicationTableGame(
 
         if (showWarningDialog) {
             AlertDialog(
-                onDismissRequest = {
-                    showWarningDialog = false
-                    pendingFocusIndex = (step - 1).coerceIn(0, 9)
-                },
+                onDismissRequest = {},
+                properties = DialogProperties(
+                    dismissOnBackPress = false,
+                    dismissOnClickOutside = false
+                ),
                 title = { Text("Attenzione") },
                 text = { Text(warningMessage) },
                 confirmButton = {
@@ -515,7 +526,8 @@ fun MultiplicationTableGame(
                         onClick = {
                             showWarningDialog = false
                             pendingFocusIndex = (step - 1).coerceIn(0, 9)
-                        }
+                        },
+                        enabled = warningConfirmEnabled
                     ) {
                         Text("Ho capito")
                     }
