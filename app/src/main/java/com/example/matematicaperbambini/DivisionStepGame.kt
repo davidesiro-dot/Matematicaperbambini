@@ -961,7 +961,16 @@ fun DivisionStepGame(
                                 else -> null
                             }
                             val proofHelpMessage = proofHelpTarget?.let { (label, value) ->
-                                "Aiuto: nella casella \"$label\" scrivi $value."
+                                val explanation = when (label) {
+                                    "Divisore" -> "${nineReductionStepsText(p.divisor)} → segna $value"
+                                    "Quoziente" -> "${nineReductionStepsText(p.finalQuotient)} → segna $value"
+                                    "Prodotto" -> "$divisorNine × $quotientNine = $productBase → ${nineReductionStepsText(productBase)} → segna $value"
+                                    "Resto" -> "${nineReductionStepsText(p.finalRemainder)} → segna $value"
+                                    "Controllo" -> "$productNine + $remainderNine = $checkBase → ${nineReductionStepsText(checkBase)} → segna $value"
+                                    "Dividendo" -> "${nineReductionStepsText(p.dividend)} → segna $value"
+                                    else -> "Segna $value"
+                                }
+                                "Aiuto $label: $explanation."
                             }
                             val proofMatches = proofComplete &&
                                 parsedDivisor == divisorNine &&
@@ -976,37 +985,14 @@ fun DivisionStepGame(
                                     Text(
                                         text = "Dati di partenza: ${p.dividend} ÷ ${p.divisor} = " +
                                             "${p.finalQuotient} con resto ${p.finalRemainder}",
-                                        fontSize = 14.sp
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Text(
-                                            text = "Come fare: usa questi numeri per riempire le caselle. " +
-                                                "In ogni riga trovi i passaggi e il valore finale da scrivere.",
+                                            text = "Come fare: compila una casella alla volta. " +
+                                                "Qui sotto vedi solo l'aiuto della casella da completare.",
                                             fontSize = 13.sp
-                                        )
-                                        Text(
-                                            text = "1) Divisore (${p.divisor}): " +
-                                                "${nineReductionStepsText(p.divisor)} → scrivi $divisorNine"
-                                        )
-                                        Text(
-                                            text = "2) Quoziente (${p.finalQuotient}): " +
-                                                "${nineReductionStepsText(p.finalQuotient)} → scrivi $quotientNine"
-                                        )
-                                        Text(
-                                            text = "3) Prodotto: $divisorNine × $quotientNine = $productBase → " +
-                                                "${nineReductionStepsText(productBase)} → scrivi $productNine"
-                                        )
-                                        Text(
-                                            text = "4) Resto (${p.finalRemainder}): " +
-                                                "${nineReductionStepsText(p.finalRemainder)} → scrivi $remainderNine"
-                                        )
-                                        Text(
-                                            text = "5) Controllo: $productNine + $remainderNine = $checkBase → " +
-                                                "${nineReductionStepsText(checkBase)} → scrivi $checkNine"
-                                        )
-                                        Text(
-                                            text = "6) Dividendo (${p.dividend}): " +
-                                                "${nineReductionStepsText(p.dividend)} → scrivi $dividendNine"
                                         )
                                         Text("Se Controllo e Dividendo sono uguali, la divisione è corretta.")
                                         if (!proofComplete && proofHelpMessage != null) {
