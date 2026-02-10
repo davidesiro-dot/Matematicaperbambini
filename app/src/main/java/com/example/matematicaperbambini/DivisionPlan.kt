@@ -1,5 +1,7 @@
 package com.example.matematicaperbambini
 
+import android.util.Log
+
 enum class DivisionTargetType { QUOTIENT, PRODUCT, REMAINDER, BRING_DOWN }
 
 enum class HLZone { DIVIDEND, DIVISOR, QUOTIENT, PRODUCT, REMAINDER, BRING }
@@ -60,23 +62,30 @@ fun estimateQuotientDigit(partial: Int, divisor: Int): Int {
 }
 
 fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
-    require(dividend >= 0) { "Dividend must be >= 0" }
-    require(divisor > 0) { "Divisor must be > 0" }
+    val safeDividend = dividend.coerceAtLeast(0)
+    val safeDivisor = divisor.coerceAtLeast(1)
+    if (safeDividend != dividend || safeDivisor != divisor) {
+        Log.w(
+            "DivisionPlan",
+            "Invalid input normalized (dividend=$dividend, divisor=$divisor) -> " +
+                "(dividend=$safeDividend, divisor=$safeDivisor)"
+        )
+    }
 
-    val digits = dividend.toString().map { it.digitToInt() }
+    val digits = safeDividend.toString().map { it.digitToInt() }
     val n = digits.size
 
     val steps = mutableListOf<DivisionStep>()
     var index = 0
     var partial = digits.first()
-    while (partial < divisor && index < n - 1) {
+    while (partial < safeDivisor && index < n - 1) {
         index++
         partial = partial * 10 + digits[index]
     }
 
     while (true) {
-        val qDigit = if (partial < divisor) 0 else estimateQuotientDigit(partial, divisor)
-        val product = qDigit * divisor
+        val qDigit = if (partial < safeDivisor) 0 else estimateQuotientDigit(partial, safeDivisor)
+        val product = qDigit * safeDivisor
         val remainder = partial - product
         val bringDownDigit = if (index < n - 1) digits[index + 1] else null
 
@@ -102,7 +111,7 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
     val finalRemainder = steps.lastOrNull()?.remainder ?: 0
 
     val targets = mutableListOf<DivisionTarget>()
-    val divisorDigits = divisor.toString()
+    val divisorDigits = safeDivisor.toString()
     fun add(
         type: DivisionTargetType,
         stepIndex: Int,
@@ -226,8 +235,8 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
     }
 
     return DivisionPlan(
-        dividend = dividend,
-        divisor = divisor,
+        dividend = safeDividend,
+        divisor = safeDivisor,
         dividendDigits = digits,
         quotientDigits = quotientDigits,
         steps = steps,
