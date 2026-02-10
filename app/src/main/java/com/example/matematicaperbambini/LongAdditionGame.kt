@@ -3,6 +3,7 @@ package com.example.matematicaperbambini
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -183,6 +184,8 @@ fun LongAdditionGame(
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showAttentionDialog by remember { mutableStateOf(false) }
+    var attentionHint by remember { mutableStateOf("") }
     var solutionRevealed by remember { mutableStateOf(false) }
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
@@ -197,6 +200,13 @@ fun LongAdditionGame(
     val sumIn = remember(plan) { mutableStateOf(CharArray(planDigits + 1) { '\u0000' }) }
     val errCarry = remember(plan) { mutableStateOf(BooleanArray(planDigits) { false }) }
     val errSum = remember(plan) { mutableStateOf(BooleanArray(planDigits + 1) { false }) }
+
+    LaunchedEffect(showAttentionDialog) {
+        if (showAttentionDialog) {
+            delay(4000)
+            showAttentionDialog = false
+        }
+    }
 
     fun clearInputs() {
         val digitsCount = plan?.digits ?: digits
@@ -369,11 +379,15 @@ fun LongAdditionGame(
             )
             val locked = inputGuard.registerAttempt(stepId)
             if (locked) {
-                setCell(row, col, t.expected, false)
-                val activePlan = plan ?: return
-                step = (step + 1).coerceAtMost(activePlan.targets.size)
-                gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
-                inputGuard.reset()
+                val activeHint = if (helps?.hintsEnabled == false) {
+                    "Attenzione: completa questo passaggio con calma."
+                } else {
+                    t.hint
+                }
+                attentionHint = activeHint
+                showAttentionDialog = true
+                inputGuard.reset(stepId)
+                gameState = GameState.AWAITING_INPUT
                 return
             }
         }
@@ -649,6 +663,15 @@ fun LongAdditionGame(
                 )
             }
         )
+
+        if (showAttentionDialog) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Attenzione") },
+                text = { Text(attentionHint) },
+                confirmButton = {}
+            )
+        }
 
         SuccessDialog(
             show = showSuccessDialog,

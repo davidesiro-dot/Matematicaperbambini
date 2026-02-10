@@ -13,6 +13,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -342,6 +343,8 @@ fun LongSubtractionGame(
     var rewardsEarned by remember { mutableStateOf(0) }
     val done = problem != null && currentColumn < 0
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showAttentionDialog by remember { mutableStateOf(false) }
+    var attentionHint by remember { mutableStateOf("") }
     var solutionRevealed by remember { mutableStateOf(false) }
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
@@ -384,6 +387,13 @@ fun LongSubtractionGame(
 
     val workingTopDigits = remember(problem, activeDigits) {
         mutableStateListOf<Int>().apply { repeat(activeDigits) { add(0) } }
+    }
+
+    LaunchedEffect(showAttentionDialog) {
+        if (showAttentionDialog) {
+            delay(4000)
+            showAttentionDialog = false
+        }
     }
 
     fun resetSame() {
@@ -614,11 +624,21 @@ fun LongSubtractionGame(
             val locked = inputGuard.registerAttempt(stepId)
             gameState = GameState.AWAITING_INPUT
             if (locked) {
-                resInputs[col] = exp.toString()
-                resOk[col] = true
-                message = "Continuiamo con il prossimo passo."
-                currentColumn -= 1
-                inputGuard.reset()
+                val activeHint = if (helps?.hintsEnabled == false) {
+                    "Attenzione: rileggi il passaggio e riprova con calma."
+                } else {
+                    val topForHint = workingTopDigits.getOrNull(col)
+                    val bottomForHint = expectedValues.bottomDigits.getOrNull(col)
+                    if (topForHint == null || bottomForHint == null) {
+                        "Rileggi il passaggio corrente."
+                    } else {
+                        "Calcola $topForHint − $bottomForHint nella colonna corrente."
+                    }
+                }
+                attentionHint = activeHint
+                showAttentionDialog = true
+                message = "⚠️ Leggi il suggerimento e riprova."
+                inputGuard.reset(stepId)
             }
             return
         }
@@ -1104,6 +1124,15 @@ fun LongSubtractionGame(
                 )
             }
         )
+
+        if (showAttentionDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Attenzione") },
+                text = { Text(attentionHint) },
+                confirmButton = {}
+            )
+        }
 
         SuccessDialog(
             show = showSuccessDialog,
