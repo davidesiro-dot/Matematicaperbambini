@@ -61,7 +61,9 @@ fun OperationStartMenuScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .headerOffsetFromStatusBar(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
