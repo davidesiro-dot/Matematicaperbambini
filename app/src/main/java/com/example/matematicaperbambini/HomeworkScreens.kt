@@ -184,7 +184,7 @@ fun HomeworkBuilderScreen(
                 onToggleSound = onToggleSound,
                 onBack = onBack,
                 onLeaderboard = {},
-                useStatusBarsPadding = false
+                useStatusBarsPadding = true
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -1030,7 +1030,7 @@ fun AssignedHomeworksScreen(
                 onToggleSound = onToggleSound,
                 onBack = onBack,
                 onLeaderboard = {},
-                useStatusBarsPadding = false
+                useStatusBarsPadding = true
             )
         }
     ) { padding ->
@@ -1827,7 +1827,7 @@ private fun HomeworkReportScreen(
             onToggleSound = onToggleSound,
             onBack = onBack,
             onLeaderboard = {},
-            useStatusBarsPadding = false
+            useStatusBarsPadding = true
         )
 
         LazyColumn(
@@ -2011,7 +2011,7 @@ fun HomeworkReportsScreen(
             onToggleSound = onToggleSound,
             onBack = onBack,
             onLeaderboard = {},
-            useStatusBarsPadding = false
+            useStatusBarsPadding = true
         )
 
         /* ───────── CONTENUTO SCROLLABILE ───────── */
@@ -2463,7 +2463,7 @@ private fun HomeworkUnsupportedScreen(
             onToggleSound = onToggleSound,
             onBack = onBack,
             onLeaderboard = {},
-            useStatusBarsPadding = false
+            useStatusBarsPadding = true
         )
         SeaGlassPanel(title = "Non disponibile") {
             Text(message)
