@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -13,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -27,6 +30,7 @@ import kotlinx.coroutines.delay
 import kotlin.random.Random
 import kotlin.math.pow
 import androidx.compose.foundation.layout.Spacer
+import kotlinx.coroutines.launch
 
 
 // --------------------------------------------------
@@ -297,6 +301,8 @@ fun MultiplicationTableGame(
     var warningConfirmEnabled by remember { mutableStateOf(false) }
     val inputGuard = remember { StepInputGuard() }
     val focusRequesters = remember { List(10) { FocusRequester() } }
+    val bringIntoViewRequesters = remember { List(10) { BringIntoViewRequester() } }
+    val bringIntoViewScope = rememberCoroutineScope()
     var pendingFocusIndex by remember { mutableStateOf<Int?>(null) }
 
     fun reset() {
@@ -370,6 +376,7 @@ fun MultiplicationTableGame(
                             val expected = resolvedTable * i
                             val expectedLength = expected.toString().length
                             val focusRequester = focusRequesters[index]
+                            val bringIntoViewRequester = bringIntoViewRequesters[index]
 
                             Row(
                                 Modifier.fillMaxWidth(),
@@ -450,7 +457,15 @@ fun MultiplicationTableGame(
                                     modifier = Modifier
                                         .width(boxW)
                                         .height(boxH)
-                                        .focusRequester(focusRequester),
+                                        .focusRequester(focusRequester)
+                                        .bringIntoViewRequester(bringIntoViewRequester)
+                                        .onFocusChanged { focusState ->
+                                            if (focusState.isFocused) {
+                                                bringIntoViewScope.launch {
+                                                    bringIntoViewRequester.bringIntoView()
+                                                }
+                                            }
+                                        },
                                     textStyle = TextStyle(
                                         fontSize = fontSize,
                                         fontWeight = FontWeight.ExtraBold,
