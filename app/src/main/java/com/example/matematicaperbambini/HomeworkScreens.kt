@@ -56,6 +56,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
+import android.util.Log
 import androidx.core.content.FileProvider
 import java.text.DateFormat
 import java.util.Date
@@ -2360,6 +2361,8 @@ fun HomeworkReportsScreen(
     }
 }
 
+private const val SHARE_REPORTS_TAG = "HomeworkReportShare"
+
 private fun shareHomeworkReports(context: android.content.Context, reports: List<HomeworkReport>) {
     if (reports.isEmpty()) return
     val pdfFile = createHomeworkReportPdf(context, reports) ?: return
@@ -2376,8 +2379,16 @@ private fun shareHomeworkReports(context: android.content.Context, reports: List
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     val chooser = Intent.createChooser(intent, "Condividi report")
-    if (intent.resolveActivity(context.packageManager) != null) {
+    val canHandle = intent.resolveActivity(context.packageManager) != null ||
+        chooser.resolveActivity(context.packageManager) != null
+    if (!canHandle) {
+        Log.w(SHARE_REPORTS_TAG, "No activity can handle homework report sharing")
+        return
+    }
+    runCatching {
         context.startActivity(chooser)
+    }.onFailure { error ->
+        Log.w(SHARE_REPORTS_TAG, "Unable to share homework report", error)
     }
 }
 
