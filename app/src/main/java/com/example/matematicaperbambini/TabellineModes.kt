@@ -39,6 +39,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -209,6 +210,7 @@ fun TabellineGapsGame(
     var gameState by remember { mutableStateOf(GameState.INIT) }
     var showWarningDialog by remember { mutableStateOf(false) }
     var warningMessage by remember { mutableStateOf("") }
+    var warningConfirmEnabled by remember { mutableStateOf(false) }
     val inputGuard = remember { StepInputGuard() }
     val focusRequesters = remember { List(10) { FocusRequester() } }
     var activeBlankIndex by remember { mutableStateOf<Int?>(null) }
@@ -228,6 +230,14 @@ fun TabellineGapsGame(
     }
 
     LaunchedEffect(resolvedTable, exerciseKey) { resetRound() }
+
+    LaunchedEffect(showWarningDialog) {
+        if (showWarningDialog) {
+            warningConfirmEnabled = false
+            delay(3_000)
+            warningConfirmEnabled = true
+        }
+    }
 
     LaunchedEffect(activeBlankIndex, completed) {
         val targetIndex = activeBlankIndex
@@ -450,12 +460,11 @@ fun TabellineGapsGame(
 
         if (showWarningDialog) {
             AlertDialog(
-                onDismissRequest = {
-                    showWarningDialog = false
-                    activeBlankIndex = activeBlankIndex ?: (0 until 10).firstOrNull {
-                        blanks.contains(it + 1) && ok[it] != true
-                    }
-                },
+                onDismissRequest = {},
+                properties = DialogProperties(
+                    dismissOnBackPress = false,
+                    dismissOnClickOutside = false
+                ),
                 title = { Text("Attenzione") },
                 text = { Text(warningMessage) },
                 confirmButton = {
@@ -465,7 +474,8 @@ fun TabellineGapsGame(
                             activeBlankIndex = activeBlankIndex ?: (0 until 10).firstOrNull {
                                 blanks.contains(it + 1) && ok[it] != true
                             }
-                        }
+                        },
+                        enabled = warningConfirmEnabled
                     ) {
                         Text("Ho capito")
                     }
