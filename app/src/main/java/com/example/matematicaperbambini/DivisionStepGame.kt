@@ -415,6 +415,24 @@ fun DivisionStepGame(
         val mod = normalized % 9
         return if (mod == 0) 9 else mod
     }
+    fun nineReductionStepsText(value: Int): String {
+        val normalized = kotlin.math.abs(value)
+        if (normalized == 0) return "0"
+        if (normalized < 10) return normalized.toString()
+        val steps = mutableListOf<String>()
+        var current = normalized
+        while (current >= 10) {
+            val digits = current.toString().map { it.digitToInt() }
+            val sum = digits.sum()
+            steps.add("${digits.joinToString("+")}=$sum")
+            current = sum
+            if (current == 9) break
+        }
+        return buildString {
+            append(normalized)
+            steps.forEach { step -> append(" → ").append(step) }
+        }
+    }
 
     LaunchedEffect(done) {
         if (done && p != null && !solutionUsed) showSuccessDialog = true
@@ -882,6 +900,45 @@ fun DivisionStepGame(
                                 color = MaterialTheme.colorScheme.primary,
                                 fontFamily = FontFamily.Monospace
                             )
+                            if (showProofOfNine && p != null) {
+                                val divisorNine = digitalRootNine(p.divisor)
+                                val quotientNine = digitalRootNine(p.finalQuotient)
+                                val remainderNine = digitalRootNine(p.finalRemainder)
+                                val dividendNine = digitalRootNine(p.dividend)
+                                val productBase = divisorNine * quotientNine
+                                val productNine = digitalRootNine(productBase)
+                                val checkBase = productNine + remainderNine
+                                val checkNine = digitalRootNine(checkBase)
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    modifier = Modifier.padding(top = 6.dp)
+                                ) {
+                                    Text(
+                                        text = "Prova del 9: operazioni con i tuoi numeri",
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "1) Divisore: ${nineReductionStepsText(p.divisor)} → scrivi $divisorNine"
+                                    )
+                                    Text(
+                                        text = "2) Quoziente: ${nineReductionStepsText(p.finalQuotient)} → scrivi $quotientNine"
+                                    )
+                                    Text(
+                                        text = "3) Prodotto: $divisorNine × $quotientNine = $productBase → " +
+                                            "${nineReductionStepsText(productBase)} → scrivi $productNine"
+                                    )
+                                    Text(
+                                        text = "4) Resto: ${nineReductionStepsText(p.finalRemainder)} → scrivi $remainderNine"
+                                    )
+                                    Text(
+                                        text = "5) Controllo: $productNine + $remainderNine = $checkBase → " +
+                                            "${nineReductionStepsText(checkBase)} → scrivi $checkNine"
+                                    )
+                                    Text(
+                                        text = "6) Dividendo: ${nineReductionStepsText(p.dividend)} → scrivi $dividendNine"
+                                    )
+                                }
+                            }
                         }
                     }
 
