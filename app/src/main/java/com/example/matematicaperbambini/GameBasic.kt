@@ -291,8 +291,11 @@ fun MultiplicationTableGame(
     val wrongAnswers = remember { mutableStateListOf<String>() }
     var completed by remember { mutableStateOf(false) }
     var gameState by remember { mutableStateOf(GameState.INIT) }
+    var showWarningDialog by remember { mutableStateOf(false) }
+    var warningMessage by remember { mutableStateOf("") }
     val inputGuard = remember { StepInputGuard() }
     val focusRequesters = remember { List(10) { FocusRequester() } }
+    var pendingFocusIndex by remember { mutableStateOf<Int?>(null) }
 
     fun reset() {
         step = 1
@@ -304,6 +307,9 @@ fun MultiplicationTableGame(
         wrongAnswers.clear()
         completed = false
         msg = null
+        showWarningDialog = false
+        warningMessage = ""
+        pendingFocusIndex = null
         gameState = GameState.AWAITING_INPUT
         inputGuard.reset()
     }
@@ -315,6 +321,15 @@ fun MultiplicationTableGame(
     LaunchedEffect(step, completed) {
         if (!completed && step in 1..10) {
             focusRequesters[step - 1].requestFocus()
+        }
+    }
+
+    LaunchedEffect(pendingFocusIndex, completed) {
+        val target = pendingFocusIndex
+        if (!completed && target != null) {
+            withFrameNanos { }
+            focusRequesters[target].requestFocus()
+            pendingFocusIndex = null
         }
     }
 
@@ -408,13 +423,15 @@ fun MultiplicationTableGame(
                                             }
                                             val locked = inputGuard.registerAttempt(stepId)
                                             if (locked) {
-                                                msg = "Passiamo alla prossima."
-                                                step++
-                                                gameState = if (step > 10) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
-                                                inputGuard.reset()
-                                                if (step > 10 && isHomeworkMode) {
-                                                    completed = true
+                                                warningMessage = if (helps?.hintsEnabled == false) {
+                                                    "Attenzione: prova ancora con calma su questa casella."
+                                                } else {
+                                                    "Attenzione: al terzo errore fermiamoci un attimo e riproviamo insieme questa casella."
                                                 }
+                                                showWarningDialog = true
+                                                inputGuard.reset(stepId)
+                                                gameState = GameState.AWAITING_INPUT
+                                                pendingFocusIndex = index
                                             }
                                         }
                                     },
@@ -484,6 +501,27 @@ fun MultiplicationTableGame(
                 }
             }
         )
+
+        if (showWarningDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showWarningDialog = false
+                    pendingFocusIndex = (step - 1).coerceIn(0, 9)
+                },
+                title = { Text("Attenzione") },
+                text = { Text(warningMessage) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showWarningDialog = false
+                            pendingFocusIndex = (step - 1).coerceIn(0, 9)
+                        }
+                    ) {
+                        Text("Ho capito")
+                    }
+                }
+            )
+        }
 
         if (!isHomeworkMode) {
             BonusRewardHost(

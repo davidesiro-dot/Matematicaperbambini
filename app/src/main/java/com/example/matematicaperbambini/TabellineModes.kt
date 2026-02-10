@@ -16,7 +16,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -205,6 +207,8 @@ fun TabellineGapsGame(
     val wrongAnswers = remember { mutableStateListOf<String>() }
     var completed by remember { mutableStateOf(false) }
     var gameState by remember { mutableStateOf(GameState.INIT) }
+    var showWarningDialog by remember { mutableStateOf(false) }
+    var warningMessage by remember { mutableStateOf("") }
     val inputGuard = remember { StepInputGuard() }
     val focusRequesters = remember { List(10) { FocusRequester() } }
     var activeBlankIndex by remember { mutableStateOf<Int?>(null) }
@@ -346,30 +350,15 @@ fun TabellineGapsGame(
                                                 }
                                                 gameState = GameState.AWAITING_INPUT
                                                 if (locked) {
-                                                    inputs[index] = expected.toString()
-                                                    ok[index] = true
-                                                    msg = "Completiamo insieme."
-                                                    val allDone = blanks.all { blankIndex ->
-                                                        ok[blankIndex - 1] == true
-                                                    }
-                                                    if (allDone) {
-                                                        msg = "✅ Tabellina completata!"
-                                                        if (isHomeworkMode) {
-                                                            completed = true
-                                                            gameState = GameState.GAME_COMPLETED
-                                                        } else {
-                                                            resetRound()
-                                                        }
+                                                    warningMessage = if (helps?.hintsEnabled == false) {
+                                                        "Attenzione: prova ancora con calma su questa casella."
                                                     } else {
-                                                        val nextBlank = (index + 1 until 10).firstOrNull {
-                                                            blanks.contains(it + 1) && ok[it] != true
-                                                        } ?: (0 until index).firstOrNull {
-                                                            blanks.contains(it + 1) && ok[it] != true
-                                                        }
-                                                        if (nextBlank != null) {
-                                                            activeBlankIndex = nextBlank
-                                                        }
+                                                        "Attenzione: al terzo errore fermiamoci un attimo e riproviamo insieme questa casella."
                                                     }
+                                                    showWarningDialog = true
+                                                    inputGuard.reset(stepId)
+                                                    gameState = GameState.AWAITING_INPUT
+                                                    activeBlankIndex = index
                                                 }
                                             }
                                         },
@@ -458,6 +447,31 @@ fun TabellineGapsGame(
                 }
             }
         )
+
+        if (showWarningDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showWarningDialog = false
+                    activeBlankIndex = activeBlankIndex ?: (0 until 10).firstOrNull {
+                        blanks.contains(it + 1) && ok[it] != true
+                    }
+                },
+                title = { Text("Attenzione") },
+                text = { Text(warningMessage) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showWarningDialog = false
+                            activeBlankIndex = activeBlankIndex ?: (0 until 10).firstOrNull {
+                                blanks.contains(it + 1) && ok[it] != true
+                            }
+                        }
+                    ) {
+                        Text("Ho capito")
+                    }
+                }
+            )
+        }
 
         if (!isHomeworkMode) {
             BonusRewardHost(
