@@ -957,8 +957,10 @@ fun DivisionStepGame(
                             val quotientNine = digitalRootNine(p.finalQuotient)
                             val remainderNine = digitalRootNine(p.finalRemainder)
                             val dividendNine = digitalRootNine(p.dividend)
-                            val productNine = digitalRootNine(divisorNine * quotientNine)
-                            val checkNine = digitalRootNine(productNine + remainderNine)
+                            val productBase = divisorNine * quotientNine
+                            val productNine = digitalRootNine(productBase)
+                            val checkBase = productNine + remainderNine
+                            val checkNine = digitalRootNine(checkBase)
                             val crossLineColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                             var inputDivisor by remember(p.dividend, p.divisor) { mutableStateOf("") }
                             var inputQuotient by remember(p.dividend, p.divisor) { mutableStateOf("") }
