@@ -120,8 +120,8 @@ fun GameScreenFrame(
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(start = ui.pad, top = ui.pad)
+                .headerOffsetFromStatusBar()
+                .padding(start = ui.pad)
         ) {
             SmallCircleButton(
                 "⬅",

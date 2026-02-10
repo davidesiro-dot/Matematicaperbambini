@@ -211,7 +211,9 @@ fun TabellineGuidateScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .headerOffsetFromStatusBar(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

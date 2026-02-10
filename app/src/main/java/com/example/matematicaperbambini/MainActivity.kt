@@ -445,11 +445,9 @@ fun GameHeader(
     val buttonFont = if (isCompact) 16.sp else 18.sp
     val spacing = if (isCompact) 6.dp else 10.dp
 
-    val headerModifier = if (useStatusBarsPadding) {
-        Modifier.fillMaxWidth().statusBarsPadding()
-    } else {
-        Modifier.fillMaxWidth()
-    }
+    val headerModifier = Modifier
+        .fillMaxWidth()
+        .headerOffsetFromStatusBar(includeStatusBarPadding = useStatusBarsPadding)
 
     Row(
         headerModifier,
@@ -2098,7 +2096,8 @@ private fun MenuHeader(
     var showHelpDialog by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .headerOffsetFromStatusBar(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2388,7 +2387,9 @@ private fun DigitsPickerScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .headerOffsetFromStatusBar(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -2614,7 +2615,13 @@ fun LeaderboardScreen(
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .headerOffsetFromStatusBar(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 SmallCircleButton("⬅") { onBack() }
                 Column {
