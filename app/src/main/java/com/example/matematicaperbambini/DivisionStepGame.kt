@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
@@ -173,6 +174,8 @@ fun DivisionStepGame(
     var rewardsEarned by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showAttentionDialog by remember { mutableStateOf(false) }
+    var attentionHint by remember { mutableStateOf("") }
     var solutionUsed by remember { mutableStateOf(false) }
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
@@ -189,6 +192,13 @@ fun DivisionStepGame(
     var inputRemainderReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
     var inputCheckReport by remember(exercise?.a, exercise?.b, plan) { mutableStateOf("") }
     val proofSectionBringIntoView = remember { BringIntoViewRequester() }
+
+    LaunchedEffect(showAttentionDialog) {
+        if (showAttentionDialog) {
+            delay(4000)
+            showAttentionDialog = false
+        }
+    }
 
     val quotientSlotCount = p?.dividendDigits?.size ?: 0
     val quotientInputs = remember(plan) { List(quotientSlotCount) { mutableStateOf("") } }
@@ -364,10 +374,15 @@ fun DivisionStepGame(
             playWrong()
             val locked = inputGuard.registerAttempt(stepId)
             if (locked) {
-                updateCellError(activeTarget, false)
-                updateCellValue(activeTarget, expected.toString())
-                message = "Continuiamo con il prossimo passo."
-                advanceTarget()
+                val activeHint = if (helps?.hintsEnabled == false) {
+                    "Attenzione: completa questo passaggio con calma."
+                } else {
+                    activeTarget.hint
+                }
+                attentionHint = activeHint
+                showAttentionDialog = true
+                message = "⚠️ Leggi il suggerimento e riprova."
+                inputGuard.reset(stepId)
             }
             return
         }
@@ -1302,6 +1317,15 @@ fun DivisionStepGame(
                 onBonusPromptAction = { showSuccessDialog = false },
                 onRewardEarned = { rewardsEarned += 1 },
                 onRewardSkipped = { rewardsEarned += 1 }
+            )
+        }
+
+        if (showAttentionDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Attenzione") },
+                text = { Text(attentionHint) },
+                confirmButton = {}
             )
         }
 

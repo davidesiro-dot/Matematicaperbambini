@@ -33,24 +33,18 @@ class StepInputGuard(
 ) {
     private val lastInputAt = mutableMapOf<String, Long>()
     private val attempts = mutableMapOf<String, Int>()
-    private val locked = mutableSetOf<String>()
 
     fun reset(stepId: String? = null) {
         if (stepId == null) {
             lastInputAt.clear()
             attempts.clear()
-            locked.clear()
         } else {
             lastInputAt.remove(stepId)
             attempts.remove(stepId)
-            locked.remove(stepId)
         }
     }
 
-    fun isLocked(stepId: String): Boolean = locked.contains(stepId)
-
     fun allowInput(stepId: String, nowMs: Long = System.currentTimeMillis()): ValidationFailure? {
-        if (isLocked(stepId)) return ValidationFailure.TOO_MANY_ATTEMPTS
         val last = lastInputAt[stepId] ?: return run { lastInputAt[stepId] = nowMs; null }
         if (nowMs - last < minIntervalMs) return ValidationFailure.TOO_FAST
         lastInputAt[stepId] = nowMs
@@ -61,7 +55,7 @@ class StepInputGuard(
         val newCount = (attempts[stepId] ?: 0) + 1
         attempts[stepId] = newCount
         if (newCount >= maxAttempts) {
-            locked.add(stepId)
+            attempts[stepId] = 0
             return true
         }
         return false

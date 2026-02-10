@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -954,6 +955,8 @@ fun HardMultiplication2x2Game(
     )
     var noHintsMode by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showAttentionDialog by remember { mutableStateOf(false) }
+    var attentionHint by remember { mutableStateOf("") }
     var solutionUsed by remember { mutableStateOf(false) }
     var attempts by remember(exercise?.a, exercise?.b) { mutableStateOf(0) }
     val wrongAnswers = remember(exercise?.a, exercise?.b) { mutableStateListOf<String>() }
@@ -974,6 +977,13 @@ fun HardMultiplication2x2Game(
     var errP2 by remember { mutableStateOf(BooleanArray(initialColumns) { false }) }
     var errCarrySUM by remember { mutableStateOf(BooleanArray(initialColumns) { false }) }
     var errSUM by remember { mutableStateOf(BooleanArray(initialColumns) { false }) }
+
+    LaunchedEffect(showAttentionDialog) {
+        if (showAttentionDialog) {
+            delay(4000)
+            showAttentionDialog = false
+        }
+    }
 
     fun reset(newA: Int, newB: Int) {
         val safeA = newA.coerceIn(10, 999)
@@ -1202,11 +1212,11 @@ fun HardMultiplication2x2Game(
             if (soundEnabled) fx.wrong()
             val locked = inputGuard.registerAttempt(stepId)
             if (locked) {
-                val activePlan = plan ?: return
-                setCell(row, col, t.expected, false)
-                step = (step + 1).coerceAtMost(activePlan.targets.size)
-                gameState = if (step >= activePlan.targets.size) GameState.GAME_COMPLETED else GameState.AWAITING_INPUT
-                inputGuard.reset()
+                val activeHint = if (hintsEnabled) t.hint else "Attenzione: completa questo passaggio con calma."
+                attentionHint = activeHint
+                showAttentionDialog = true
+                inputGuard.reset(stepId)
+                gameState = GameState.AWAITING_INPUT
             }
         }
     }
@@ -1543,6 +1553,15 @@ fun HardMultiplication2x2Game(
                 )
             }
         )
+
+        if (showAttentionDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Attenzione") },
+                text = { Text(attentionHint) },
+                confirmButton = {}
+            )
+        }
 
         SuccessDialog(
             show = showSuccessDialog,
