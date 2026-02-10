@@ -1,5 +1,6 @@
 package com.example.matematicaperbambini
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +56,7 @@ private data class GuidedPhase(
 )
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun TabellineGuidateScreen(
     table: Int,
     soundEnabled: Boolean,
