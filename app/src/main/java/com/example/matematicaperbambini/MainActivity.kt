@@ -2830,6 +2830,22 @@ private fun HelpInfoDialog(onDismiss: () -> Unit) {
                     Text("Nessun dato lascia il dispositivo.")
                     Text("Nessun dato viene utilizzato per fini commerciali.")
                 }
+                Text("Privacy Policy – sezione “Backup e dati”", fontWeight = FontWeight.Bold)
+                Text("Backup dei dati")
+                Text("L’app utilizza il sistema di backup automatico di Android per consentire il ripristino dei dati educativi in caso di cambio dispositivo o reinstallazione.")
+                Text("Vengono inclusi nel backup esclusivamente:")
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("i compiti assegnati")
+                    Text("i report dei compiti svolti")
+                    Text("i codici compito salvati")
+                }
+                Text("Non vengono salvati né ripristinati:")
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("dati temporanei o di gioco in corso")
+                    Text("progressi parziali di una singola attività")
+                    Text("cache o informazioni tecniche")
+                }
+                Text("I dati di backup non sono accessibili a terze parti e rimangono associati all’account Google dell’utente secondo le regole del sistema Android.")
                 Text("© COPYRIGHT", fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("MateMatt")

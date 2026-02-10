@@ -1,19 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
--->
+<?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Backup cloud consentito solo per report compiti, compiti assegnati e codici compito. -->
+        <include domain="file" path="datastore/homework_reports.preferences_pb" />
+        <include domain="file" path="datastore/saved_homeworks.preferences_pb" />
+        <include domain="file" path="datastore/homework_codes.preferences_pb" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- Stesse regole anche per trasferimento diretto tra dispositivi. -->
+        <include domain="file" path="datastore/homework_reports.preferences_pb" />
+        <include domain="file" path="datastore/saved_homeworks.preferences_pb" />
+        <include domain="file" path="datastore/homework_codes.preferences_pb" />
     </device-transfer>
-    -->
 </data-extraction-rules>
