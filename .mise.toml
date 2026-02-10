@@ -1,2 +1,2 @@
 [tools]
-java = "21.0.2"
+java = "corretto-21.0.10.7.1"
