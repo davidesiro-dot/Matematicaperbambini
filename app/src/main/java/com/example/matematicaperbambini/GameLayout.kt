@@ -11,7 +11,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,11 +42,6 @@ fun GameScreenFrame(
     bottomBar: (@Composable () -> Unit)? = null,
     message: String? = null
 ) {
-    val isCompact = ui.isCompact
-    val buttonSize = if (isCompact) 34.dp else 40.dp
-    val iconSize = if (isCompact) 18.dp else 22.dp
-    val buttonFont = if (isCompact) 16.sp else 18.sp
-
     val contentSpacing = maxOf(ui.spacing, 10.dp)
 
     Box(
@@ -67,7 +61,7 @@ fun GameScreenFrame(
                     onLeaderboard = onOpenLeaderboard,
                     ui = ui,
                     bonusTarget = bonusTarget,
-                    showBack = false
+                    showBack = true
                 )
             }
 
@@ -118,20 +112,6 @@ fun GameScreenFrame(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .headerOffsetFromStatusBar()
-                .padding(start = ui.pad)
-        ) {
-            SmallCircleButton(
-                "⬅",
-                onClick = onBack,
-                size = buttonSize,
-                iconSize = iconSize,
-                fontSize = buttonFont
-            )
-        }
     }
 }
 
