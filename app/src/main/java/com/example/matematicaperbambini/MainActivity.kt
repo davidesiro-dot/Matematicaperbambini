@@ -435,7 +435,8 @@ fun GameHeader(
     ui: UiSizing? = null,
     bonusTarget: Int = BONUS_TARGET,
     showBack: Boolean = true,
-    useStatusBarsPadding: Boolean = true
+    useStatusBarsPadding: Boolean = true,
+    modifier: Modifier = Modifier
 ) {
     val isCompact = ui?.isCompact == true
     val titleSize = (ui?.title ?: 18).sp
@@ -445,7 +446,7 @@ fun GameHeader(
     val buttonFont = if (isCompact) 16.sp else 18.sp
     val spacing = if (isCompact) 6.dp else 10.dp
 
-    val headerModifier = Modifier
+    val headerModifier = modifier
         .fillMaxWidth()
         .headerOffsetFromStatusBar(includeStatusBarPadding = useStatusBarsPadding)
 
