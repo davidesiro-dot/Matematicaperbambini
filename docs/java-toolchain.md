@@ -33,3 +33,9 @@ mise install
 ```
 
 Poi eseguire i comandi Gradle normalmente (es. `./gradlew tasks`).
+
+## Prerequisito Android SDK
+
+Per eseguire i task Android (`assembleDebug`, `testDebugUnitTest`) serve anche un Android SDK locale configurato in `local.properties` (vedi `local.properties.example`).
+
+Runbook operativo Fase 0: `docs/phase0-runbook.md`.
