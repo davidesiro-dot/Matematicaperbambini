@@ -2384,7 +2384,7 @@ private fun DigitsPickerScreen(
     val accent = if (mode == GameMode.ADD) Color(0xFFE74C3C) else Color(0xFF2ECC71)
 
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
+        Modifier.fillMaxSize().padding(horizontal = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(
@@ -2474,7 +2474,7 @@ fun MultTablePickerScreen(
     onPickTable: (Int) -> Unit
 ) {
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
+        Modifier.fillMaxSize().padding(horizontal = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         GameHeader(
@@ -2615,7 +2615,7 @@ fun LeaderboardScreen(
         loadEntries(context, starsId).sortedByDescending { it.value }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(
             Modifier
                 .fillMaxWidth()
