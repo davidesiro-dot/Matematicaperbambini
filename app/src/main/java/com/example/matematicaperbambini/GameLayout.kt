@@ -48,27 +48,30 @@ fun GameScreenFrame(
         modifier = modifier.fillMaxSize()
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
+            modifier = Modifier.fillMaxSize()
         ) {
-            SeaGlassPanel(modifier = Modifier.padding(horizontal = ui.pad, vertical = ui.pad)) {
-                GameHeader(
-                    title = title,
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onBack = onBack,
-                    onLeaderboard = onOpenLeaderboard,
-                    ui = ui,
-                    bonusTarget = bonusTarget,
-                    showBack = true
-                )
-            }
+            GameHeader(
+                title = title,
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onBack = onBack,
+                onLeaderboard = onOpenLeaderboard,
+                ui = ui,
+                bonusTarget = bonusTarget,
+                showBack = true,
+                useStatusBarsPadding = true,
+                modifier = Modifier.padding(horizontal = ui.pad)
+            )
 
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(
+                            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                        )
+                    ),
                 contentPadding = PaddingValues(ui.pad),
                 verticalArrangement = Arrangement.spacedBy(contentSpacing)
             ) {
