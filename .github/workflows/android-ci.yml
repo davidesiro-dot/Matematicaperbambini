@@ -32,3 +32,12 @@ jobs:
 
       - name: Run debug unit tests
         run: ./gradlew testDebugUnitTest
+
+      - name: Run Android lint (debug)
+        run: ./gradlew lintDebug
+
+      - name: Run Detekt
+        run: ./gradlew detekt
+
+      - name: Generate Jacoco report
+        run: ./gradlew jacocoTestReport

@@ -1,0 +1,24 @@
+build:
+  maxIssues: 999999
+
+config:
+  validation: true
+
+style:
+  MaxLineLength:
+    active: true
+    maxLineLength: 180
+    severity: warning
+
+complexity:
+  ComplexMethod:
+    active: true
+    threshold: 25
+    severity: warning
+  LongMethod:
+    active: true
+    threshold: 120
+    severity: warning
+
+formatting:
+  active: false
