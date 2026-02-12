@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 jobs:
-  build-and-test:
+  quality-gate:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,11 +24,5 @@ jobs:
       - name: Grant execute permission for Gradle wrapper
         run: chmod +x ./gradlew
 
-      - name: Clean
-        run: ./gradlew clean
-
-      - name: Assemble debug
-        run: ./gradlew assembleDebug
-
-      - name: Run debug unit tests
-        run: ./gradlew testDebugUnitTest
+      - name: Validate build, lint, tests and coverage
+        run: ./gradlew --no-daemon clean assembleDebug lintDebug testDebugUnitTest jacocoTestReport
