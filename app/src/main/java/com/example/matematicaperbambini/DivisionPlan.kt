@@ -1,7 +1,5 @@
 package com.example.matematicaperbambini
 
-import android.util.Log
-
 enum class DivisionTargetType { QUOTIENT, PRODUCT, REMAINDER, BRING_DOWN }
 
 enum class HLZone { DIVIDEND, DIVISOR, QUOTIENT, PRODUCT, REMAINDER, BRING }
@@ -61,14 +59,17 @@ fun estimateQuotientDigit(partial: Int, divisor: Int): Int {
     return qDigit
 }
 
-fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
-    val safeDividend = dividend.coerceAtLeast(0)
-    val safeDivisor = divisor.coerceAtLeast(1)
-    if (safeDividend != dividend || safeDivisor != divisor) {
-        Log.w(
+fun generateDivisionPlan(
+    dividendInput: Int,
+    divisorInput: Int,
+    logger: AppLogger = DefaultLogger
+): DivisionPlan {
+    val safeDividend = dividendInput.coerceAtLeast(0)
+    val safeDivisor = divisorInput.coerceAtLeast(1)
+    if (safeDividend != dividendInput || safeDivisor != divisorInput) {
+        logger.warn(
             "DivisionPlan",
-            "Invalid input normalized (dividend=$dividend, divisor=$divisor) -> " +
-                "(dividend=$safeDividend, divisor=$safeDivisor)"
+            "Normalizing invalid input: dividend=$dividendInput divisor=$divisorInput"
         )
     }
 
@@ -179,12 +180,12 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
             gridCol = quotientCol,
             idx = quotientCol,
             expected = qChar,
-            hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $divisor, dà un risultato ≤ ${step.partial}.",
-            microLabel = "${step.partial}÷$divisor",
+            hint = "Trova la cifra del quoziente: il numero più grande che, moltiplicato per $safeDivisor, dà un risultato ≤ ${step.partial}.",
+            microLabel = "${step.partial}÷$safeDivisor",
             highlights = partialHighlights + divisorHighlights
         )
 
-        val productHint = "Moltiplica: $divisor × ${step.qDigit} = ${step.product}. Scrivi il prodotto sotto le cifre selezionate."
+        val productHint = "Moltiplica: $safeDivisor × ${step.qDigit} = ${step.product}. Scrivi il prodotto sotto le cifre selezionate."
         val productHighlights = divisorHighlights +
             HLCell(HLZone.QUOTIENT, si, quotientCol)
         productStr.forEachIndexed { idx, ch ->
@@ -195,7 +196,7 @@ fun generateDivisionPlan(dividend: Int, divisor: Int): DivisionPlan {
                 idx = idx,
                 expected = ch,
                 hint = productHint,
-                microLabel = "$divisor×${step.qDigit}",
+                microLabel = "$safeDivisor×${step.qDigit}",
                 highlights = productHighlights
             )
         }
