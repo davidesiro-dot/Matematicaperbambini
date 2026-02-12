@@ -2,4 +2,8 @@
 <resources>
 
     <style name="Theme.Matematicaperbabini" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Matematicaperbabini.Splash" parent="Theme.Matematicaperbabini">
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+    </style>
 </resources>
