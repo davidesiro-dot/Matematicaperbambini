@@ -1,126 +1,133 @@
 # Senior Review — Maturità per pubblicazione
 
-Data analisi: 2026-02-11
+Data analisi: 2026-02-12
 
 ## Executive summary
 
-Valutazione complessiva (stato attuale): **6/10**.
+Valutazione complessiva (stato attuale): **6.8/10**.
 
-L'app mostra una buona base funzionale per una prima release privata/internal test:
-- dominio educativo già ampio (tabelline, addizioni/sottrazioni in colonna, divisioni guidate, denaro);
-- presenza di test unitari su alcune logiche core;
-- persistenza locale strutturata su DataStore.
+Rispetto alla review precedente, il progetto è cresciuto in modo concreto:
+- è presente una pipeline CI su GitHub Actions con build e unit test su push/PR verso `main`;
+- la toolchain è documentata in modo chiaro (Java 21 + runbook operativo);
+- la base funzionale dell’app è ampia e orientata a casi reali scolastici.
 
-Tuttavia, rispetto agli standard di una software house matura per una release pubblica stabile, restano gap importanti in:
-- affidabilità pipeline build (toolchain/plugin non risolti);
-- qualità architetturale (file molto grandi e UI + logica mescolate);
-- readiness di processo (assenza CI/CD, quality gates, checklist release);
-- hardening prodotto (osservabilità, test e policy di regression più complete).
+Restano però gap importanti prima di una pubblicazione “public rollout” in stile software house leader:
+- architettura ancora monolitica in alcune aree (file molto grandi);
+- quality gate CI ancora minimi (mancano lint/detekt/coverage/security checks);
+- strategia di test non ancora completa su UI/instrumentation;
+- processi di release/operabilità non ancora formalizzati end-to-end.
 
-## Evidenze tecniche principali
+## Evidenze tecniche aggiornate
 
-### 1) Build/release engineering
-- La versione AGP dichiarata nel catalogo è `8.13.2`, non risolvibile dai repository standard al momento dell'analisi, con build bloccata.
-- Toolchain Java documentata (Corretto 21) presente e coerente con progetto.
+### 1) CI/CD e build governance
+- Workflow CI presente (`.github/workflows/android-ci.yml`) con trigger su `push` e `pull_request` verso `main`.
+- La pipeline esegue: `clean`, `assembleDebug`, `testDebugUnitTest` con Java 21 e cache Gradle.
+- Versioni AGP/Kotlin sono definite nel version catalog, con coerenza rispetto ai plugin applicati.
 
-Impatto: **alto**. Senza build ripetibile, la pubblicazione non è governabile.
+Valutazione: **miglioramento netto** rispetto allo stato “senza CI”.
 
-### 2) Architettura codice
-- Presenza di file Kotlin molto grandi (es. `MainActivity.kt` ~2800+ linee, altri >1000 linee) che indicano accoppiamento alto e manutenzione difficile.
-- UI Compose, stato, persistenza e logica in parte coesistono nello stesso livello applicativo.
+### 2) Toolchain e riproducibilità
+- Documento toolchain e runbook presenti (`docs/java-toolchain.md`, `docs/phase0-runbook.md`) con linee guida operative.
+- Permane dipendenza forte da setup locale Android SDK/JDK; senza JAVA_HOME/SDK la build locale non parte.
 
-Impatto: **alto** su evoluzione futura, bug fixing e onboarding.
+Valutazione: **buona base**, ma serve ulteriore automazione/validazione ambiente per onboarding rapido.
 
-### 3) Test strategy
-- Ci sono test unitari utili su porzioni pure (divisione, validazione input, utility denaro), positivi per robustezza logica.
-- Suite test ancora ridotta e senza copertura esplicita end-to-end del flusso UX; test strumentale quasi solo smoke test.
+### 3) Architettura e manutenibilità
+- Persistono file di grandi dimensioni (`MainActivity.kt` e `HomeworkScreens.kt` oltre 2500 linee).
+- Questo suggerisce accoppiamento elevato fra UI, orchestrazione flussi e regole applicative.
 
-Impatto: **medio/alto** per rischio regressioni UI e regressioni cross-feature.
+Valutazione: **rischio medio-alto** per scalabilità del team, regressioni e tempi di modifica.
 
-### 4) Dati, privacy, resilience
-- Persistenza locale su DataStore con gestione errori difensiva (try/catch e fallback a liste vuote).
-- Manca una chiara policy di migrazioni schema/versioning dei payload serializzati e un piano osservabilità errori in produzione.
+### 4) Qualità e strategia test
+- Presenza di test unitari su componenti core (es. validazione input, divisioni, utility denaro).
+- Il set test è ancora contenuto e i test strumentali risultano minimi (strumentazione base).
+- Non risultano gate coverage/lint static analysis obbligatori in CI.
 
-Impatto: **medio**.
+Valutazione: **sufficiente per closed testing**, non ancora livello software house top-tier.
 
-### 5) Product readiness (store/public release)
-- Risorse stringhe minimali (solo app name), segnale di internazionalizzazione e content governance iniziale.
-- Mancano indicatori di processo tipici: checklist release, CI, crash monitoring, rollout progressivo codificato, SLO/SLI.
+### 5) Sicurezza, privacy, operabilità
+- Manifest minimale e senza permessi invasivi (profilo rischio privacy favorevole).
+- Backup Android abilitato; utile, ma da allineare a policy dati/sensibilità per pubblicazione.
+- Logging e osservabilità ancora basici; non emerge integrazione crash reporting/monitoring di produzione.
 
-Impatto: **alto** per una pubblicazione “da software house”.
+Valutazione: **base corretta**, ma operabilità enterprise non ancora pronta.
 
-## Valutazione di prontezza secondo benchmark software house
+## Scoring maturità (stile software house leader)
 
-## Scala usata
+### Scala
 - 0-3: prototipo
-- 4-6: beta/internal test
-- 7-8: production-ready con rischi gestibili
-- 9-10: organizzazione matura con controllo continuo qualità
+- 4-6: beta/internal
+- 7-8: production-ready con rischio controllato
+- 9-10: eccellenza operativa continua
 
-## Scoring per area
-- **Prodotto funzionale**: 7/10
-- **Architettura/manutenibilità**: 5/10
-- **Qualità/testing**: 5/10
-- **Build/Release/DevOps**: 4/10
-- **Operabilità (monitoring/incidents)**: 3/10
-- **Compliance processo release**: 4/10
+### Punteggi area
+- **Prodotto funzionale**: 7.5/10
+- **Architettura/manutenibilità**: 5.5/10
+- **Qualità/testing**: 6/10
+- **Build/Release/DevOps**: 7/10
+- **Operabilità (monitoring/incidents)**: 4/10
+- **Compliance processo release**: 5.5/10
 
-**Media ponderata**: circa **5.5-6/10**.
+**Media ponderata**: **6.8/10**.
 
-Stato consigliato: **aprire solo canale Internal testing/Closed testing**, non ancora “public production broad rollout”.
+## Parere pubblicazione (go-to-market)
 
-## Cosa fare in dettaglio (piano operativo)
+### Cosa è pronto oggi
+- **Pronto per Internal testing e Closed testing esteso** (gruppo controllato, feedback rapido).
+- **Non ancora pronto** per open/public broad rollout ad alto volume senza ulteriore hardening.
 
-## Fase 0 — Blocchi immediati (1-2 giorni)
-1. **Ripristinare build deterministica**
-   - Allineare AGP/Kotlin/Gradle wrapper a combinazione supportata e realmente pubblicata.
-   - Eseguire matrix minima di build (`assembleDebug`, `testDebugUnitTest`).
-2. **Definire baseline release**
-   - Versioning semantico interno (`versionCode` incrementale, changelog).
-   - Build type release firmata (keystore gestita in modo sicuro).
-3. **Gate iniziale obbligatorio**
-   - Nessuna merge senza build verde locale e test unitari essenziali.
+### Principali rischi residui prima della pubblicazione ampia
+1. **Rischio regressioni funzionali/UI** dovuto a test non ancora end-to-end sui flussi principali.
+2. **Rischio operativo** per assenza di telemetria matura (crash analytics, alerting, KPI live).
+3. **Rischio evolutivo** per complessità monolitica dei file centrali.
 
-## Fase 1 — Hardening qualità (1 settimana)
-1. **CI/CD minima (GitHub Actions o equivalente)**
-   - Job: lint + unit test + assemble debug/release.
-   - Caching Gradle, timeout, artifact APK/AAB.
-2. **Quality gates**
-   - ktlint/detekt con soglie iniziali realistiche.
-   - Coverage minima su moduli domain/core (target iniziale 60% su classi pure).
-3. **Testing ampliato**
-   - Aggiungere test per `HomeworkEngine`, repository, formatter/report.
-   - Test UI smoke su flussi principali (avvio gioco, completamento esercizio, salvataggio report).
+## Benchmark “best software house” — gap analysis
 
-## Fase 2 — Refactor architetturale (2-4 settimane)
-1. **Spezzare mega-file**
-   - Estrarre da `MainActivity` e schermate monolitiche in feature package modulari.
-   - Introdurre ViewModel per schermata/feature con stato unidirezionale.
-2. **Separare livelli**
-   - `ui` / `domain` / `data` con interfacce repository.
-   - Use-case espliciti per regole di gioco e generazione compiti.
-3. **Stabilizzare contratti dati**
-   - DTO versionati e migrazioni gestite per payload DataStore.
+Per allinearsi alle procedure delle migliori software house, in genere servono questi pilastri minimi:
 
-## Fase 3 — Operabilità e pubblicazione (1-2 settimane)
-1. **Osservabilità**
-   - Crash reporting + analytics minime privacy-safe.
-   - Logging strutturato con eventi critici.
-2. **Release strategy professionale**
-   - Internal → Closed (20-50 tester) → Open → Production.
-   - Rollout graduale (5%, 20%, 50%, 100%) con stop automatico su KPI negativi.
-3. **Definition of Done release**
-   - Checklist fissa: test pass, bug blocker zero, performance baseline, asset store pronti.
+1. **Engineering Excellence**
+   - PR con mandatory checks: build + test + lint + static analysis + coverage diff.
+   - Branch protection con merge bloccato su check rossi.
 
-## KPI consigliati per decidere Go/No-Go
+2. **Release Excellence**
+   - Canali progressivi (Internal → Closed → Open → Production) con KPI gate.
+   - Rollout graduale e rollback playbook.
+
+3. **Operational Excellence**
+   - Crash reporting real-time, metriche ANR, dashboard SLI/SLO.
+   - Incident process leggero ma codificato (owner, severità, postmortem).
+
+4. **Architecture Governance**
+   - Confini chiari `ui/domain/data`, riduzione file monolitici.
+   - Test pyramid bilanciata (unit > integration > UI smoke affidabili).
+
+Stato attuale: il progetto ha avviato bene il pilastro 1 (CI base), ma è ancora **a metà percorso** su 2-3-4.
+
+## Roadmap consigliata (30-45 giorni)
+
+### Sprint A (settimana 1-2)
+- Aggiungere in CI: `lint`, `detekt` (o equivalente), report coverage Jacoco.
+- Definire branch protection e policy merge.
+- Inserire checklist release minima (`versionCode`, changelog, smoke test).
+
+### Sprint B (settimana 3-4)
+- Refactor progressivo di `MainActivity`/`HomeworkScreens` in feature + ViewModel.
+- Introdurre test integration su repository/engine e 2-3 test UI critici.
+
+### Sprint C (settimana 5-6)
+- Integrare crash reporting e metriche stabilità.
+- Eseguire closed testing con KPI di qualità (crash-free, completion rate, bug severity).
+- Go/No-Go meeting con scorecard oggettiva.
+
+## KPI go/no-go suggeriti
 - Crash-free sessions >= 99.5%
-- ANR rate entro soglie Play Console
-- 0 bug P0/P1 aperti
-- Tempo cold start entro target definito
-- Tasso completamento flussi chiave >= soglia (da definire con team prodotto)
+- 0 bug blocker (P0/P1) aperti
+- CI stability >= 95% negli ultimi 14 giorni
+- Copertura test su domain/core >= 65%
+- Tempo feedback PR (CI completa) <= 10-12 minuti
 
 ## Conclusione
 
-L'app è **promettente** e già utile in contesto educativo, ma oggi è più vicina a una **beta avanzata** che a una release pubblica pienamente governata.
+L’app oggi è in uno stato **solido da beta avanzata con CI attiva**.
 
-Con il piano sopra (soprattutto build affidabile + CI + refactor dei file monolitici + test/UI gate), può raggiungere una maturità **7.5/10** in poche iterazioni e supportare una pubblicazione con rischio significativamente più basso.
+Con i miglioramenti proposti (quality gates completi, refactor aree monolitiche, operabilità produzione), può raggiungere rapidamente un livello **7.5-8/10**, compatibile con una pubblicazione pubblica a rischio controllato secondo standard di software house mature.
