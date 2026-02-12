@@ -168,7 +168,8 @@ fun DivisionStepGame(
     var targetIndex by remember(plan) { mutableStateOf(0) }
     val p = plan
     val currentTarget = p?.targets?.getOrNull(targetIndex)
-    val done = p != null && currentTarget == null
+    val donePlan = p?.takeIf { currentTarget == null }
+    val done = donePlan != null
 
     var correctCount by remember { mutableStateOf(0) }
     var rewardsEarned by remember { mutableStateOf(0) }
@@ -445,11 +446,11 @@ fun DivisionStepGame(
     }
 
     val hint = when {
-        done && p != null -> {
+        donePlan != null -> {
             if (solutionUsed) {
-                "Quoziente ${p.finalQuotient} con resto ${p.finalRemainder}."
+                "Quoziente ${donePlan.finalQuotient} con resto ${donePlan.finalRemainder}."
             } else {
-                "Bravo! Quoziente ${p.finalQuotient} con resto ${p.finalRemainder}."
+                "Bravo! Quoziente ${donePlan.finalQuotient} con resto ${donePlan.finalRemainder}."
             }
         }
         p == null -> "Inserisci dividendo e divisore e premi Avvia."
@@ -531,7 +532,7 @@ fun DivisionStepGame(
     }
 
     LaunchedEffect(done) {
-        if (done && p != null && !solutionUsed) showSuccessDialog = true
+        if (done && !solutionUsed) showSuccessDialog = true
     }
 
     LaunchedEffect(exercise?.a, exercise?.b) {
@@ -1005,7 +1006,7 @@ fun DivisionStepGame(
         }
     }
 
-                    if (done && p != null) {
+                    if (donePlan != null) {
                         Button(
                             onClick = {
                                 showProofOfNine = !showProofOfNine
@@ -1017,10 +1018,10 @@ fun DivisionStepGame(
                         }
 
                         if (showProofOfNine) {
-                            val divisorNine = digitalRootNine(p.divisor)
-                            val quotientNine = digitalRootNine(p.finalQuotient)
-                            val remainderNine = digitalRootNine(p.finalRemainder)
-                            val dividendNine = digitalRootNine(p.dividend)
+                            val divisorNine = digitalRootNine(donePlan.divisor)
+                            val quotientNine = digitalRootNine(donePlan.finalQuotient)
+                            val remainderNine = digitalRootNine(donePlan.finalRemainder)
+                            val dividendNine = digitalRootNine(donePlan.dividend)
                             val productBase = divisorNine * quotientNine
                             val productNine = digitalRootNine(productBase)
                             val checkBase = productNine + remainderNine
