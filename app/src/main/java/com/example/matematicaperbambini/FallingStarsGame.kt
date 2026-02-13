@@ -25,6 +25,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -59,6 +60,7 @@ fun FallingStarsGame(
     var score by remember { mutableIntStateOf(0) }
     var finished by remember { mutableStateOf(false) }
     var showNameEntry by remember { mutableStateOf(false) }
+    var showCongratsMessage by remember { mutableStateOf(false) }
     var playerName by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
 
@@ -73,7 +75,12 @@ fun FallingStarsGame(
     val groundHeightPx = with(density) { groundHeightDp.toPx() }
 
     LaunchedEffect(finished) {
-        if (finished && !saved) showNameEntry = true
+        if (finished && !saved) {
+            showCongratsMessage = true
+            delay(2_000)
+            showCongratsMessage = false
+            showNameEntry = true
+        }
     }
 
     fun createStar(id: Int, startInView: Boolean): StarState {
@@ -242,12 +249,31 @@ fun FallingStarsGame(
                 .zIndex(10f)
         )
 
+        if (showCongratsMessage) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color(0xCC0F172A))
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { })
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                SeaGlassPanel(title = "Complimenti! 🎉") {
+                    Text("Hai finito il tempo! Tra poco puoi salvare il tuo punteggio.")
+                }
+            }
+        }
+
         // --- salvataggio nome ---
         if (showNameEntry) {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(Color(0xCC0F172A)),
+                    .background(Color(0xCC0F172A))
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { })
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 SeaGlassPanel(title = "Salva i tuoi punti") {
