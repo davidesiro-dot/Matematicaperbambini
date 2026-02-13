@@ -40,6 +40,7 @@ import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -256,30 +257,37 @@ private enum class LearnFilter {
 
 data class GuidedLessonDef(
     val id: String,
+    val title: String,
     val category: GuidedLessonCategory,
-    val titleRes: Int,
-    val difficultyStars: Int,
+    val stars: Int,
+    val totalExercises: Int,
+    val completedExercises: Int,
+    val isUnlocked: Boolean,
+    val description: String,
+    val exerciseDetails: List<String>,
+    val helpDetails: List<String>,
+    val canEdit: Boolean = false,
     val gameMode: GameMode,
     val startMode: StartMode,
     val digits: Int? = null
 )
 
 private fun guidedLessons(): List<GuidedLessonDef> = listOf(
-    GuidedLessonDef("add_1", GuidedLessonCategory.ADDITION, R.string.guided_lesson_add_1, 1, GameMode.ADD, StartMode.MANUAL, 1),
-    GuidedLessonDef("add_2", GuidedLessonCategory.ADDITION, R.string.guided_lesson_add_2, 2, GameMode.ADD, StartMode.RANDOM, 2),
-    GuidedLessonDef("add_3", GuidedLessonCategory.ADDITION, R.string.guided_lesson_add_3, 3, GameMode.ADD, StartMode.RANDOM, 3),
-    GuidedLessonDef("sub_1", GuidedLessonCategory.SUBTRACTION, R.string.guided_lesson_sub_1, 1, GameMode.SUB, StartMode.MANUAL, 1),
-    GuidedLessonDef("sub_2", GuidedLessonCategory.SUBTRACTION, R.string.guided_lesson_sub_2, 2, GameMode.SUB, StartMode.RANDOM, 2),
-    GuidedLessonDef("sub_3", GuidedLessonCategory.SUBTRACTION, R.string.guided_lesson_sub_3, 3, GameMode.SUB, StartMode.RANDOM, 3),
-    GuidedLessonDef("mul_1", GuidedLessonCategory.MULTIPLICATION, R.string.guided_lesson_mul_1, 1, GameMode.MULT_HARD, StartMode.MANUAL),
-    GuidedLessonDef("mul_2", GuidedLessonCategory.MULTIPLICATION, R.string.guided_lesson_mul_2, 2, GameMode.MULT_HARD, StartMode.RANDOM),
-    GuidedLessonDef("mul_3", GuidedLessonCategory.MULTIPLICATION, R.string.guided_lesson_mul_3, 3, GameMode.MULT_HARD, StartMode.RANDOM),
-    GuidedLessonDef("div_1", GuidedLessonCategory.DIVISION, R.string.guided_lesson_div_1, 1, GameMode.DIV, StartMode.MANUAL),
-    GuidedLessonDef("div_2", GuidedLessonCategory.DIVISION, R.string.guided_lesson_div_2, 2, GameMode.DIV, StartMode.RANDOM),
-    GuidedLessonDef("div_3", GuidedLessonCategory.DIVISION, R.string.guided_lesson_div_3, 3, GameMode.DIV, StartMode.RANDOM),
-    GuidedLessonDef("tab_1", GuidedLessonCategory.TIMES_TABLE, R.string.guided_lesson_tab_1, 1, GameMode.MULT, StartMode.MANUAL),
-    GuidedLessonDef("tab_2", GuidedLessonCategory.TIMES_TABLE, R.string.guided_lesson_tab_2, 2, GameMode.MULT, StartMode.RANDOM),
-    GuidedLessonDef("tab_3", GuidedLessonCategory.TIMES_TABLE, R.string.guided_lesson_tab_3, 3, GameMode.MULT, StartMode.RANDOM)
+    GuidedLessonDef("add_1", "Somme fino a 10", GuidedLessonCategory.ADDITION, 1, 3, 0, false, "Introduzione alle addizioni semplici", listOf("Somme guidate con numeri piccoli", "Esercizi progressivi passo dopo passo", "Verifica finale della lezione"), listOf("Usa la linea dei numeri quando serve", "Conta a voce alta per ridurre gli errori"), gameMode = GameMode.ADD, startMode = StartMode.MANUAL, digits = 1),
+    GuidedLessonDef("add_2", "Somme a due cifre", GuidedLessonCategory.ADDITION, 2, 3, 0, false, "Consolidamento delle addizioni", listOf("Addizioni con riporto semplificato", "Allenamento su rapidità e precisione", "Mini sfida conclusiva"), listOf("Scomponi i numeri in decine e unità", "Controlla il risultato stimando prima"), gameMode = GameMode.ADD, startMode = StartMode.RANDOM, digits = 2),
+    GuidedLessonDef("add_3", "Somme avanzate", GuidedLessonCategory.ADDITION, 3, 3, 0, false, "Addizioni con numeri più grandi", listOf("Addizioni a tre cifre", "Esercizi misti con difficoltà alta", "Checkpoint di completamento"), listOf("Procedi in colonna quando utile", "Verifica sempre il riporto"), gameMode = GameMode.ADD, startMode = StartMode.RANDOM, digits = 3),
+    GuidedLessonDef("sub_1", "Sottrazioni base", GuidedLessonCategory.SUBTRACTION, 1, 3, 0, false, "Prime sottrazioni senza prestito", listOf("Sottrazioni semplici entro il 10", "Esercizi con supporto visuale", "Verifica finale"), listOf("Parti dal numero più grande", "Usa le dita o oggetti per aiutarti"), gameMode = GameMode.SUB, startMode = StartMode.MANUAL, digits = 1),
+    GuidedLessonDef("sub_2", "Sottrazioni a due cifre", GuidedLessonCategory.SUBTRACTION, 2, 3, 0, false, "Sottrazioni con difficoltà intermedia", listOf("Sottrazioni con prestito guidato", "Allenamento su casi tipici", "Sfida di consolidamento"), listOf("Allinea bene le cifre", "Ricontrolla il calcolo con l'operazione inversa"), gameMode = GameMode.SUB, startMode = StartMode.RANDOM, digits = 2),
+    GuidedLessonDef("sub_3", "Sottrazioni avanzate", GuidedLessonCategory.SUBTRACTION, 3, 3, 0, false, "Sottrazioni complesse", listOf("Sottrazioni a tre cifre", "Esercizi a tempo", "Verifica conclusiva"), listOf("Esegui un passaggio alla volta", "Rileggi i numeri prima di confermare"), gameMode = GameMode.SUB, startMode = StartMode.RANDOM, digits = 3),
+    GuidedLessonDef("mul_1", "Moltiplicazioni introduttive", GuidedLessonCategory.MULTIPLICATION, 1, 3, 0, false, "Avvio alle moltiplicazioni", listOf("Moltiplicazioni in colonna semplici", "Esercizi guidati", "Mini test finale"), listOf("Ripeti le tabelline utili prima di iniziare", "Controlla i passaggi intermedi"), gameMode = GameMode.MULT_HARD, startMode = StartMode.MANUAL),
+    GuidedLessonDef("mul_2", "Moltiplicazioni intermedie", GuidedLessonCategory.MULTIPLICATION, 2, 3, 0, false, "Moltiplicazioni con più passaggi", listOf("Moltiplicazioni con numeri maggiori", "Esercizi misti", "Checkpoint di precisione"), listOf("Mantieni ordinata la colonna", "Rivedi i riporti a fine esercizio"), gameMode = GameMode.MULT_HARD, startMode = StartMode.RANDOM),
+    GuidedLessonDef("mul_3", "Moltiplicazioni avanzate", GuidedLessonCategory.MULTIPLICATION, 3, 3, 0, false, "Lezione avanzata di moltiplicazioni", listOf("Moltiplicazioni complesse", "Allenamento intensivo", "Sfida finale"), listOf("Spezza il problema in parti più piccole", "Verifica il risultato con una stima"), gameMode = GameMode.MULT_HARD, startMode = StartMode.RANDOM),
+    GuidedLessonDef("div_1", "Divisioni base", GuidedLessonCategory.DIVISION, 1, 3, 0, false, "Introduzione alle divisioni", listOf("Divisioni semplici", "Esercizi con supporto", "Controllo finale"), listOf("Ripassa il legame tra divisione e moltiplicazione", "Controlla il resto"), gameMode = GameMode.DIV, startMode = StartMode.MANUAL),
+    GuidedLessonDef("div_2", "Divisioni intermedie", GuidedLessonCategory.DIVISION, 2, 3, 0, false, "Divisioni con difficoltà crescente", listOf("Divisioni con resto", "Esercizi progressivi", "Sfida di fine lezione"), listOf("Scrivi ogni passaggio", "Controlla la posizione delle cifre"), gameMode = GameMode.DIV, startMode = StartMode.RANDOM),
+    GuidedLessonDef("div_3", "Divisioni avanzate", GuidedLessonCategory.DIVISION, 3, 3, 0, false, "Divisioni avanzate", listOf("Divisioni lunghe", "Esercizi avanzati", "Verifica conclusiva"), listOf("Procedi lentamente nei passaggi difficili", "Ricontrolla con la moltiplicazione"), gameMode = GameMode.DIV, startMode = StartMode.RANDOM),
+    GuidedLessonDef("tab_1", "Tabelline base", GuidedLessonCategory.TIMES_TABLE, 1, 3, 0, false, "Primo approccio alle tabelline", listOf("Tabelline facili", "Esercizi di riconoscimento", "Verifica finale"), listOf("Ripeti la tabellina prima dell'esercizio", "Usa ritmo e ripetizione"), gameMode = GameMode.MULT, startMode = StartMode.MANUAL),
+    GuidedLessonDef("tab_2", "Tabelline intermedie", GuidedLessonCategory.TIMES_TABLE, 2, 3, 0, false, "Allenamento tabelline", listOf("Tabelline miste", "Esercizi a difficoltà media", "Checkpoint finale"), listOf("Concentrati sui prodotti più difficili", "Ricontrolla gli errori più frequenti"), gameMode = GameMode.MULT, startMode = StartMode.RANDOM),
+    GuidedLessonDef("tab_3", "Tabelline avanzate", GuidedLessonCategory.TIMES_TABLE, 3, 3, 0, false, "Tabelline livello avanzato", listOf("Tabelline complete", "Sfida di velocità", "Verifica conclusiva"), listOf("Respira e mantieni il ritmo", "Rivedi i risultati sbagliati"), gameMode = GameMode.MULT, startMode = StartMode.RANDOM)
 )
 
 // -----------------------------
@@ -653,7 +661,7 @@ private fun AppShell() {
         guidedPathScope.launch {
             guidedPathRepository.unlockNext(lesson.category, nextUnlocked)
             lessonUnlockMessage = if (nextLesson != null) {
-                context.getString(R.string.learn_unlock_next, context.getString(nextLesson.titleRes))
+                context.getString(R.string.learn_unlock_next, nextLesson.title)
             } else {
                 val categoryNameRes = guidedCategoryNameRes(lesson.category)
                 context.getString(R.string.learn_unlock_category_completed, context.getString(categoryNameRes))
@@ -2123,6 +2131,7 @@ private fun GuidedPathScreen(
         LearnFilter.DIVISIONS to R.string.learn_filter_divisions,
         LearnFilter.TIMES_TABLES to R.string.learn_filter_times_tables
     )
+    val expandedLessonId = rememberSaveable { mutableStateOf<String?>(null) }
     val filteredLessons = lessons.filter {
         when (selectedFilter) {
             LearnFilter.ALL -> true
@@ -2133,6 +2142,14 @@ private fun GuidedPathScreen(
             LearnFilter.TIMES_TABLES -> it.category == GuidedLessonCategory.TIMES_TABLE
         }
     }
+    val firstAvailableNotCompletedId = filteredLessons.firstOrNull { lesson ->
+        val categoryLessons = lessons.filter { it.category == lesson.category }
+        val index = categoryLessons.indexOfFirst { it.id == lesson.id }
+        val unlocked = progress.unlockedFor(lesson.category)
+        val isCompleted = unlocked > index + 1
+        val isAvailable = unlocked >= index + 1
+        isAvailable && !isCompleted
+    }?.id
 
     Scaffold(
         topBar = {
@@ -2177,19 +2194,24 @@ private fun GuidedPathScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredLessons) { lesson ->
+                    items(filteredLessons, key = { it.id }) { lesson ->
                         val categoryLessons = lessons.filter { it.category == lesson.category }
                         val index = categoryLessons.indexOfFirst { it.id == lesson.id }
                         val unlocked = progress.unlockedFor(lesson.category)
                         val isCompleted = unlocked > index + 1
                         val isAvailable = unlocked >= index + 1
                         GuidedLessonCard(
-                            lesson = lesson,
+                            lesson = lesson.copy(
+                                isUnlocked = isAvailable,
+                                completedExercises = if (isCompleted) lesson.totalExercises else 0
+                            ),
                             completed = isCompleted,
-                            available = isAvailable,
-                            totalInCategory = categoryLessons.size,
-                            completedInCategory = unlocked.minus(1).coerceAtMost(categoryLessons.size),
-                            onStart = { onStartLesson(lesson) }
+                            isExpanded = expandedLessonId.value == lesson.id,
+                            highlightPrimaryCta = lesson.id == firstAvailableNotCompletedId,
+                            onStart = { onStartLesson(lesson) },
+                            onToggleExpanded = {
+                                expandedLessonId.value = if (expandedLessonId.value == lesson.id) null else lesson.id
+                            }
                         )
                     }
                 }
@@ -2202,34 +2224,102 @@ private fun GuidedPathScreen(
 private fun GuidedLessonCard(
     lesson: GuidedLessonDef,
     completed: Boolean,
-    available: Boolean,
-    totalInCategory: Int,
-    completedInCategory: Int,
-    onStart: () -> Unit
+    isExpanded: Boolean,
+    highlightPrimaryCta: Boolean,
+    onStart: () -> Unit,
+    onToggleExpanded: () -> Unit
 ) {
-    val difficultyBadge = "⭐".repeat(lesson.difficultyStars)
-    SeaGlassPanel {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(lesson.titleRes), fontWeight = FontWeight.Bold)
-            Text(difficultyBadge)
+    val progress = if (lesson.totalExercises > 0) {
+        lesson.completedExercises.toFloat() / lesson.totalExercises.toFloat()
+    } else {
+        0f
+    }
+    val borderColor = when {
+        !lesson.isUnlocked -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+        completed -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.secondary
+    }
+    val cardModifier = Modifier
+        .fillMaxWidth()
+        .graphicsLayer { alpha = if (lesson.isUnlocked) 1f else 0.5f }
+        .border(2.dp, borderColor, RoundedCornerShape(26.dp))
+        .clickable { onToggleExpanded() }
+
+    SeaGlassPanel(modifier = cardModifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(lesson.title, fontWeight = FontWeight.Bold)
+                Text("⭐".repeat(lesson.stars))
+            }
+
             Text(
                 text = when {
                     completed -> stringResource(R.string.learn_status_completed)
-                    available -> stringResource(R.string.learn_status_available)
+                    lesson.isUnlocked -> stringResource(R.string.learn_status_available)
                     else -> stringResource(R.string.learn_status_locked)
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            if (lesson.isUnlocked) {
+                LinearProgressIndicator(
+                    progress = progress.coerceIn(0f, 1f),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = stringResource(R.string.learn_progress_ratio, lesson.completedExercises, lesson.totalExercises),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
             Text(
-                stringResource(R.string.learn_progress_summary, completedInCategory, totalInCategory),
+                text = lesson.description,
                 style = MaterialTheme.typography.bodyMedium
             )
-            Button(
-                onClick = onStart,
-                enabled = available,
-                modifier = Modifier.fillMaxWidth()
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(if (available) stringResource(R.string.learn_open_lesson) else stringResource(R.string.learn_locked_lesson))
+                Button(
+                    onClick = onStart,
+                    enabled = lesson.isUnlocked,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = when {
+                            !lesson.isUnlocked -> MaterialTheme.colorScheme.surfaceVariant
+                            highlightPrimaryCta -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
+                        }
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(R.string.learn_open_lesson))
+                }
+                OutlinedButton(
+                    onClick = onToggleExpanded,
+                    enabled = lesson.isUnlocked,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(R.string.learn_view_lesson))
+                }
+            }
+
+            if (isExpanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.learn_exercises_label), fontWeight = FontWeight.SemiBold)
+                    lesson.exerciseDetails.forEach { detail ->
+                        Text("• $detail", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(stringResource(R.string.learn_help_label), fontWeight = FontWeight.SemiBold)
+                    lesson.helpDetails.forEach { help ->
+                        Text("• $help", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
     }
