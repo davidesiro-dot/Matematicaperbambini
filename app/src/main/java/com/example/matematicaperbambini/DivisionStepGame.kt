@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -459,14 +460,14 @@ fun DivisionStepGame(
                                         androidx.compose.material3.Button(
                                             onClick = { mode = DivMode.ONE_DIGIT; resetNew() },
                                             modifier = Modifier.fillMaxWidth()
-                                        ) { Text("Divisore 1 cifra") }
+                                        ) { Text("Divisore 1 cifra", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
                                     }
                                 } else {
                                     Box(modifier = Modifier.weight(1f)) {
                                         OutlinedButton(
                                             onClick = { mode = DivMode.ONE_DIGIT; resetNew() },
                                             modifier = Modifier.fillMaxWidth()
-                                        ) { Text("Divisore 1 cifra") }
+                                        ) { Text("Divisore 1 cifra", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
                                     }
                                 }
 
@@ -475,14 +476,14 @@ fun DivisionStepGame(
                                         androidx.compose.material3.Button(
                                             onClick = { mode = DivMode.TWO_DIGIT; resetNew() },
                                             modifier = Modifier.fillMaxWidth()
-                                        ) { Text("Divisore 2 cifre") }
+                                        ) { Text("Divisore 2 cifre", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
                                     }
                                 } else {
                                     Box(modifier = Modifier.weight(1f)) {
                                         OutlinedButton(
                                             onClick = { mode = DivMode.TWO_DIGIT; resetNew() },
                                             modifier = Modifier.fillMaxWidth()
-                                        ) { Text("Divisore 2 cifre") }
+                                        ) { Text("Divisore 2 cifre", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
                                     }
                                 }
                             }
