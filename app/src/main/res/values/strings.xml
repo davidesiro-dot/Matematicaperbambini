@@ -1,3 +1,44 @@
 <resources>
     <string name="app_name">Matematt</string>
+    <string name="learn_title">Impara</string>
+    <string name="learn_guided_path">Percorso guidato</string>
+    <string name="learn_autonomous">Impara in autonomia</string>
+    <string name="learn_guided_path_desc">Segui un percorso passo dopo passo, dal facile al difficile.</string>
+    <string name="learn_autonomous_desc">Scegli liberamente cosa allenare.</string>
+
+    <string name="learn_filter_all">Tutte</string>
+    <string name="learn_filter_additions">Addizioni</string>
+    <string name="learn_filter_subtractions">Sottrazioni</string>
+    <string name="learn_filter_multiplications">Moltiplicazioni</string>
+    <string name="learn_filter_divisions">Divisioni</string>
+    <string name="learn_filter_times_tables">Tabelline</string>
+
+    <string name="learn_status_locked">🔒 Bloccata</string>
+    <string name="learn_status_available">Disponibile</string>
+    <string name="learn_status_completed">Completata</string>
+    <string name="learn_progress_summary">%1$d/%2$d completate</string>
+    <string name="learn_open_lesson">Apri lezione</string>
+    <string name="learn_locked_lesson">Lezione bloccata</string>
+    <string name="learn_no_lessons_available">Nessuna lezione disponibile</string>
+
+    <string name="learn_lesson_complete_title">Lezione completata</string>
+    <string name="learn_unlock_next">🎉 Hai sbloccato: %1$s</string>
+    <string name="learn_unlock_category_completed">Hai completato tutte le lezioni di %1$s!</string>
+    <string name="learn_go_to_lessons">Vai alle Lezioni</string>
+
+    <string name="guided_lesson_add_1">Addizioni facili</string>
+    <string name="guided_lesson_add_2">Addizioni intermedie</string>
+    <string name="guided_lesson_add_3">Addizioni avanzate</string>
+    <string name="guided_lesson_sub_1">Sottrazioni facili</string>
+    <string name="guided_lesson_sub_2">Sottrazioni intermedie</string>
+    <string name="guided_lesson_sub_3">Sottrazioni avanzate</string>
+    <string name="guided_lesson_mul_1">Moltiplicazioni in colonna base</string>
+    <string name="guided_lesson_mul_2">Moltiplicazioni in colonna medie</string>
+    <string name="guided_lesson_mul_3">Moltiplicazioni in colonna avanzate</string>
+    <string name="guided_lesson_div_1">Divisioni passo-passo base</string>
+    <string name="guided_lesson_div_2">Divisioni passo-passo medie</string>
+    <string name="guided_lesson_div_3">Divisioni passo-passo avanzate</string>
+    <string name="guided_lesson_tab_1">Tabelline guidate base</string>
+    <string name="guided_lesson_tab_2">Tabelline guidate intermedie</string>
+    <string name="guided_lesson_tab_3">Tabelline guidate avanzate</string>
 </resources>
