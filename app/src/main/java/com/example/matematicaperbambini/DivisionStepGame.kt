@@ -410,6 +410,8 @@ fun DivisionStepGame(
     val divisorCellW = if (columns == 4) quotientDigitW else digitW
     val divisorWidth = divisorCellW * divisorColumns + gap * (divisorColumns - 1)
     val divisorOffset = if (columns > divisorDigits.length) gap else 0.dp
+    val minCols = maxOf(columns, 1)
+    val minGridWidth = quotientDigitW * minCols + gap * (minCols - 1)
 
     fun isHL(zone: HLZone, step: Int, col: Int): Boolean =
         guideHighlightsAllowed && currentTarget?.highlights?.contains(HLCell(zone, step, col)) == true
@@ -553,10 +555,15 @@ fun DivisionStepGame(
                                     verticalArrangement = Arrangement.spacedBy(stepGap)
                                 ) {
 
-                                    Row(
-                                        verticalAlignment = Alignment.Top,
-                                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
                                     ) {
+                                        Row(
+                                            modifier = Modifier.widthIn(min = minGridWidth),
+                                            verticalAlignment = Alignment.Top,
+                                            horizontalArrangement = Arrangement.spacedBy(0.dp)
+                                        ) {
                                         // DIVIDENDO (sinistra) – larghezza “fissa” per calcolare dividerX
                                         Column(
                                             modifier = Modifier.width(dividendRowWidth),
@@ -675,6 +682,7 @@ fun DivisionStepGame(
                                             }
                                         }
                                     }
+                                }
 
                                     // STEPS
                                     Column(verticalArrangement = Arrangement.spacedBy(stepGap)) {
