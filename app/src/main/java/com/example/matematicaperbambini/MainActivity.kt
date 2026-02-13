@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Spacer
@@ -1257,6 +1258,7 @@ private fun HomeMenuKids(
         if (showBonusMenu) {
             AlertDialog(
                 onDismissRequest = { showBonusMenu = false },
+                properties = DialogProperties(dismissOnClickOutside = false),
                 title = { Text("Modalità bonus") },
                 text = { Text("Scegli il gioco bonus") },
                 confirmButton = {
