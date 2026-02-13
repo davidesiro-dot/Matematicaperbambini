@@ -179,6 +179,7 @@ private enum class BonusGame {
 @Composable
 fun BonusBalloonGame(
     balloonCount: Int = 8,
+    onScoreSaved: () -> Unit = {},
     onFinish: () -> Unit
 ) {
     val context = LocalContext.current
@@ -464,6 +465,7 @@ fun BonusBalloonGame(
                                 ScoreEntry(finalName, elapsedMs)
                             )
                             showNameEntry = false
+                            onScoreSaved()
                             onFinish()
                         }
                     ) { Text("Salva e vai alla classifica") }

@@ -45,6 +45,7 @@ fun FallingStarsGame(
     durationMs: Long = 30_000,
     soundEnabled: Boolean,
     fx: SoundFx,
+    onScoreSaved: () -> Unit = {},
     onFinish: () -> Unit
 ) {
     val context = LocalContext.current
@@ -272,6 +273,7 @@ fun FallingStarsGame(
                             )
 
                             showNameEntry = false
+                            onScoreSaved()
                             onFinish()
                         }
                     ) {
