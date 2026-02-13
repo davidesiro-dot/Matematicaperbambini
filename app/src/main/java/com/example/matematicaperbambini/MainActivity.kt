@@ -2032,44 +2032,72 @@ private fun LearnMenuScreen(
     onOpenGuidedPath: () -> Unit,
     onOpenAutonomousLearn: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            GameHeader(
-                title = stringResource(R.string.learn_title),
-                soundEnabled = soundEnabled,
-                onToggleSound = onToggleSound,
-                onBack = onBack,
-                onLeaderboard = onOpenLeaderboard,
-                useStatusBarsPadding = true
-            )
-        }
-    ) { padding ->
-        Column(
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val sizing = menuSizing(maxHeight)
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(16.dp)
         ) {
-            SeaGlassPanel {
-                Button(onClick = onOpenGuidedPath, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.learn_guided_path))
-                }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.learn_guided_path_desc),
-                    style = MaterialTheme.typography.bodyMedium
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                MenuHeader(
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
+                    onOpenLeaderboard = onOpenLeaderboard,
+                    onBack = onBack
                 )
-            }
-            SeaGlassPanel {
-                Button(onClick = onOpenAutonomousLearn, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.learn_autonomous))
+
+                SeaGlassPanel(title = stringResource(R.string.learn_title)) {
+                    KidsMenuButton(
+                        title = stringResource(R.string.learn_guided_path),
+                        baseColor = Color(0xFF2563EB),
+                        icon = {
+                            Text(
+                                "🧭",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        },
+                        onClick = onOpenGuidedPath,
+                        height = sizing.buttonHeight,
+                        textSize = sizing.buttonTextSize
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "segui un percorso passo dopo passo, dal facile al difficile",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF374151)
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+
+                    KidsMenuButton(
+                        title = stringResource(R.string.learn_autonomous),
+                        baseColor = Color(0xFF0EA5E9),
+                        icon = {
+                            Text(
+                                "🎯",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        },
+                        onClick = onOpenAutonomousLearn,
+                        height = sizing.buttonHeight,
+                        textSize = sizing.buttonTextSize
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "scegli liberamente cosa allenare",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF374151)
+                    )
                 }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.learn_autonomous_desc),
-                    style = MaterialTheme.typography.bodyMedium
-                )
             }
         }
     }
