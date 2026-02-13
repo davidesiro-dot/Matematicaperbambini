@@ -1286,11 +1286,13 @@ private fun HomeMenuKids(
     } else {
         when (activeBonusGame) {
             BonusHomeGame.Balloons -> BonusBalloonGame(
+                onScoreSaved = { openLb(LeaderboardTab.BALLOONS) },
                 onFinish = { activeBonusGame = null }
             )
             BonusHomeGame.Stars -> FallingStarsGame(
                 soundEnabled = soundEnabled,
                 fx = fx,
+                onScoreSaved = { openLb(LeaderboardTab.STARS) },
                 onFinish = { activeBonusGame = null }
             )
             null -> Unit
