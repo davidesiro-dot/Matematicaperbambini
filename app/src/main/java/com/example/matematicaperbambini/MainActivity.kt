@@ -626,6 +626,7 @@ private fun AppShell() {
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
                 onOpenLeaderboard = { openLb() },
+                onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
                 onOpenGameMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.GAME_MENU },
                 onOpenLearnMenu = { isLearnFlow = true; navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
                 onOpenHomeworkMenu = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU },
