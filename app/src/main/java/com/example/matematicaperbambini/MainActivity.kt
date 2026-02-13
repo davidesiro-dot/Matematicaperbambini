@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -2032,72 +2033,71 @@ private fun LearnMenuScreen(
     onOpenGuidedPath: () -> Unit,
     onOpenAutonomousLearn: () -> Unit
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val sizing = menuSizing(maxHeight)
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val sizing = menuSizing(screenHeight)
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                MenuHeader(
-                    soundEnabled = soundEnabled,
-                    onToggleSound = onToggleSound,
-                    onOpenLeaderboard = onOpenLeaderboard,
-                    onBack = onBack
+            MenuHeader(
+                soundEnabled = soundEnabled,
+                onToggleSound = onToggleSound,
+                onOpenLeaderboard = onOpenLeaderboard,
+                onBack = onBack
+            )
+
+            SeaGlassPanel(title = stringResource(R.string.learn_title)) {
+                KidsMenuButton(
+                    title = stringResource(R.string.learn_guided_path),
+                    baseColor = Color(0xFF2563EB),
+                    icon = {
+                        Text(
+                            "🧭",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    },
+                    onClick = onOpenGuidedPath,
+                    height = sizing.buttonHeight,
+                    textSize = sizing.buttonTextSize
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "segui un percorso passo dopo passo, dal facile al difficile",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF374151)
                 )
 
-                SeaGlassPanel(title = stringResource(R.string.learn_title)) {
-                    KidsMenuButton(
-                        title = stringResource(R.string.learn_guided_path),
-                        baseColor = Color(0xFF2563EB),
-                        icon = {
-                            Text(
-                                "🧭",
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        },
-                        onClick = onOpenGuidedPath,
-                        height = sizing.buttonHeight,
-                        textSize = sizing.buttonTextSize
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "segui un percorso passo dopo passo, dal facile al difficile",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF374151)
-                    )
+                Spacer(Modifier.height(14.dp))
 
-                    Spacer(Modifier.height(14.dp))
-
-                    KidsMenuButton(
-                        title = stringResource(R.string.learn_autonomous),
-                        baseColor = Color(0xFF0EA5E9),
-                        icon = {
-                            Text(
-                                "🎯",
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        },
-                        onClick = onOpenAutonomousLearn,
-                        height = sizing.buttonHeight,
-                        textSize = sizing.buttonTextSize
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "scegli liberamente cosa allenare",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF374151)
-                    )
-                }
+                KidsMenuButton(
+                    title = stringResource(R.string.learn_autonomous),
+                    baseColor = Color(0xFF0EA5E9),
+                    icon = {
+                        Text(
+                            "🎯",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    },
+                    onClick = onOpenAutonomousLearn,
+                    height = sizing.buttonHeight,
+                    textSize = sizing.buttonTextSize
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "scegli liberamente cosa allenare",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF374151)
+                )
             }
         }
     }
