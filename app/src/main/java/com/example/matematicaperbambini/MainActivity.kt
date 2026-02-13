@@ -1059,6 +1059,7 @@ private fun HomeMenuKids(
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
+    onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     onOpenGameMenu: () -> Unit,
     onOpenLearnMenu: () -> Unit,
     onOpenHomeworkMenu: () -> Unit,
@@ -1286,13 +1287,13 @@ private fun HomeMenuKids(
     } else {
         when (activeBonusGame) {
             BonusHomeGame.Balloons -> BonusBalloonGame(
-                onScoreSaved = { openLb(LeaderboardTab.BALLOONS) },
+                onScoreSaved = { onOpenLeaderboardFromBonus(LeaderboardTab.BALLOONS) },
                 onFinish = { activeBonusGame = null }
             )
             BonusHomeGame.Stars -> FallingStarsGame(
                 soundEnabled = soundEnabled,
                 fx = fx,
-                onScoreSaved = { openLb(LeaderboardTab.STARS) },
+                onScoreSaved = { onOpenLeaderboardFromBonus(LeaderboardTab.STARS) },
                 onFinish = { activeBonusGame = null }
             )
             null -> Unit
