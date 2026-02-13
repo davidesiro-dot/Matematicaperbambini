@@ -652,10 +652,10 @@ private fun AppShell() {
         guidedPathScope.launch {
             guidedPathRepository.unlockNext(lesson.category, nextUnlocked)
             lessonUnlockMessage = if (nextLesson != null) {
-                context.getString(R.string.guided_unlock_next, context.getString(nextLesson.titleRes))
+                context.getString(R.string.learn_unlock_next, context.getString(nextLesson.titleRes))
             } else {
                 val categoryNameRes = guidedCategoryNameRes(lesson.category)
-                context.getString(R.string.guided_unlock_category_completed, context.getString(categoryNameRes))
+                context.getString(R.string.learn_unlock_category_completed, context.getString(categoryNameRes))
             }
             pendingGuidedLesson = null
         }
