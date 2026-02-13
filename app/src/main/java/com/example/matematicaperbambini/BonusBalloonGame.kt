@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -191,6 +193,7 @@ fun BonusBalloonGame(
     var finished by remember { mutableStateOf(false) }
     var started by remember { mutableStateOf(true) }
     var showNameEntry by remember { mutableStateOf(false) }
+    var showCongratsMessage by remember { mutableStateOf(false) }
     var playerName by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
@@ -228,6 +231,9 @@ fun BonusBalloonGame(
 
     LaunchedEffect(finished) {
         if (finished && !saved) {
+            showCongratsMessage = true
+            delay(2_000)
+            showCongratsMessage = false
             showNameEntry = true
         }
     }
@@ -434,11 +440,27 @@ fun BonusBalloonGame(
             }
         }
 
-        if (showNameEntry) {
+        if (showCongratsMessage) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0xCC0F172A)),
+                contentAlignment = Alignment.Center
+            ) {
+                SeaGlassPanel(title = "Complimenti! 🎉") {
+                    Text("Hai completato il gioco! Tra poco puoi salvare il tuo tempo.")
+                }
+            }
+        }
+
+        if (showNameEntry) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xCC0F172A))
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { })
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 SeaGlassPanel(title = "Salva il tuo tempo") {
