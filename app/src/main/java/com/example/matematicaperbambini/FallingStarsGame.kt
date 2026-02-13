@@ -54,15 +54,15 @@ fun FallingStarsGame(
     val stars = remember { mutableStateListOf<StarState>() }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
-    var elapsedMs by remember { mutableStateOf(0L) }
-    var score by remember { mutableStateOf(0) }
+    var elapsedMs by remember { mutableLongStateOf(0L) }
+    var score by remember { mutableIntStateOf(0) }
     var finished by remember { mutableStateOf(false) }
     var showNameEntry by remember { mutableStateOf(false) }
     var playerName by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
 
     var startTimeNs by remember { mutableStateOf<Long?>(null) }
-    var lastFrameNs by remember { mutableStateOf(0L) }
+    var lastFrameNs by remember { mutableLongStateOf(0L) }
 
     val widthPx = containerSize.width.toFloat()
     val heightPx = containerSize.height.toFloat()
