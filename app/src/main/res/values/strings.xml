@@ -16,9 +16,11 @@
     <string name="learn_status_locked">🔒 Bloccata</string>
     <string name="learn_status_available">Disponibile</string>
     <string name="learn_status_completed">Completata</string>
-    <string name="learn_progress_summary">%1$d/%2$d completate</string>
     <string name="learn_open_lesson">Apri lezione</string>
-    <string name="learn_locked_lesson">Lezione bloccata</string>
+    <string name="learn_progress_ratio">%1$d/%2$d</string>
+    <string name="learn_view_lesson">Visualizza lezione</string>
+    <string name="learn_exercises_label">Esercizi:</string>
+    <string name="learn_help_label">Aiuti didattici:</string>
     <string name="learn_no_lessons_available">Nessuna lezione disponibile</string>
 
     <string name="learn_lesson_complete_title">Lezione completata</string>
