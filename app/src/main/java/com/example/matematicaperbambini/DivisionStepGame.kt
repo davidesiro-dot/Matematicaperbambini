@@ -724,12 +724,21 @@ fun DivisionStepGame(
                         } else {
                             val activePlan = p
 
-                            // ✅ Contenitore unico: la barra verticale è overlay e NON altera le misure
-                            Box {
-                                Column(
-                                    modifier = Modifier.onSizeChanged { calcContentHeightPx = it.height },
-                                    verticalArrangement = Arrangement.spacedBy(stepGap)
+                            // ✅ Contenitore centrato: le griglie strette restano centrate senza toccare quelle ampie
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                // ✅ Contenitore unico: la barra verticale è overlay e NON altera le misure
+                                Box(
+                                    modifier = Modifier
+                                        .wrapContentWidth(unbounded = true)
+                                        .widthIn(min = 260.dp)
                                 ) {
+                                    Column(
+                                        modifier = Modifier.onSizeChanged { calcContentHeightPx = it.height },
+                                        verticalArrangement = Arrangement.spacedBy(stepGap)
+                                    ) {
 
                                     Row(
                                         verticalAlignment = Alignment.Top,
@@ -977,16 +986,17 @@ fun DivisionStepGame(
                                     }
                                 }
 
-                                // ✅ LINEA VERTICALE OVERLAY: altezza = contenuto reale (non sposta niente)
-                                if (calcContentHeightDp > 0.dp) {
-                                    Box(
-                                        modifier = Modifier
-                                            .offset(x = dividerX)
-                                            .width(dividerLineW)
-                                            .height(calcContentHeightDp)
-                                            .background(MaterialTheme.colorScheme.primary)
-                                            .align(Alignment.TopStart)
-                                    )
+                                    // ✅ LINEA VERTICALE OVERLAY: altezza = contenuto reale (non sposta niente)
+                                    if (calcContentHeightDp > 0.dp) {
+                                        Box(
+                                            modifier = Modifier
+                                                .offset(x = dividerX)
+                                                .width(dividerLineW)
+                                                .height(calcContentHeightDp)
+                                                .background(MaterialTheme.colorScheme.primary)
+                                                .align(Alignment.TopStart)
+                                        )
+                                    }
                                 }
                             }
                         }
