@@ -1421,6 +1421,8 @@ private fun SourceChip(
     }
 }
 
+private enum class HomeworkBonusGame { Balloons, Stars }
+
 @Composable
 fun HomeworkRunnerScreen(
     soundEnabled: Boolean,
@@ -1443,6 +1445,9 @@ fun HomeworkRunnerScreen(
     var showExitDialog by remember { mutableStateOf(false) }
     var showCompletionDialog by remember { mutableStateOf(false) }
     var showCompletionProofDialog by remember { mutableStateOf(false) }
+    var showBonusChoiceDialog by remember { mutableStateOf(false) }
+    var showBonusPickerDialog by remember { mutableStateOf(false) }
+    var activeBonusGame by remember { mutableStateOf<HomeworkBonusGame?>(null) }
     var completionHandled by remember { mutableStateOf(false) }
     var completionName by remember { mutableStateOf("") }
 
@@ -1453,20 +1458,77 @@ fun HomeworkRunnerScreen(
     if (index >= queue.size) {
         if (!completionHandled) {
             completionHandled = true
-            showCompletionDialog = true
+            showBonusChoiceDialog = true
+        }
+
+        val trimmedName = completionName.trim()
+        val nameMissing = trimmedName.isBlank()
+        val lastResult = results.lastOrNull()
+        val showProofOfNineButton = lastResult?.instance?.game == GameType.DIVISION_STEP
+
+        if (showBonusChoiceDialog) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("🎉 Bravo! Hai finito i compiti!") },
+                text = { Text("Vuoi giocare un bonus game prima di chiudere il percorso guidato?") },
+                confirmButton = {
+                    Button(onClick = { showBonusChoiceDialog = false; showBonusPickerDialog = true }) {
+                        Text("Gioca bonus")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { showBonusChoiceDialog = false; showCompletionDialog = true }) {
+                        Text("No, grazie")
+                    }
+                }
+            )
+        }
+
+        if (showBonusPickerDialog) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Scegli il gioco bonus") },
+                text = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                    ) {
+                        Button(onClick = { showBonusPickerDialog = false; activeBonusGame = HomeworkBonusGame.Balloons }) { Text("Palloncini 🎈") }
+                        Button(onClick = { showBonusPickerDialog = false; activeBonusGame = HomeworkBonusGame.Stars }) { Text("Stelle ⭐") }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showBonusPickerDialog = false; showCompletionDialog = true }) { Text("Salta") }
+                }
+            )
+        }
+
+        when (activeBonusGame) {
+            HomeworkBonusGame.Balloons -> BonusBalloonGame(
+                onFinish = {
+                    activeBonusGame = null
+                    showCompletionDialog = true
+                }
+            )
+            HomeworkBonusGame.Stars -> FallingStarsGame(
+                soundEnabled = soundEnabled,
+                fx = fx,
+                onFinish = {
+                    activeBonusGame = null
+                    showCompletionDialog = true
+                }
+            )
+            null -> Unit
         }
 
         if (showCompletionDialog) {
-            val trimmedName = completionName.trim()
-            val nameMissing = trimmedName.isBlank()
-            val lastResult = results.lastOrNull()
-            val showProofOfNineButton = lastResult?.instance?.game == GameType.DIVISION_STEP
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = {},
-                title = { Text("🎉 Bravo! Hai finito i compiti!") },
+                title = { Text("Salva il risultato") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Prima di andare alla Home, scrivi il tuo nome.")
+                        Text("Scrivi il tuo nome per salvare il report.")
                         OutlinedTextField(
                             value = completionName,
                             onValueChange = { completionName = it.take(24) },
@@ -1504,7 +1566,7 @@ fun HomeworkRunnerScreen(
                         enabled = !nameMissing,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Salva e torna alla Home")
+                        Text("Salva e continua")
                     }
                 },
                 dismissButton = {
@@ -1661,7 +1723,9 @@ private fun HomeworkExerciseGame(
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             exercise = instance,
             helps = helps,
-            onExerciseFinished = onExerciseFinished
+            onExerciseFinished = onExerciseFinished,
+            bonusLabelOverride = homeworkBonusLabel,
+            bonusProgressOverride = homeworkBonusProgress
         )
         GameType.SUBTRACTION -> {
             val safeInstance = if (instance.a != null && instance.b != null && instance.a < instance.b) {
@@ -1680,7 +1744,9 @@ private fun HomeworkExerciseGame(
                 onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
                 exercise = safeInstance,
                 helps = helps,
-                onExerciseFinished = onExerciseFinished
+                onExerciseFinished = onExerciseFinished,
+                bonusLabelOverride = homeworkBonusLabel,
+                bonusProgressOverride = homeworkBonusProgress
             )
         }
         GameType.MULTIPLICATION_MIXED -> TabellineMixedGame(
@@ -1766,7 +1832,9 @@ private fun HomeworkExerciseGame(
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             exercise = instance,
             helps = helps,
-            onExerciseFinished = onExerciseFinished
+            onExerciseFinished = onExerciseFinished,
+            bonusLabelOverride = homeworkBonusLabel,
+            bonusProgressOverride = homeworkBonusProgress
         )
         GameType.MULTIPLICATION_HARD -> HardMultiplication2x2Game(
             startMode = StartMode.MANUAL,
@@ -1778,7 +1846,9 @@ private fun HomeworkExerciseGame(
             onOpenLeaderboardFromBonus = onOpenLeaderboardFromBonus,
             exercise = instance,
             helps = helps,
-            onExerciseFinished = onExerciseFinished
+            onExerciseFinished = onExerciseFinished,
+            bonusLabelOverride = homeworkBonusLabel,
+            bonusProgressOverride = homeworkBonusProgress
         )
         else -> HomeworkUnsupportedScreen(
             soundEnabled = soundEnabled,

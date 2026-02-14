@@ -128,7 +128,9 @@ fun DivisionStepGame(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
     helps: HelpSettings? = null,
-    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     var mode by remember { mutableStateOf(DivMode.ONE_DIGIT) }
@@ -619,6 +621,8 @@ fun DivisionStepGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             ui = ui,
             message = message,
             content = {

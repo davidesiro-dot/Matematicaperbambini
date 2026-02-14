@@ -927,7 +927,9 @@ fun HardMultiplication2x2Game(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
     helps: HelpSettings? = null,
-    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null
 ) {
     val isHomeworkMode = exercise != null || onExerciseFinished != null
     var plan by remember(startMode) {
@@ -1259,6 +1261,8 @@ fun HardMultiplication2x2Game(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_MULT_DIV,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {

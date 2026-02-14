@@ -162,7 +162,9 @@ fun LongAdditionGame(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
     helps: HelpSettings? = null,
-    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null
 ) {
     val rng = remember { Random(System.currentTimeMillis()) }
     val manualMinValue = 1
@@ -426,6 +428,8 @@ fun LongAdditionGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             ui = ui,
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(ui.spacing)) {
