@@ -31,6 +31,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -633,6 +635,13 @@ private fun AppShell() {
         screen = Screen.LEADERBOARD
     }
 
+    val windowType = calculateWindowType()
+    val uiScale = rememberUiScale(windowType)
+
+    CompositionLocalProvider(
+        LocalWindowType provides windowType,
+        LocalUiScale provides uiScale
+    ) {
     AnimatedContent(
         targetState = screen,
         transitionSpec = {
@@ -646,6 +655,14 @@ private fun AppShell() {
         },
         label = "nav"
     ) { s ->
+        AdaptiveRootLayout(
+            windowType = windowType,
+            screen = s,
+            onNavigate = { target ->
+                navAnim = NavAnim.SLIDE
+                screen = target
+            }
+        ) {
         when (s) {
             Screen.HOME -> HomeMenuKids(
                 soundEnabled = soundEnabled,
@@ -1136,6 +1153,60 @@ private fun AppShell() {
                     navAnim = NavAnim.SLIDE
                     screen = Screen.HOMEWORK_RUNNER
                 }
+            )
+        }
+        }
+    }
+    }
+}
+
+private fun Screen.supportsExpandedRail(): Boolean = when (this) {
+    Screen.HOME,
+    Screen.IMPARA_MENU,
+    Screen.GUIDED_PATH,
+    Screen.ASSIGNED_HOMEWORKS,
+    Screen.HOMEWORK_REPORTS -> true
+    else -> false
+}
+
+@Composable
+private fun AdaptiveRootLayout(
+    windowType: WindowType,
+    screen: Screen,
+    onNavigate: (Screen) -> Unit,
+    content: @Composable () -> Unit
+) {
+    if (windowType == WindowType.Expanded && screen.supportsExpandedRail()) {
+        Row(Modifier.fillMaxSize()) {
+            NavigationRailPanel(current = screen, onNavigate = onNavigate)
+            Divider(Modifier.fillMaxHeight().width(1.dp))
+            Box(Modifier.weight(1f)) { content() }
+        }
+    } else {
+        content()
+    }
+}
+
+@Composable
+private fun NavigationRailPanel(
+    current: Screen,
+    onNavigate: (Screen) -> Unit
+) {
+    val items = listOf(
+        Screen.HOME to "Home",
+        Screen.IMPARA_MENU to "Impara",
+        Screen.GUIDED_PATH to "Percorso",
+        Screen.ASSIGNED_HOMEWORKS to "Archivio",
+        Screen.HOMEWORK_REPORTS to "Report"
+    )
+    NavigationRail {
+        Spacer(Modifier.height(12.dp))
+        items.forEach { (screen, label) ->
+            NavigationRailItem(
+                selected = current == screen,
+                onClick = { onNavigate(screen) },
+                icon = { Text(label.take(1), fontWeight = FontWeight.Bold) },
+                label = { Text(label) }
             )
         }
     }
@@ -2079,6 +2150,7 @@ private fun GuidedPathScreen(
     completedLessonIds: Set<String>
 ) {
     var selectedLessonDetails by remember { mutableStateOf<LessonSpec?>(null) }
+    val windowType = LocalWindowType.current
 
     val opFilterButtons = listOf(
         LearnFilter.ALL to R.string.learn_filter_all,
@@ -2149,9 +2221,29 @@ private fun GuidedPathScreen(
 
             if (grouped.isEmpty()) {
                 SeaGlassPanel { Text("Lezione non configurata") }
-            } else {
+            } else if (windowType == WindowType.Compact) {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(grouped, key = { "${it.first.first}-${it.first.second}" }) { (key, groupLessons) ->
+                        val accent = gradeAccent(key.first)
+                        LessonGroupCard(
+                            grade = key.first,
+                            operation = key.second,
+                            accent = accent,
+                            lessons = groupLessons.sortedBy { it.levelIndex },
+                            onStartLesson = onStartLesson,
+                            onViewLesson = { selectedLessonDetails = it },
+                            completedLessonIds = completedLessonIds
+                        )
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 280.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(grouped.size) { idx ->
+                        val (key, groupLessons) = grouped[idx]
                         val accent = gradeAccent(key.first)
                         LessonGroupCard(
                             grade = key.first,
