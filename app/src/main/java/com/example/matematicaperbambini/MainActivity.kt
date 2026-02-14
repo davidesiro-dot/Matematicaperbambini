@@ -2,6 +2,7 @@ package com.example.matematicaperbambini
 
 import android.content.Context
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
@@ -75,7 +76,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.ExperimentalFoundationApi
 
@@ -255,40 +255,6 @@ private enum class LearnFilter {
     TIMES_TABLES
 }
 
-data class GuidedLessonDef(
-    val id: String,
-    val title: String,
-    val category: GuidedLessonCategory,
-    val stars: Int,
-    val totalExercises: Int,
-    val completedExercises: Int,
-    val isUnlocked: Boolean,
-    val description: String,
-    val exerciseDetails: List<String>,
-    val helpDetails: List<String>,
-    val canEdit: Boolean = false,
-    val gameMode: GameMode,
-    val startMode: StartMode,
-    val digits: Int? = null
-)
-
-private fun guidedLessons(): List<GuidedLessonDef> = listOf(
-    GuidedLessonDef("add_1", "Somme fino a 10", GuidedLessonCategory.ADDITION, 1, 3, 0, false, "Introduzione alle addizioni semplici", listOf("Somme guidate con numeri piccoli", "Esercizi progressivi passo dopo passo", "Verifica finale della lezione"), listOf("Usa la linea dei numeri quando serve", "Conta a voce alta per ridurre gli errori"), gameMode = GameMode.ADD, startMode = StartMode.MANUAL, digits = 1),
-    GuidedLessonDef("add_2", "Somme a due cifre", GuidedLessonCategory.ADDITION, 2, 3, 0, false, "Consolidamento delle addizioni", listOf("Addizioni con riporto semplificato", "Allenamento su rapidità e precisione", "Mini sfida conclusiva"), listOf("Scomponi i numeri in decine e unità", "Controlla il risultato stimando prima"), gameMode = GameMode.ADD, startMode = StartMode.RANDOM, digits = 2),
-    GuidedLessonDef("add_3", "Somme avanzate", GuidedLessonCategory.ADDITION, 3, 3, 0, false, "Addizioni con numeri più grandi", listOf("Addizioni a tre cifre", "Esercizi misti con difficoltà alta", "Checkpoint di completamento"), listOf("Procedi in colonna quando utile", "Verifica sempre il riporto"), gameMode = GameMode.ADD, startMode = StartMode.RANDOM, digits = 3),
-    GuidedLessonDef("sub_1", "Sottrazioni base", GuidedLessonCategory.SUBTRACTION, 1, 3, 0, false, "Prime sottrazioni senza prestito", listOf("Sottrazioni semplici entro il 10", "Esercizi con supporto visuale", "Verifica finale"), listOf("Parti dal numero più grande", "Usa le dita o oggetti per aiutarti"), gameMode = GameMode.SUB, startMode = StartMode.MANUAL, digits = 1),
-    GuidedLessonDef("sub_2", "Sottrazioni a due cifre", GuidedLessonCategory.SUBTRACTION, 2, 3, 0, false, "Sottrazioni con difficoltà intermedia", listOf("Sottrazioni con prestito guidato", "Allenamento su casi tipici", "Sfida di consolidamento"), listOf("Allinea bene le cifre", "Ricontrolla il calcolo con l'operazione inversa"), gameMode = GameMode.SUB, startMode = StartMode.RANDOM, digits = 2),
-    GuidedLessonDef("sub_3", "Sottrazioni avanzate", GuidedLessonCategory.SUBTRACTION, 3, 3, 0, false, "Sottrazioni complesse", listOf("Sottrazioni a tre cifre", "Esercizi a tempo", "Verifica conclusiva"), listOf("Esegui un passaggio alla volta", "Rileggi i numeri prima di confermare"), gameMode = GameMode.SUB, startMode = StartMode.RANDOM, digits = 3),
-    GuidedLessonDef("mul_1", "Moltiplicazioni introduttive", GuidedLessonCategory.MULTIPLICATION, 1, 3, 0, false, "Avvio alle moltiplicazioni", listOf("Moltiplicazioni in colonna semplici", "Esercizi guidati", "Mini test finale"), listOf("Ripeti le tabelline utili prima di iniziare", "Controlla i passaggi intermedi"), gameMode = GameMode.MULT_HARD, startMode = StartMode.MANUAL),
-    GuidedLessonDef("mul_2", "Moltiplicazioni intermedie", GuidedLessonCategory.MULTIPLICATION, 2, 3, 0, false, "Moltiplicazioni con più passaggi", listOf("Moltiplicazioni con numeri maggiori", "Esercizi misti", "Checkpoint di precisione"), listOf("Mantieni ordinata la colonna", "Rivedi i riporti a fine esercizio"), gameMode = GameMode.MULT_HARD, startMode = StartMode.RANDOM),
-    GuidedLessonDef("mul_3", "Moltiplicazioni avanzate", GuidedLessonCategory.MULTIPLICATION, 3, 3, 0, false, "Lezione avanzata di moltiplicazioni", listOf("Moltiplicazioni complesse", "Allenamento intensivo", "Sfida finale"), listOf("Spezza il problema in parti più piccole", "Verifica il risultato con una stima"), gameMode = GameMode.MULT_HARD, startMode = StartMode.RANDOM),
-    GuidedLessonDef("div_1", "Divisioni base", GuidedLessonCategory.DIVISION, 1, 3, 0, false, "Introduzione alle divisioni", listOf("Divisioni semplici", "Esercizi con supporto", "Controllo finale"), listOf("Ripassa il legame tra divisione e moltiplicazione", "Controlla il resto"), gameMode = GameMode.DIV, startMode = StartMode.MANUAL),
-    GuidedLessonDef("div_2", "Divisioni intermedie", GuidedLessonCategory.DIVISION, 2, 3, 0, false, "Divisioni con difficoltà crescente", listOf("Divisioni con resto", "Esercizi progressivi", "Sfida di fine lezione"), listOf("Scrivi ogni passaggio", "Controlla la posizione delle cifre"), gameMode = GameMode.DIV, startMode = StartMode.RANDOM),
-    GuidedLessonDef("div_3", "Divisioni avanzate", GuidedLessonCategory.DIVISION, 3, 3, 0, false, "Divisioni avanzate", listOf("Divisioni lunghe", "Esercizi avanzati", "Verifica conclusiva"), listOf("Procedi lentamente nei passaggi difficili", "Ricontrolla con la moltiplicazione"), gameMode = GameMode.DIV, startMode = StartMode.RANDOM),
-    GuidedLessonDef("tab_1", "Tabelline base", GuidedLessonCategory.TIMES_TABLE, 1, 3, 0, false, "Primo approccio alle tabelline", listOf("Tabelline facili", "Esercizi di riconoscimento", "Verifica finale"), listOf("Ripeti la tabellina prima dell'esercizio", "Usa ritmo e ripetizione"), gameMode = GameMode.MULT, startMode = StartMode.MANUAL),
-    GuidedLessonDef("tab_2", "Tabelline intermedie", GuidedLessonCategory.TIMES_TABLE, 2, 3, 0, false, "Allenamento tabelline", listOf("Tabelline miste", "Esercizi a difficoltà media", "Checkpoint finale"), listOf("Concentrati sui prodotti più difficili", "Ricontrolla gli errori più frequenti"), gameMode = GameMode.MULT, startMode = StartMode.RANDOM),
-    GuidedLessonDef("tab_3", "Tabelline avanzate", GuidedLessonCategory.TIMES_TABLE, 3, 3, 0, false, "Tabelline livello avanzato", listOf("Tabelline complete", "Sfida di velocità", "Verifica conclusiva"), listOf("Respira e mantieni il ritmo", "Rivedi i risultati sbagliati"), gameMode = GameMode.MULT, startMode = StartMode.RANDOM)
-)
 
 // -----------------------------
 // APP
@@ -613,26 +579,19 @@ private fun AppShell() {
     var runningHomeworkId by remember { mutableStateOf<String?>(null) }
     var runningHomeworkFromCode by remember { mutableStateOf(false) }
     var learnCategoryFilter by remember { mutableStateOf(LearnFilter.ALL) }
-    var pendingGuidedLesson by remember { mutableStateOf<GuidedLessonDef?>(null) }
-    var lessonUnlockMessage by remember { mutableStateOf<String?>(null) }
+    var gradeFilter by remember { mutableStateOf<GradeLevel?>(null) }
+    val guidedCatalog = remember { buildBaseCatalog() }
     val reportStorage = remember(context) { HomeworkReportStorage(context) }
     val reportScope = rememberCoroutineScope()
     val savedHomeworkRepository = remember(context) { SavedHomeworkRepository(context) }
     val savedHomeworkScope = rememberCoroutineScope()
     val homeworkCodeRepository = remember(context) { HomeworkCodeRepository(context) }
     val homeworkCodeScope = rememberCoroutineScope()
-    val guidedPathRepository = remember(context) { GuidedPathProgressRepository(context) }
-    val guidedPathScope = rememberCoroutineScope()
-    var guidedProgress by remember { mutableStateOf(GuidedPathProgress()) }
 
     LaunchedEffect(Unit) {
         homeworkReports = reportStorage.loadReports()
         savedHomeworks = savedHomeworkRepository.getAll()
         homeworkCodes = homeworkCodeRepository.getAll()
-    }
-
-    LaunchedEffect(Unit) {
-        guidedPathRepository.progressFlow.collectLatest { guidedProgress = it }
     }
 
     fun openGame(m: GameMode, d: Int = digits, startModeValue: StartMode = startMode) {
@@ -649,25 +608,6 @@ private fun AppShell() {
         helpPreset = HelpPreset.GUIDED
         sessionHelpSettings = HelpPreset.GUIDED.toHelpSettings()
         startMode = StartMode.RANDOM
-    }
-
-    fun completePendingGuidedLessonIfAny() {
-        val lesson = pendingGuidedLesson ?: return
-        val categoryLessons = guidedLessons().filter { it.category == lesson.category }
-        val currentIndex = categoryLessons.indexOfFirst { it.id == lesson.id }
-        if (currentIndex < 0) return
-        val nextUnlocked = currentIndex + 2
-        val nextLesson = categoryLessons.getOrNull(currentIndex + 1)
-        guidedPathScope.launch {
-            guidedPathRepository.unlockNext(lesson.category, nextUnlocked)
-            lessonUnlockMessage = if (nextLesson != null) {
-                context.getString(R.string.learn_unlock_next, nextLesson.title)
-            } else {
-                val categoryNameRes = guidedCategoryNameRes(lesson.category)
-                context.getString(R.string.learn_unlock_category_completed, context.getString(categoryNameRes))
-            }
-            pendingGuidedLesson = null
-        }
     }
 
     fun openStartMenu(m: GameMode) {
@@ -735,31 +675,36 @@ private fun AppShell() {
                     onBack = { navAnim = NavAnim.SLIDE; screen = Screen.LEARN_MENU },
                     selectedFilter = learnCategoryFilter,
                     onFilterChange = { learnCategoryFilter = it },
-                    lessons = guidedLessons(),
-                    progress = guidedProgress,
+                    gradeFilter = gradeFilter,
+                    onGradeFilterChange = { gradeFilter = it },
+                    lessons = guidedCatalog,
                     onStartLesson = { lesson ->
-                        pendingGuidedLesson = lesson
-                        openGuidedSession()
-                        if (lesson.gameMode == GameMode.MULT) {
-                            navAnim = NavAnim.SLIDE
-                            screen = Screen.GUIDED_TABLE_PICKER
+                        val generated = try {
+                            when {
+                                lesson.fixedExercises.isNotEmpty() -> lesson.fixedExercises
+                                lesson.generator != null -> lesson.generator.invoke(kotlin.random.Random(System.currentTimeMillis()))
+                                else -> emptyList()
+                            }
+                        } catch (e: Throwable) {
+                            DefaultLogger.warn("GUIDED_PATH", "generator failed for ${lesson.id}: ${e.message}")
+                            Toast.makeText(context, "Lezione non configurata", Toast.LENGTH_SHORT).show()
+                            emptyList()
+                        }
+                        if (generated.isEmpty()) {
+                            Toast.makeText(context, "Lezione non configurata", Toast.LENGTH_SHORT).show()
                         } else {
-                            openGame(lesson.gameMode, lesson.digits ?: digits, lesson.startMode)
+                            openGuidedSession()
+                            homeworkQueue = generated.map { instance ->
+                                HomeworkExerciseEntry(instance = instance, helps = lesson.helpPreset ?: HelpPreset.GUIDED.toHelpSettings())
+                            }
+                            homeworkReturnScreen = Screen.GUIDED_PATH
+                            runningHomeworkId = null
+                            runningHomeworkFromCode = false
+                            navAnim = NavAnim.SLIDE
+                            screen = Screen.HOMEWORK_RUNNER
                         }
                     }
                 )
-                if (lessonUnlockMessage != null) {
-                    AlertDialog(
-                        onDismissRequest = { lessonUnlockMessage = null },
-                        title = { Text(stringResource(R.string.learn_lesson_complete_title)) },
-                        text = { Text(lessonUnlockMessage ?: "") },
-                        confirmButton = {
-                            TextButton(onClick = { lessonUnlockMessage = null }) {
-                                Text(stringResource(R.string.learn_go_to_lessons))
-                            }
-                        }
-                    )
-                }
             }
 
             Screen.IMPARA_MENU -> LearnMenuKids(
@@ -919,7 +864,7 @@ private fun AppShell() {
             Screen.GUIDED_TABLE_PICKER -> MultTablePickerScreen(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = if (pendingGuidedLesson != null) Screen.GUIDED_PATH else Screen.IMPARA_MENU },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
                 onPickTable = { table ->
                     guidedTable = table
                     navAnim = NavAnim.SLIDE
@@ -931,13 +876,13 @@ private fun AppShell() {
                 table = guidedTable,
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
-                onBack = { navAnim = NavAnim.SLIDE; screen = if (pendingGuidedLesson != null) Screen.GUIDED_PATH else Screen.IMPARA_MENU },
+                onBack = { navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU },
                 onRepeat = {},
                 onPickAnother = {
                     navAnim = NavAnim.SLIDE
                     screen = Screen.GUIDED_TABLE_PICKER
                 },
-                onExitToLearnMenu = { navAnim = NavAnim.SLIDE; screen = if (pendingGuidedLesson != null) Screen.GUIDED_PATH else Screen.IMPARA_MENU }
+                onExitToLearnMenu = { navAnim = NavAnim.SLIDE; screen = Screen.IMPARA_MENU }
             )
 
             Screen.MULT_PICKER -> MultTablePickerScreen(
@@ -1016,10 +961,8 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = {
-                    val hadPendingLesson = pendingGuidedLesson != null
-                    completePendingGuidedLessonIfAny()
                     navAnim = NavAnim.SLIDE
-                    screen = if (hadPendingLesson) Screen.GUIDED_PATH else if (isLearnFlow) Screen.LEARN_MENU else Screen.GAME_MENU
+                    screen = if (isLearnFlow) Screen.LEARN_MENU else Screen.GAME_MENU
                 },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
@@ -1033,10 +976,8 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = {
-                    val hadPendingLesson = pendingGuidedLesson != null
-                    completePendingGuidedLessonIfAny()
                     navAnim = NavAnim.SLIDE
-                    screen = if (hadPendingLesson) Screen.GUIDED_PATH else if (isLearnFlow) Screen.LEARN_MENU else Screen.GAME_MENU
+                    screen = if (isLearnFlow) Screen.LEARN_MENU else Screen.GAME_MENU
                 },
                 onOpenLeaderboard = { openLb() },
                 onOpenLeaderboardFromBonus = { tab -> openLb(tab) },
@@ -1052,12 +993,7 @@ private fun AppShell() {
                 onToggleSound = { soundEnabled = !soundEnabled },
                 fx = fx,
                 onBack = {
-                    val hadPendingLesson = pendingGuidedLesson != null
-                    completePendingGuidedLessonIfAny()
-                    if (hadPendingLesson) {
-                        navAnim = NavAnim.SLIDE
-                        screen = Screen.GUIDED_PATH
-                    } else if (isLearnFlow) {
+                    if (isLearnFlow) {
                         navAnim = NavAnim.SLIDE
                         screen = Screen.LEARN_MENU
                     } else {
@@ -2119,11 +2055,12 @@ private fun GuidedPathScreen(
     onBack: () -> Unit,
     selectedFilter: LearnFilter,
     onFilterChange: (LearnFilter) -> Unit,
-    lessons: List<GuidedLessonDef>,
-    progress: GuidedPathProgress,
-    onStartLesson: (GuidedLessonDef) -> Unit
+    gradeFilter: GradeLevel?,
+    onGradeFilterChange: (GradeLevel?) -> Unit,
+    lessons: List<LessonSpec>,
+    onStartLesson: (LessonSpec) -> Unit
 ) {
-    val filterButtons = listOf(
+    val opFilterButtons = listOf(
         LearnFilter.ALL to R.string.learn_filter_all,
         LearnFilter.ADDITIONS to R.string.learn_filter_additions,
         LearnFilter.SUBTRACTIONS to R.string.learn_filter_subtractions,
@@ -2131,25 +2068,22 @@ private fun GuidedPathScreen(
         LearnFilter.DIVISIONS to R.string.learn_filter_divisions,
         LearnFilter.TIMES_TABLES to R.string.learn_filter_times_tables
     )
-    val expandedLessonId = rememberSaveable { mutableStateOf<String?>(null) }
-    val filteredLessons = lessons.filter {
-        when (selectedFilter) {
-            LearnFilter.ALL -> true
-            LearnFilter.ADDITIONS -> it.category == GuidedLessonCategory.ADDITION
-            LearnFilter.SUBTRACTIONS -> it.category == GuidedLessonCategory.SUBTRACTION
-            LearnFilter.MULTIPLICATIONS -> it.category == GuidedLessonCategory.MULTIPLICATION
-            LearnFilter.DIVISIONS -> it.category == GuidedLessonCategory.DIVISION
-            LearnFilter.TIMES_TABLES -> it.category == GuidedLessonCategory.TIMES_TABLE
+    val grouped = lessons
+        .filter { lesson ->
+            val operationMatch = when (selectedFilter) {
+                LearnFilter.ALL -> true
+                LearnFilter.ADDITIONS -> lesson.operation == OperationType.ADD
+                LearnFilter.SUBTRACTIONS -> lesson.operation == OperationType.SUB
+                LearnFilter.MULTIPLICATIONS -> lesson.operation == OperationType.MUL
+                LearnFilter.DIVISIONS -> lesson.operation == OperationType.DIV
+                LearnFilter.TIMES_TABLES -> false
+            }
+            val gradeMatch = gradeFilter == null || lesson.grade == gradeFilter
+            operationMatch && gradeMatch && lesson.kind == LessonKind.BASE
         }
-    }
-    val firstAvailableNotCompletedId = filteredLessons.firstOrNull { lesson ->
-        val categoryLessons = lessons.filter { it.category == lesson.category }
-        val index = categoryLessons.indexOfFirst { it.id == lesson.id }
-        val unlocked = progress.unlockedFor(lesson.category)
-        val isCompleted = unlocked > index + 1
-        val isAvailable = unlocked >= index + 1
-        isAvailable && !isCompleted
-    }?.id
+        .groupBy { it.grade to it.operation }
+        .toList()
+        .sortedWith(compareBy({ it.first.first.ordinal }, { it.first.second.ordinal }))
 
     Scaffold(
         topBar = {
@@ -2168,50 +2102,44 @@ private fun GuidedPathScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                filterButtons.forEach { (filter, labelRes) ->
+                FilterChip(selected = gradeFilter == null, onClick = { onGradeFilterChange(null) }, label = { Text("Tutte") })
+                GradeLevel.entries.forEach { grade ->
                     FilterChip(
-                        selected = selectedFilter == filter,
-                        onClick = { onFilterChange(filter) },
-                        label = { Text(stringResource(labelRes)) }
+                        selected = gradeFilter == grade,
+                        onClick = { onGradeFilterChange(grade) },
+                        label = { Text(grade.name) }
                     )
                 }
             }
 
-            if (filteredLessons.isEmpty()) {
-                SeaGlassPanel {
-                    Text(stringResource(R.string.learn_no_lessons_available))
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                opFilterButtons.forEach { (filter, labelRes) ->
+                    FilterChip(selected = selectedFilter == filter, onClick = { onFilterChange(filter) }, label = { Text(stringResource(labelRes)) })
                 }
+            }
+
+            if (grouped.isEmpty()) {
+                SeaGlassPanel { Text("Lezione non configurata") }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(filteredLessons, key = { it.id }) { lesson ->
-                        val categoryLessons = lessons.filter { it.category == lesson.category }
-                        val index = categoryLessons.indexOfFirst { it.id == lesson.id }
-                        val unlocked = progress.unlockedFor(lesson.category)
-                        val isCompleted = unlocked > index + 1
-                        val isAvailable = unlocked >= index + 1
-                        GuidedLessonCard(
-                            lesson = lesson.copy(
-                                isUnlocked = isAvailable,
-                                completedExercises = if (isCompleted) lesson.totalExercises else 0
-                            ),
-                            completed = isCompleted,
-                            isExpanded = expandedLessonId.value == lesson.id,
-                            highlightPrimaryCta = lesson.id == firstAvailableNotCompletedId,
-                            onStart = { onStartLesson(lesson) },
-                            onToggleExpanded = {
-                                expandedLessonId.value = if (expandedLessonId.value == lesson.id) null else lesson.id
-                            }
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(grouped, key = { "${it.first.first}-${it.first.second}" }) { (key, groupLessons) ->
+                        val accent = gradeAccent(key.first)
+                        LessonGroupCard(
+                            grade = key.first,
+                            operation = key.second,
+                            accent = accent,
+                            lessons = groupLessons.sortedBy { it.levelIndex },
+                            onStartLesson = onStartLesson,
+                            onViewLesson = {}
                         )
                     }
                 }
@@ -2221,116 +2149,79 @@ private fun GuidedPathScreen(
 }
 
 @Composable
-private fun GuidedLessonCard(
-    lesson: GuidedLessonDef,
-    completed: Boolean,
-    isExpanded: Boolean,
-    highlightPrimaryCta: Boolean,
-    onStart: () -> Unit,
-    onToggleExpanded: () -> Unit
+fun LessonGroupCard(
+    grade: GradeLevel,
+    operation: OperationType,
+    accent: Color,
+    lessons: List<LessonSpec>,
+    onStartLesson: (LessonSpec) -> Unit,
+    onViewLesson: (LessonSpec) -> Unit
 ) {
-    val progress = if (lesson.totalExercises > 0) {
-        lesson.completedExercises.toFloat() / lesson.totalExercises.toFloat()
-    } else {
-        0f
-    }
-    val borderColor = when {
-        !lesson.isUnlocked -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-        completed -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.secondary
-    }
-    val cardModifier = Modifier
-        .fillMaxWidth()
-        .graphicsLayer { alpha = if (lesson.isUnlocked) 1f else 0.5f }
-        .border(2.dp, borderColor, RoundedCornerShape(26.dp))
-        .clickable { onToggleExpanded() }
-
-    SeaGlassPanel(modifier = cardModifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+    val ordered = lessons.sortedBy { it.levelIndex }
+    SeaGlassPanel(modifier = Modifier.border(2.dp, accent.copy(alpha = 0.7f), RoundedCornerShape(26.dp))) {
+        Text("Classe ${grade.name} – ${operationLabel(operation)} (Percorso base)", fontWeight = FontWeight.Bold)
+        Text("5 lezioni in ordine – completa la 1 per sbloccare la 2 (unlock verrà poi)")
+        Row(Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.width(34.dp).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(lesson.title, fontWeight = FontWeight.Bold)
-                Text("⭐".repeat(lesson.stars))
-            }
-
-            Text(
-                text = when {
-                    completed -> stringResource(R.string.learn_status_completed)
-                    lesson.isUnlocked -> stringResource(R.string.learn_status_available)
-                    else -> stringResource(R.string.learn_status_locked)
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            if (lesson.isUnlocked) {
-                LinearProgressIndicator(
-                    progress = progress.coerceIn(0f, 1f),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = stringResource(R.string.learn_progress_ratio, lesson.completedExercises, lesson.totalExercises),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            Text(
-                text = lesson.description,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onStart,
-                    enabled = lesson.isUnlocked,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = when {
-                            !lesson.isUnlocked -> MaterialTheme.colorScheme.surfaceVariant
-                            highlightPrimaryCta -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
-                        }
-                    ),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.learn_open_lesson))
-                }
-                OutlinedButton(
-                    onClick = onToggleExpanded,
-                    enabled = lesson.isUnlocked,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.learn_view_lesson))
+                repeat(5) { idx ->
+                    Box(
+                        modifier = Modifier.size(24.dp).background(accent.copy(alpha = 0.18f), CircleShape).border(1.dp, accent, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) { Text("${idx + 1}", color = accent, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    if (idx < 4) Box(Modifier.width(4.dp).height(30.dp).background(accent.copy(alpha = 0.5f), RoundedCornerShape(999.dp)))
                 }
             }
-
-            if (isExpanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(stringResource(R.string.learn_exercises_label), fontWeight = FontWeight.SemiBold)
-                    lesson.exerciseDetails.forEach { detail ->
-                        Text("• $detail", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(stringResource(R.string.learn_help_label), fontWeight = FontWeight.SemiBold)
-                    lesson.helpDetails.forEach { help ->
-                        Text("• $help", style = MaterialTheme.typography.bodyMedium)
-                    }
+            Column(modifier = Modifier.weight(1f)) {
+                ordered.forEachIndexed { idx, lesson ->
+                    LessonRow(lesson, idx, accent, onStart = { onStartLesson(lesson) }, onView = { onViewLesson(lesson) })
+                    if (idx < ordered.lastIndex) HorizontalDivider(color = accent.copy(alpha = 0.25f))
                 }
             }
         }
     }
 }
 
-private fun guidedCategoryNameRes(category: GuidedLessonCategory): Int = when (category) {
-    GuidedLessonCategory.ADDITION -> R.string.learn_filter_additions
-    GuidedLessonCategory.SUBTRACTION -> R.string.learn_filter_subtractions
-    GuidedLessonCategory.MULTIPLICATION -> R.string.learn_filter_multiplications
-    GuidedLessonCategory.DIVISION -> R.string.learn_filter_divisions
-    GuidedLessonCategory.TIMES_TABLE -> R.string.learn_filter_times_tables
+@Composable
+fun LessonRow(
+    lesson: LessonSpec,
+    indexInGroup: Int,
+    accent: Color,
+    onStart: () -> Unit,
+    onView: () -> Unit
+) {
+    val shape = when (indexInGroup) {
+        0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+        4 -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+        else -> RoundedCornerShape(0.dp)
+    }
+    Surface(color = accent.copy(alpha = 0.08f), shape = shape, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(lesson.title, fontWeight = FontWeight.SemiBold)
+            Text(lesson.description, style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onStart, modifier = Modifier.weight(1f)) { Text("Avvia") }
+                OutlinedButton(onClick = onView, modifier = Modifier.weight(1f)) { Text("Dettagli") }
+            }
+        }
+    }
+}
+
+private fun operationLabel(operation: OperationType): String = when (operation) {
+    OperationType.ADD -> "Addizioni"
+    OperationType.SUB -> "Sottrazioni"
+    OperationType.MUL -> "Moltiplicazioni"
+    OperationType.DIV -> "Divisioni"
+}
+
+private fun gradeAccent(grade: GradeLevel): Color = when (grade) {
+    GradeLevel.I -> Color(0xFF16A34A)
+    GradeLevel.II -> Color(0xFF0EA5E9)
+    GradeLevel.III -> Color(0xFFF59E0B)
+    GradeLevel.IV -> Color(0xFF7C3AED)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
