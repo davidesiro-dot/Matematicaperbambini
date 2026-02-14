@@ -2146,9 +2146,9 @@ private fun GuidedPathScreen(
     }
 
     val grouped = filteredLessons
-        .groupBy { it.grade to it.operation }
+        .groupBy { Triple(it.grade, it.operation, it.category) }
         .toList()
-        .sortedWith(compareBy({ it.first.first.ordinal }, { it.first.second.ordinal }))
+        .sortedWith(compareBy({ it.first.first.ordinal }, { it.first.second.ordinal }, { it.first.third.ordinal }))
     Scaffold(
         topBar = {
             GameHeader(
@@ -2227,11 +2227,12 @@ private fun GuidedPathScreen(
                 SeaGlassPanel { Text("Lezione non configurata") }
             } else if (windowType == WindowType.Compact) {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(grouped, key = { "${it.first.first}-${it.first.second}" }) { (key, groupLessons) ->
+                    items(grouped, key = { "${it.first.first}-${it.first.second}-${it.first.third}" }) { (key, groupLessons) ->
                         val accent = gradeAccent(key.first)
                         LessonGroupCard(
                             grade = key.first,
                             operation = key.second,
+                            category = key.third,
                             accent = accent,
                             lessons = groupLessons.sortedBy { it.levelIndex },
                             onStartLesson = onStartLesson,
@@ -2252,6 +2253,7 @@ private fun GuidedPathScreen(
                         LessonGroupCard(
                             grade = key.first,
                             operation = key.second,
+                            category = key.third,
                             accent = accent,
                             lessons = groupLessons.sortedBy { it.levelIndex },
                             onStartLesson = onStartLesson,
@@ -2271,6 +2273,7 @@ private fun GuidedPathScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(lesson.description)
+                    Text(lessonDetailsSummary(lesson))
                     Text("Totale esercizi: ${lesson.fixedExercises.size.takeIf { it > 0 } ?: 10}")
                     Text("Classe: ${lesson.grade.name} • ${operationLabel(lesson.operation)} • Livello ${lesson.levelIndex}")
                 }
@@ -2286,6 +2289,7 @@ private fun GuidedPathScreen(
 fun LessonGroupCard(
     grade: GradeLevel,
     operation: OperationType,
+    category: LessonCategory,
     accent: Color,
     lessons: List<LessonSpec>,
     onStartLesson: (LessonSpec) -> Unit,
@@ -2294,8 +2298,8 @@ fun LessonGroupCard(
 ) {
     val ordered = lessons.sortedBy { it.levelIndex }
     SeaGlassPanel(modifier = Modifier.border(2.dp, accent.copy(alpha = 0.7f), RoundedCornerShape(26.dp))) {
-        Text("Classe ${grade.name} – ${operationLabel(operation)} (Percorso base)", fontWeight = FontWeight.Bold)
-        Text("5 lezioni in ordine – completa la 1 per sbloccare la 2 (unlock verrà poi)")
+        Text("Classe ${grade.name} – ${operationLabel(operation)} (${categoryLabel(category)})", fontWeight = FontWeight.Bold)
+        Text("Lezioni progressive: apri Dettagli per vedere l'obiettivo della lezione")
         Column(modifier = Modifier.fillMaxWidth()) {
             ordered.forEachIndexed { idx, lesson ->
                 LessonRow(
@@ -2394,6 +2398,27 @@ private fun operationLabel(operation: OperationType): String = when (operation) 
     OperationType.SUB -> "Sottrazioni"
     OperationType.MUL -> "Moltiplicazioni"
     OperationType.DIV -> "Divisioni"
+}
+
+private fun categoryLabel(category: LessonCategory): String = when (category) {
+    LessonCategory.BASE -> "Percorso base"
+    LessonCategory.SPECIAL -> "Speciali"
+    LessonCategory.CHALLENGE -> "Sfide"
+}
+
+private fun lessonDetailsSummary(lesson: LessonSpec): String {
+    val action = when (lesson.operation) {
+        OperationType.ADD -> "alleni le addizioni"
+        OperationType.SUB -> "alleni le sottrazioni"
+        OperationType.MUL -> "alleni le moltiplicazioni"
+        OperationType.DIV -> "alleni le divisioni"
+    }
+    val support = when (lesson.category) {
+        LessonCategory.BASE -> "con esercizi guidati progressivi"
+        LessonCategory.SPECIAL -> "con pattern speciali mirati"
+        LessonCategory.CHALLENGE -> "con sfide più impegnative"
+    }
+    return "In questa lezione $action $support."
 }
 
 private fun HelpSettings?.activeHelpLabels(): List<String> {
