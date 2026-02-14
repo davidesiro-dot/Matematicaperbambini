@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -1016,6 +1018,7 @@ fun AssignedHomeworksScreen(
     onStartHomework: (SavedHomework) -> Unit,
     onStartHomeworkFromCode: (HomeworkCodePayload) -> Unit
 ) {
+    val windowType = LocalWindowType.current
     val formatter = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val sortedHomeworks = remember(savedHomeworks) { savedHomeworks.sortedByDescending { it.createdAt } }
     var showRestoreDialog by remember { mutableStateOf(false) }
@@ -1057,13 +1060,49 @@ fun AssignedHomeworksScreen(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-            } else {
+            } else if (windowType == WindowType.Compact) {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(vertical = 2.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     itemsIndexed(sortedHomeworks, key = { _, item -> item.id }) { _, homework ->
+                        val totalExercises = homework.tasks.sumOf {
+                            it.amount.exercisesCount * it.amount.repeatsPerExercise
+                        }
+                        SeaGlassPanel(
+                            title = homework.name,
+                            modifier = Modifier.combinedClickable(onClick = { onStartHomework(homework) })
+                        ) {
+                            Text(
+                                formatter.format(Date(homework.createdAt)),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                if (totalExercises > 0) {
+                                    "Esercizi previsti: $totalExercises"
+                                } else {
+                                    "Task: ${homework.tasks.size}"
+                                },
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Button(
+                                onClick = { onStartHomework(homework) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Inizia") }
+                        }
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 280.dp),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    items(sortedHomeworks.size) { idx ->
+                        val homework = sortedHomeworks[idx]
                         val totalExercises = homework.tasks.sumOf {
                             it.amount.exercisesCount * it.amount.repeatsPerExercise
                         }
@@ -2108,6 +2147,7 @@ fun HomeworkReportsScreen(
     onDeleteReports: (List<HomeworkReport>) -> Unit
 ) {
     val context = LocalContext.current
+    val windowType = LocalWindowType.current
     var selectedKeys by remember { mutableStateOf(setOf<String>()) }
     var multiSelectEnabled by remember { mutableStateOf(false) }
     var expandedKey by remember { mutableStateOf<String?>(null) }
@@ -2143,15 +2183,15 @@ fun HomeworkReportsScreen(
         )
 
         /* ───────── CONTENUTO SCROLLABILE ───────── */
+        if (windowType == WindowType.Compact) {
         LazyColumn(
             modifier = Modifier
-                .weight(1f)          // 🔴 QUESTO È IL PEZZO CHIAVE
+                .weight(1f)
                 .fillMaxWidth(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            /* ───── LISTA REPORT ───── */
             if (reports.isEmpty()) {
                 item {
                     SeaGlassPanel(title = "Nessun report") {
