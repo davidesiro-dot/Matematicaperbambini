@@ -2400,34 +2400,33 @@ fun HomeworkReportsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         if (selectedReports.isEmpty())
-                            "Seleziona uno o più report con una pressione prolungata."
+                            "Tieni premuto un report per selezionarlo."
                         else
                             "Report selezionati: ${selectedReports.size}"
                     )
 
-                    Button(
-                        onClick = { printHomeworkReports(context, selectedReports) },
-                        enabled = selectedReports.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Stampa o esporta PDF")
-                    }
+                    if (selectedReports.isNotEmpty()) {
+                        Button(
+                            onClick = { printHomeworkReports(context, selectedReports) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Stampa o esporta PDF")
+                        }
 
-                    Button(
-                        onClick = { shareHomeworkReports(context, selectedReports) },
-                        enabled = selectedReports.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Condividi")
-                    }
+                        Button(
+                            onClick = { shareHomeworkReports(context, selectedReports) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Condividi")
+                        }
 
-                    Button(
-                        onClick = { showDeleteConfirm = true },
-                        enabled = selectedReports.isNotEmpty(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Elimina", color = MaterialTheme.colorScheme.onErrorContainer)
+                        Button(
+                            onClick = { showDeleteConfirm = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Elimina", color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
                     }
                 }
             }
