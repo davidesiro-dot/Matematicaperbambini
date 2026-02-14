@@ -304,7 +304,9 @@ fun LongSubtractionGame(
     onOpenLeaderboardFromBonus: (LeaderboardTab) -> Unit,
     exercise: ExerciseInstance? = null,
     helps: HelpSettings? = null,
-    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null
+    onExerciseFinished: ((ExerciseResultPartial) -> Unit)? = null,
+    bonusLabelOverride: String? = null,
+    bonusProgressOverride: Float? = null
 ) {
     val manualMinValue = 1
     val manualMaxValue = 999
@@ -757,6 +759,8 @@ fun LongSubtractionGame(
             onOpenLeaderboard = onOpenLeaderboard,
             correctCount = correctCount,
             bonusTarget = BONUS_TARGET_LONG_ADD_SUB,
+            bonusLabelOverride = bonusLabelOverride,
+            bonusProgressOverride = bonusProgressOverride,
             ui = ui,
             message = message,
             content = {

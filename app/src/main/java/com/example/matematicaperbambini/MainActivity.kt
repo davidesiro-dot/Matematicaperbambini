@@ -580,6 +580,8 @@ private fun AppShell() {
     var runningHomeworkFromCode by remember { mutableStateOf(false) }
     var learnCategoryFilter by remember { mutableStateOf(LearnFilter.ALL) }
     var gradeFilter by remember { mutableStateOf<GradeLevel?>(null) }
+    val completedGuidedLessonIds = remember { mutableStateListOf<String>() }
+    var activeGuidedLessonId by remember { mutableStateOf<String?>(null) }
     val guidedCatalog = remember { buildBaseCatalog() }
     val reportStorage = remember(context) { HomeworkReportStorage(context) }
     val reportScope = rememberCoroutineScope()
@@ -694,6 +696,7 @@ private fun AppShell() {
                             Toast.makeText(context, "Lezione non configurata", Toast.LENGTH_SHORT).show()
                         } else {
                             openGuidedSession()
+                            activeGuidedLessonId = lesson.id
                             homeworkQueue = generated.map { instance ->
                                 HomeworkExerciseEntry(instance = instance, helps = lesson.helpPreset ?: HelpPreset.GUIDED.toHelpSettings())
                             }
@@ -703,7 +706,8 @@ private fun AppShell() {
                             navAnim = NavAnim.SLIDE
                             screen = Screen.HOMEWORK_RUNNER
                         }
-                    }
+                    },
+                    completedLessonIds = completedGuidedLessonIds.toSet()
                 )
             }
 
@@ -1054,6 +1058,7 @@ private fun AppShell() {
                 previousReports = homeworkReports,
                 onExit = { results ->
                     lastHomeworkResults = results
+                    activeGuidedLessonId = null
                     runningHomeworkId = null
                     runningHomeworkFromCode = false
                     navAnim = NavAnim.SLIDE
@@ -1067,11 +1072,23 @@ private fun AppShell() {
                 },
                 onFinishHomework = { results ->
                     lastHomeworkResults = results
+                    if (homeworkReturnScreen == Screen.GUIDED_PATH) {
+                        activeGuidedLessonId?.let { lessonId ->
+                            if (!completedGuidedLessonIds.contains(lessonId)) {
+                                completedGuidedLessonIds += lessonId
+                            }
+                        }
+                    }
+                    activeGuidedLessonId = null
                     runningHomeworkId = null
                     runningHomeworkFromCode = false
                     homeworkQueue = emptyList()
                     navAnim = NavAnim.SLIDE
-                    screen = Screen.HOME
+                    screen = if (homeworkReturnScreen == Screen.GUIDED_PATH) {
+                        Screen.GUIDED_PATH
+                    } else {
+                        Screen.HOME
+                    }
                 },
                 homeworkId = runningHomeworkId,
                 onHomeworkCompleted = { homeworkId ->
@@ -2058,8 +2075,11 @@ private fun GuidedPathScreen(
     gradeFilter: GradeLevel?,
     onGradeFilterChange: (GradeLevel?) -> Unit,
     lessons: List<LessonSpec>,
-    onStartLesson: (LessonSpec) -> Unit
+    onStartLesson: (LessonSpec) -> Unit,
+    completedLessonIds: Set<String>
 ) {
+    var selectedLessonDetails by remember { mutableStateOf<LessonSpec?>(null) }
+
     val opFilterButtons = listOf(
         LearnFilter.ALL to R.string.learn_filter_all,
         LearnFilter.ADDITIONS to R.string.learn_filter_additions,
@@ -2139,12 +2159,30 @@ private fun GuidedPathScreen(
                             accent = accent,
                             lessons = groupLessons.sortedBy { it.levelIndex },
                             onStartLesson = onStartLesson,
-                            onViewLesson = {}
+                            onViewLesson = { selectedLessonDetails = it },
+                            completedLessonIds = completedLessonIds
                         )
                     }
                 }
             }
         }
+    }
+
+    selectedLessonDetails?.let { lesson ->
+        AlertDialog(
+            onDismissRequest = { selectedLessonDetails = null },
+            title = { Text(lesson.title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(lesson.description)
+                    Text("Totale esercizi: ${lesson.fixedExercises.size.takeIf { it > 0 } ?: 10}")
+                    Text("Classe: ${lesson.grade.name} • ${operationLabel(lesson.operation)} • Livello ${lesson.levelIndex}")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedLessonDetails = null }) { Text("Chiudi") }
+            }
+        )
     }
 }
 
@@ -2155,7 +2193,8 @@ fun LessonGroupCard(
     accent: Color,
     lessons: List<LessonSpec>,
     onStartLesson: (LessonSpec) -> Unit,
-    onViewLesson: (LessonSpec) -> Unit
+    onViewLesson: (LessonSpec) -> Unit,
+    completedLessonIds: Set<String>
 ) {
     val ordered = lessons.sortedBy { it.levelIndex }
     SeaGlassPanel(modifier = Modifier.border(2.dp, accent.copy(alpha = 0.7f), RoundedCornerShape(26.dp))) {
@@ -2177,7 +2216,7 @@ fun LessonGroupCard(
             }
             Column(modifier = Modifier.weight(1f)) {
                 ordered.forEachIndexed { idx, lesson ->
-                    LessonRow(lesson, idx, accent, onStart = { onStartLesson(lesson) }, onView = { onViewLesson(lesson) })
+                    LessonRow(lesson, idx, accent, isCompleted = completedLessonIds.contains(lesson.id), onStart = { onStartLesson(lesson) }, onView = { onViewLesson(lesson) })
                     if (idx < ordered.lastIndex) HorizontalDivider(color = accent.copy(alpha = 0.25f))
                 }
             }
@@ -2190,6 +2229,7 @@ fun LessonRow(
     lesson: LessonSpec,
     indexInGroup: Int,
     accent: Color,
+    isCompleted: Boolean,
     onStart: () -> Unit,
     onView: () -> Unit
 ) {
@@ -2200,7 +2240,27 @@ fun LessonRow(
     }
     Surface(color = accent.copy(alpha = 0.08f), shape = shape, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(lesson.title, fontWeight = FontWeight.SemiBold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(lesson.title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (isCompleted) {
+                    Surface(
+                        color = Color(0xFF16A34A).copy(alpha = 0.18f),
+                        shape = RoundedCornerShape(999.dp)
+                    ) {
+                        Text(
+                            "Completata",
+                            color = Color(0xFF166534),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
             Text(lesson.description, style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onStart, modifier = Modifier.weight(1f)) { Text("Avvia") }
