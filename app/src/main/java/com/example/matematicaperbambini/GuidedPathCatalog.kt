@@ -43,11 +43,11 @@ fun buildBaseCatalog(): List<LessonSpec> {
         grade: GradeLevel,
         operation: OperationType,
         level: Int,
+        ops: List<Pair<Int, Int>>,
+        gameType: GameType,
         difficulty: Int = level,
         category: LessonCategory = LessonCategory.BASE,
         helps: HelpSettings = baseHelps(level),
-        ops: List<Pair<Int, Int>>,
-        gameType: GameType,
         withMeta: ((Int, Pair<Int, Int>) -> Map<String, String>)? = null
     ) {
         lessons += LessonSpec(
