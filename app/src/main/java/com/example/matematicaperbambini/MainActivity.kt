@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -2169,6 +2170,7 @@ private fun GuidedPathScreen(
     }
 
     selectedLessonDetails?.let { lesson ->
+        val activeHelps = lesson.helpPreset?.activeHelpLabels().orEmpty()
         AlertDialog(
             onDismissRequest = { selectedLessonDetails = null },
             title = { Text(lesson.title) },
@@ -2176,6 +2178,11 @@ private fun GuidedPathScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(lesson.description)
                     Text("Totale esercizi: ${lesson.fixedExercises.size.takeIf { it > 0 } ?: 10}")
+                    Text(
+                        "Aiuti attivati: ${activeHelps.joinToString().ifBlank { "nessuno" }}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Text("Classe: ${lesson.grade.name} • ${operationLabel(lesson.operation)} • Livello ${lesson.levelIndex}")
                 }
             },
@@ -2201,17 +2208,41 @@ fun LessonGroupCard(
         Text("Classe ${grade.name} – ${operationLabel(operation)} (Percorso base)", fontWeight = FontWeight.Bold)
         Text("5 lezioni in ordine – completa la 1 per sbloccare la 2 (unlock verrà poi)")
         Row(Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.width(34.dp).fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                modifier = Modifier
+                    .width(44.dp)
+                    .fillMaxHeight()
             ) {
-                repeat(5) { idx ->
-                    Box(
-                        modifier = Modifier.size(24.dp).background(accent.copy(alpha = 0.18f), CircleShape).border(1.dp, accent, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) { Text("${idx + 1}", color = accent, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                    if (idx < 4) Box(Modifier.width(4.dp).height(30.dp).background(accent.copy(alpha = 0.5f), RoundedCornerShape(999.dp)))
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    drawLine(
+                        color = accent.copy(alpha = 0.45f),
+                        start = androidx.compose.ui.geometry.Offset(size.width / 2f, 16.dp.toPx()),
+                        end = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height - 16.dp.toPx()),
+                        strokeWidth = 6.dp.toPx()
+                    )
+                }
+                Column(
+                    modifier = Modifier.fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    repeat(5) { idx ->
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(accent.copy(alpha = 0.18f), CircleShape)
+                                .border(1.dp, accent, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "${idx + 1}",
+                                color = accent,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -2233,6 +2264,7 @@ fun LessonRow(
     onStart: () -> Unit,
     onView: () -> Unit
 ) {
+    val activeHelps = lesson.helpPreset?.activeHelpLabels().orEmpty()
     val shape = when (indexInGroup) {
         0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
         4 -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
@@ -2262,12 +2294,26 @@ fun LessonRow(
                 }
             }
             Text(lesson.description, style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = "Aiuti attivati: ${activeHelps.joinToString().ifBlank { "nessuno" }}",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = accent.copy(alpha = 0.9f)
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onStart, modifier = Modifier.weight(1f)) { Text("Avvia") }
                 OutlinedButton(onClick = onView, modifier = Modifier.weight(1f)) { Text("Dettagli") }
             }
         }
     }
+}
+
+private fun HelpSettings.activeHelpLabels(): List<String> = buildList {
+    if (hintsEnabled) add("Suggerimenti")
+    if (highlightsEnabled) add("Evidenziazioni")
+    if (allowSolution) add("Soluzione")
+    if (autoCheck) add("Controllo automatico")
+    if (showCellHelper) add("Aiuto nella cella")
 }
 
 private fun operationLabel(operation: OperationType): String = when (operation) {
