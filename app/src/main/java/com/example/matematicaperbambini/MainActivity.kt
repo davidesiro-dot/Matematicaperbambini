@@ -573,8 +573,8 @@ private fun AppShell() {
     var runningHomeworkId by remember { mutableStateOf<String?>(null) }
     var runningHomeworkFromCode by remember { mutableStateOf(false) }
     var selectedGrade by rememberSaveable { mutableStateOf<GradeLevel?>(null) }
-    var selectedOperation by rememberSaveable { mutableStateOf<OperationType?>(null) }
-    var selectedCategory by rememberSaveable { mutableStateOf<LessonCategory?>(null) }
+    var selectedOperation by rememberSaveable { mutableStateOf<OperationType?>(OperationType.ADD) }
+    var selectedCategory by rememberSaveable { mutableStateOf<LessonCategory?>(LessonCategory.BASE) }
     val completedGuidedLessonIds = remember { mutableStateListOf<String>() }
     var activeGuidedLessonId by remember { mutableStateOf<String?>(null) }
     val guidedCatalog = remember { buildBaseCatalog() }
@@ -2296,42 +2296,19 @@ fun LessonGroupCard(
     SeaGlassPanel(modifier = Modifier.border(2.dp, accent.copy(alpha = 0.7f), RoundedCornerShape(26.dp))) {
         Text("Classe ${grade.name} – ${operationLabel(operation)} (Percorso base)", fontWeight = FontWeight.Bold)
         Text("5 lezioni in ordine – completa la 1 per sbloccare la 2 (unlock verrà poi)")
-        Row(Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.width(48.dp).fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                repeat(5) { idx ->
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(accent.copy(alpha = 0.18f), CircleShape)
-                            .border(1.dp, accent, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "${idx + 1}",
-                            color = accent,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 16.sp
-                        )
-                    }
-                    if (idx < 4) {
-                        Box(
-                            Modifier
-                                .width(6.dp)
-                                .height(44.dp)
-                                .background(accent.copy(alpha = 0.5f), RoundedCornerShape(999.dp))
-                        )
-                    }
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                ordered.forEachIndexed { idx, lesson ->
-                    LessonRow(lesson, idx, accent, isCompleted = completedLessonIds.contains(lesson.id), onStart = { onStartLesson(lesson) }, onView = { onViewLesson(lesson) })
-                    if (idx < ordered.lastIndex) HorizontalDivider(color = accent.copy(alpha = 0.25f))
-                }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            ordered.forEachIndexed { idx, lesson ->
+                LessonRow(
+                    lesson = lesson,
+                    indexInGroup = idx,
+                    accent = accent,
+                    lessonNumber = idx + 1,
+                    isLastInGroup = idx == ordered.lastIndex,
+                    isCompleted = completedLessonIds.contains(lesson.id),
+                    onStart = { onStartLesson(lesson) },
+                    onView = { onViewLesson(lesson) }
+                )
+                if (idx < ordered.lastIndex) HorizontalDivider(color = accent.copy(alpha = 0.25f))
             }
         }
     }
@@ -2342,6 +2319,8 @@ fun LessonRow(
     lesson: LessonSpec,
     indexInGroup: Int,
     accent: Color,
+    lessonNumber: Int,
+    isLastInGroup: Boolean,
     isCompleted: Boolean,
     onStart: () -> Unit,
     onView: () -> Unit
@@ -2349,8 +2328,7 @@ fun LessonRow(
     val activeHelps = lesson.helpPreset.activeHelpLabels()
     val shape = when (indexInGroup) {
         0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-        4 -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-        else -> RoundedCornerShape(0.dp)
+        else -> if (isLastInGroup) RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp) else RoundedCornerShape(0.dp)
     }
     Surface(color = accent.copy(alpha = 0.08f), shape = shape, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -2359,7 +2337,27 @@ fun LessonRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(lesson.title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(accent.copy(alpha = 0.18f), CircleShape)
+                            .border(1.dp, accent, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$lessonNumber",
+                            color = accent,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp
+                        )
+                    }
+                    Text(lesson.title, fontWeight = FontWeight.SemiBold)
+                }
                 if (isCompleted) {
                     Surface(
                         color = Color(0xFF16A34A).copy(alpha = 0.18f),
