@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -246,15 +247,6 @@ private enum class NavAnim { SLIDE, EXPAND }
 private enum class BonusHomeGame {
     Balloons,
     Stars
-}
-
-private enum class LearnFilter {
-    ALL,
-    ADDITIONS,
-    SUBTRACTIONS,
-    MULTIPLICATIONS,
-    DIVISIONS,
-    TIMES_TABLES
 }
 
 
@@ -580,8 +572,9 @@ private fun AppShell() {
     var homeworkReturnScreen by remember { mutableStateOf(Screen.HOMEWORK_BUILDER) }
     var runningHomeworkId by remember { mutableStateOf<String?>(null) }
     var runningHomeworkFromCode by remember { mutableStateOf(false) }
-    var learnCategoryFilter by remember { mutableStateOf(LearnFilter.ALL) }
-    var gradeFilter by remember { mutableStateOf<GradeLevel?>(null) }
+    var selectedGrade by rememberSaveable { mutableStateOf<GradeLevel?>(null) }
+    var selectedOperation by rememberSaveable { mutableStateOf<OperationType?>(null) }
+    var selectedCategory by rememberSaveable { mutableStateOf<LessonCategory?>(null) }
     val completedGuidedLessonIds = remember { mutableStateListOf<String>() }
     var activeGuidedLessonId by remember { mutableStateOf<String?>(null) }
     val guidedCatalog = remember { buildBaseCatalog() }
@@ -692,10 +685,15 @@ private fun AppShell() {
                     onToggleSound = { soundEnabled = !soundEnabled },
                     onOpenLeaderboard = { openLb() },
                     onBack = { navAnim = NavAnim.SLIDE; screen = Screen.LEARN_MENU },
-                    selectedFilter = learnCategoryFilter,
-                    onFilterChange = { learnCategoryFilter = it },
-                    gradeFilter = gradeFilter,
-                    onGradeFilterChange = { gradeFilter = it },
+                    selectedGrade = selectedGrade,
+                    onGradeFilterChange = { selectedGrade = it },
+                    selectedOperation = selectedOperation,
+                    onOperationFilterChange = {
+                        selectedOperation = it
+                        selectedCategory = null
+                    },
+                    selectedCategory = selectedCategory,
+                    onCategoryFilterChange = { selectedCategory = it },
                     lessons = guidedCatalog,
                     onStartLesson = { lesson ->
                         val generated = try {
@@ -2113,10 +2111,12 @@ private fun GuidedPathScreen(
     onToggleSound: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onBack: () -> Unit,
-    selectedFilter: LearnFilter,
-    onFilterChange: (LearnFilter) -> Unit,
-    gradeFilter: GradeLevel?,
+    selectedGrade: GradeLevel?,
     onGradeFilterChange: (GradeLevel?) -> Unit,
+    selectedOperation: OperationType?,
+    onOperationFilterChange: (OperationType?) -> Unit,
+    selectedCategory: LessonCategory?,
+    onCategoryFilterChange: (LessonCategory?) -> Unit,
     lessons: List<LessonSpec>,
     onStartLesson: (LessonSpec) -> Unit,
     completedLessonIds: Set<String>
@@ -2125,30 +2125,30 @@ private fun GuidedPathScreen(
     val windowType = LocalWindowType.current
 
     val opFilterButtons = listOf(
-        LearnFilter.ALL to R.string.learn_filter_all,
-        LearnFilter.ADDITIONS to R.string.learn_filter_additions,
-        LearnFilter.SUBTRACTIONS to R.string.learn_filter_subtractions,
-        LearnFilter.MULTIPLICATIONS to R.string.learn_filter_multiplications,
-        LearnFilter.DIVISIONS to R.string.learn_filter_divisions,
-        LearnFilter.TIMES_TABLES to R.string.learn_filter_times_tables
+        null to "Tutte",
+        OperationType.ADD to "Addizioni",
+        OperationType.SUB to "Sottrazioni",
+        OperationType.MUL to "Moltiplicazioni",
+        OperationType.DIV to "Divisioni"
     )
-    val grouped = lessons
-        .filter { lesson ->
-            val operationMatch = when (selectedFilter) {
-                LearnFilter.ALL -> true
-                LearnFilter.ADDITIONS -> lesson.operation == OperationType.ADD
-                LearnFilter.SUBTRACTIONS -> lesson.operation == OperationType.SUB
-                LearnFilter.MULTIPLICATIONS -> lesson.operation == OperationType.MUL
-                LearnFilter.DIVISIONS -> lesson.operation == OperationType.DIV
-                LearnFilter.TIMES_TABLES -> false
-            }
-            val gradeMatch = gradeFilter == null || lesson.grade == gradeFilter
-            operationMatch && gradeMatch && lesson.kind == LessonKind.BASE
+
+    LaunchedEffect(selectedOperation) {
+        if (selectedOperation == null && selectedCategory != null) {
+            onCategoryFilterChange(null)
         }
+    }
+
+    val filteredLessons = lessons.filter { lesson ->
+        (selectedGrade == null || lesson.grade == selectedGrade) &&
+            (selectedOperation == null || lesson.operation == selectedOperation) &&
+            (selectedCategory == null || lesson.category == selectedCategory) &&
+            lesson.kind == LessonKind.BASE
+    }
+
+    val grouped = filteredLessons
         .groupBy { it.grade to it.operation }
         .toList()
         .sortedWith(compareBy({ it.first.first.ordinal }, { it.first.second.ordinal }))
-
     Scaffold(
         topBar = {
             GameHeader(
@@ -2172,10 +2172,10 @@ private fun GuidedPathScreen(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(selected = gradeFilter == null, onClick = { onGradeFilterChange(null) }, label = { Text("Tutte") })
+                FilterChip(selected = selectedGrade == null, onClick = { onGradeFilterChange(null) }, label = { Text("Tutte") })
                 GradeLevel.entries.forEach { grade ->
                     FilterChip(
-                        selected = gradeFilter == grade,
+                        selected = selectedGrade == grade,
                         onClick = { onGradeFilterChange(grade) },
                         label = { Text(grade.name) }
                     )
@@ -2186,8 +2186,40 @@ private fun GuidedPathScreen(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                opFilterButtons.forEach { (filter, labelRes) ->
-                    FilterChip(selected = selectedFilter == filter, onClick = { onFilterChange(filter) }, label = { Text(stringResource(labelRes)) })
+                opFilterButtons.forEach { (operation, label) ->
+                    FilterChip(
+                        selected = selectedOperation == operation,
+                        onClick = {
+                            val nextOperation = if (selectedOperation == operation) null else operation
+                            onOperationFilterChange(nextOperation)
+                        },
+                        label = { Text(label) }
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = selectedOperation != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = selectedCategory == LessonCategory.BASE,
+                        onClick = { onCategoryFilterChange(LessonCategory.BASE) },
+                        label = { Text("📘 Base") }
+                    )
+                    FilterChip(
+                        selected = selectedCategory == LessonCategory.SPECIAL,
+                        onClick = { onCategoryFilterChange(LessonCategory.SPECIAL) },
+                        label = { Text("🧪 Speciali") }
+                    )
+                    FilterChip(
+                        selected = selectedCategory == LessonCategory.CHALLENGE,
+                        onClick = { onCategoryFilterChange(LessonCategory.CHALLENGE) },
+                        label = { Text("🔥 Sfide") }
+                    )
                 }
             }
 

@@ -8,12 +8,15 @@ enum class LessonKind { BASE }
 
 enum class OperationType { ADD, SUB, MUL, DIV }
 
+enum class LessonCategory { BASE, SPECIAL, CHALLENGE }
+
 data class LessonSpec(
     val id: String,
     val title: String,
     val description: String,
     val grade: GradeLevel,
     val operation: OperationType,
+    val category: LessonCategory = LessonCategory.BASE,
     val kind: LessonKind = LessonKind.BASE,
     val levelIndex: Int,
     val difficulty: Int,
