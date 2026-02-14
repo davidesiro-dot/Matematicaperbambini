@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -89,9 +90,9 @@ fun BonusRewardHost(
 ) {
     val normalizedRewardEvery = rewardEvery.coerceAtLeast(1)
     val nextRewardAt = (rewardsEarned + 1) * normalizedRewardEvery
-    var showPrompt by remember { mutableStateOf(false) }
-    var showGame by remember { mutableStateOf(false) }
-    var pickedGame by remember { mutableStateOf<BonusGame?>(null) }
+    var showPrompt by rememberSaveable { mutableStateOf(false) }
+    var showGame by rememberSaveable { mutableStateOf(false) }
+    var pickedGame by rememberSaveable { mutableStateOf<BonusGame?>(null) }
 
     LaunchedEffect(correctCount, rewardsEarned) {
         if (correctCount >= nextRewardAt) {

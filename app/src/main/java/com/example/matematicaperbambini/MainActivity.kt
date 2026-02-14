@@ -1232,8 +1232,8 @@ private fun HomeMenuKids(
     val bonusTapTarget = 10
     var bonusTapCount by remember { mutableStateOf(0) }
     var lastBonusTapMs by remember { mutableStateOf(0L) }
-    var showBonusMenu by remember { mutableStateOf(false) }
-    var activeBonusGame by remember { mutableStateOf<BonusHomeGame?>(null) }
+    var showBonusMenu by rememberSaveable { mutableStateOf(false) }
+    var activeBonusGame by rememberSaveable { mutableStateOf<BonusHomeGame?>(null) }
 
     fun onLogoTapped() {
         val now = System.currentTimeMillis()
