@@ -522,10 +522,10 @@ fun GameHeader(
 // -----------------------------
 @Composable
 private fun AppShell() {
-    var screen by remember { mutableStateOf(Screen.HOME) }
-    var navAnim by remember { mutableStateOf(NavAnim.SLIDE) }
-    var returnScreenAfterLeaderboard by remember { mutableStateOf<Screen?>(null) }
-    var leaderboardTab by remember { mutableStateOf(LeaderboardTab.STARS) }
+    var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
+    var navAnim by rememberSaveable { mutableStateOf(NavAnim.SLIDE) }
+    var returnScreenAfterLeaderboard by rememberSaveable { mutableStateOf<Screen?>(null) }
+    var leaderboardTab by rememberSaveable { mutableStateOf(LeaderboardTab.STARS) }
 
     var soundEnabled by remember { mutableStateOf(true) }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -1256,7 +1256,7 @@ private fun HomeMenuKids(
             val screenH = maxHeight
             val screenW = maxWidth
             Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                val sizing = menuSizing(screenH)
+                val sizing = menuSizing(maxHeight = screenH, maxWidth = screenW)
                 val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
                 val buttons = listOf(
                     MenuButtonData(
@@ -1303,9 +1303,12 @@ private fun HomeMenuKids(
                 val totalButtonsHeight =
                     (sizing.buttonHeight * buttonCount.toFloat()) +
                         (sizing.buttonSpacing * (buttonCount - 1).coerceAtLeast(0).toFloat())
+                val isLandscape = screenW > screenH
+                val logoMinHeight = if (isLandscape) 96.dp else 0.dp
+                val logoWidthFraction = if (isLandscape) 0.55f else 1.00f
                 val logoMaxHeight =
                     (screenH - headerHeightDp - headerLogoSpacing - logoButtonSpacing - totalButtonsHeight)
-                        .coerceAtLeast(0.dp)
+                        .coerceAtLeast(logoMinHeight)
 
                 val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
                 val logoOffset = with(density) { logoTopPx.toDp() }
@@ -1346,8 +1349,8 @@ private fun HomeMenuKids(
                                 painter = logoPainter,
                                 contentDescription = "Math Kids",
                                 modifier = Modifier
-                                    .fillMaxWidth(1.00f)
-                                    .heightIn(max = logoMaxHeight),
+                                    .fillMaxWidth(logoWidthFraction)
+                                    .heightIn(min = logoMinHeight, max = logoMaxHeight),
                                 contentScale = ContentScale.Fit
                             )
                         } else {
@@ -1479,7 +1482,7 @@ private fun LearnMenuKids(
         val screenH = maxHeight
         val screenW = maxWidth
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            val sizing = menuSizing(screenH)
+            val sizing = menuSizing(maxHeight = screenH, maxWidth = screenW)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
                 MenuButtonData(
@@ -1532,9 +1535,12 @@ private fun LearnMenuKids(
             val totalButtonsHeight =
                 (sizing.buttonHeight * buttonCount.toFloat()) +
                     (sizing.buttonSpacing * (buttonCount - 1).coerceAtLeast(0).toFloat())
+            val isLandscape = screenW > screenH
+            val logoMinHeight = if (isLandscape) 96.dp else 0.dp
+            val logoWidthFraction = if (isLandscape) 0.55f else 1.00f
             val logoMaxHeight =
                 (screenH - headerHeightDp - headerLogoSpacing - logoButtonSpacing - totalButtonsHeight)
-                    .coerceAtLeast(0.dp)
+                    .coerceAtLeast(logoMinHeight)
 
             val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
             val logoOffset = with(density) { logoTopPx.toDp() }
@@ -1573,8 +1579,8 @@ private fun LearnMenuKids(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
                             modifier = Modifier
-                                .fillMaxWidth(1.00f)
-                                .heightIn(max = logoMaxHeight),
+                                .fillMaxWidth(logoWidthFraction)
+                                .heightIn(min = logoMinHeight, max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
                     } else {
@@ -1644,7 +1650,7 @@ private fun GameMenuKids(
         val screenH = maxHeight
         val screenW = maxWidth
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            val sizing = menuSizing(screenH)
+            val sizing = menuSizing(maxHeight = screenH, maxWidth = screenW)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
                 MenuButtonData(
@@ -1703,9 +1709,12 @@ private fun GameMenuKids(
             val totalButtonsHeight =
                 (sizing.buttonHeight * buttonCount.toFloat()) +
                     (sizing.buttonSpacing * (buttonCount - 1).coerceAtLeast(0).toFloat())
+            val isLandscape = screenW > screenH
+            val logoMinHeight = if (isLandscape) 96.dp else 0.dp
+            val logoWidthFraction = if (isLandscape) 0.55f else 1.00f
             val logoMaxHeight =
                 (screenH - headerHeightDp - headerLogoSpacing - logoButtonSpacing - totalButtonsHeight)
-                    .coerceAtLeast(0.dp)
+                    .coerceAtLeast(logoMinHeight)
 
             val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
             val logoOffset = with(density) { logoTopPx.toDp() }
@@ -1744,8 +1753,8 @@ private fun GameMenuKids(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
                             modifier = Modifier
-                                .fillMaxWidth(1.00f)
-                                .heightIn(max = logoMaxHeight),
+                                .fillMaxWidth(logoWidthFraction)
+                                .heightIn(min = logoMinHeight, max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
                     } else {
@@ -1915,7 +1924,7 @@ private fun HomeworkMenu(
         val screenH = maxHeight
         val screenW = maxWidth
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            val sizing = menuSizing(screenH)
+            val sizing = menuSizing(maxHeight = screenH, maxWidth = screenW)
             val logoPainter = runCatching { painterResource(R.drawable.math_kids_logo) }.getOrNull()
             val buttons = listOf(
                 MenuButtonData(
@@ -1956,9 +1965,12 @@ private fun HomeworkMenu(
             val totalButtonsHeight =
                 (sizing.buttonHeight * buttonCount.toFloat()) +
                     (sizing.buttonSpacing * (buttonCount - 1).coerceAtLeast(0).toFloat())
+            val isLandscape = screenW > screenH
+            val logoMinHeight = if (isLandscape) 96.dp else 0.dp
+            val logoWidthFraction = if (isLandscape) 0.55f else 1.00f
             val logoMaxHeight =
                 (screenH - headerHeightDp - headerLogoSpacing - logoButtonSpacing - totalButtonsHeight)
-                    .coerceAtLeast(0.dp)
+                    .coerceAtLeast(logoMinHeight)
 
             val firstButtonOffset = with(density) { firstButtonTopPx.toDp() }
             val logoOffset = with(density) { logoTopPx.toDp() }
@@ -1997,8 +2009,8 @@ private fun HomeworkMenu(
                             painter = logoPainter,
                             contentDescription = "Math Kids",
                             modifier = Modifier
-                                .fillMaxWidth(1.00f)
-                                .heightIn(max = logoMaxHeight),
+                                .fillMaxWidth(logoWidthFraction)
+                                .heightIn(min = logoMinHeight, max = logoMaxHeight),
                             contentScale = ContentScale.Fit
                         )
                     } else {
@@ -2066,7 +2078,7 @@ private fun LearnMenuScreen(
     onOpenAutonomousLearn: () -> Unit
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    val sizing = menuSizing(screenHeight)
+    val sizing = menuSizing(maxHeight = screenHeight, maxWidth = LocalConfiguration.current.screenWidthDp.dp)
 
     Box(
         modifier = Modifier
@@ -2664,6 +2676,7 @@ private fun KidsMenuButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .widthIn(max = 560.dp)
             .height(height)
             .graphicsLayer {
                 scaleX = scale
@@ -2740,7 +2753,8 @@ private data class MenuSizing(
     val contentTopInset: Dp
 )
 
-private fun menuSizing(maxHeight: Dp): MenuSizing {
+private fun menuSizing(maxHeight: Dp, maxWidth: Dp): MenuSizing {
+    val isLandscape = maxWidth > maxHeight
     val sizeProfile = when {
         maxHeight < 620.dp -> MenuSizeProfile.Small
         maxHeight < 760.dp -> MenuSizeProfile.Normal
@@ -2752,7 +2766,7 @@ private fun menuSizing(maxHeight: Dp): MenuSizing {
         MenuSizeProfile.Normal -> 64.dp
         MenuSizeProfile.Large -> 72.dp
     }
-    val buttonHeight = baseButtonHeight * 0.75f
+    val buttonHeight = if (isLandscape) baseButtonHeight * 0.68f else baseButtonHeight * 0.75f
 
     val buttonSpacing = when (sizeProfile) {
         MenuSizeProfile.Small -> 10.dp
