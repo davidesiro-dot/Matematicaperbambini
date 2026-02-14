@@ -520,6 +520,8 @@ fun GameHeader(
 // -----------------------------
 @Composable
 private fun AppShell() {
+    val windowType = calculateWindowType()
+    val uiScale = rememberUiScale(windowType)
     var screen by remember { mutableStateOf(Screen.HOME) }
     var navAnim by remember { mutableStateOf(NavAnim.SLIDE) }
     var returnScreenAfterLeaderboard by remember { mutableStateOf<Screen?>(null) }
@@ -633,19 +635,20 @@ private fun AppShell() {
         screen = Screen.LEADERBOARD
     }
 
-    AnimatedContent(
-        targetState = screen,
-        transitionSpec = {
-            if (navAnim == NavAnim.EXPAND) {
-                (scaleIn(initialScale = 0.90f, animationSpec = tween(260, easing = FastOutSlowInEasing)) + fadeIn(tween(200)))
-                    .togetherWith(fadeOut(tween(140)) + scaleOut(targetScale = 1.04f, animationSpec = tween(220)))
-            } else {
-                (slideInHorizontally { it } + fadeIn())
-                    .togetherWith(slideOutHorizontally { -it } + fadeOut())
-            }
-        },
-        label = "nav"
-    ) { s ->
+    val mainContent: @Composable () -> Unit = {
+        AnimatedContent(
+            targetState = screen,
+            transitionSpec = {
+                if (navAnim == NavAnim.EXPAND) {
+                    (scaleIn(initialScale = 0.90f, animationSpec = tween(260, easing = FastOutSlowInEasing)) + fadeIn(tween(200)))
+                        .togetherWith(fadeOut(tween(140)) + scaleOut(targetScale = 1.04f, animationSpec = tween(220)))
+                } else {
+                    (slideInHorizontally { it } + fadeIn())
+                        .togetherWith(slideOutHorizontally { -it } + fadeOut())
+                }
+            },
+            label = "nav"
+        ) { s ->
         when (s) {
             Screen.HOME -> HomeMenuKids(
                 soundEnabled = soundEnabled,
@@ -1138,6 +1141,87 @@ private fun AppShell() {
                 }
             )
         }
+    }
+
+    val showAdaptiveRail = windowType == WindowType.Expanded && screen in setOf(
+        Screen.HOME,
+        Screen.LEARN_MENU,
+        Screen.GUIDED_PATH,
+        Screen.HOMEWORK_REPORTS,
+        Screen.HOMEWORK_MENU
+    )
+
+    if (showAdaptiveRail) {
+        Row(Modifier.fillMaxSize()) {
+            AdaptiveNavigationRail(
+                uiScale = uiScale,
+                currentScreen = screen,
+                onGoHome = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                onGoLearn = { isLearnFlow = true; navAnim = NavAnim.SLIDE; screen = Screen.LEARN_MENU },
+                onGoGuided = { isLearnFlow = true; navAnim = NavAnim.SLIDE; screen = Screen.GUIDED_PATH },
+                onGoReports = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
+                onGoHomework = { isLearnFlow = false; navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_MENU }
+            )
+            VerticalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                mainContent()
+            }
+        }
+    } else {
+        mainContent()
+    }
+}
+
+@Composable
+private fun AdaptiveNavigationRail(
+    uiScale: UiScale,
+    currentScreen: Screen,
+    onGoHome: () -> Unit,
+    onGoLearn: () -> Unit,
+    onGoGuided: () -> Unit,
+    onGoReports: () -> Unit,
+    onGoHomework: () -> Unit
+) {
+    NavigationRail(
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+        modifier = Modifier.fillMaxHeight()
+    ) {
+        Text(
+            text = "Menu",
+            fontSize = uiScale.bodyFont,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(vertical = uiScale.spacing)
+        )
+        NavigationRailItem(
+            selected = currentScreen == Screen.HOME,
+            onClick = onGoHome,
+            icon = { Text("🏠") },
+            label = { Text("Home", fontSize = uiScale.bodyFont) }
+        )
+        NavigationRailItem(
+            selected = currentScreen == Screen.LEARN_MENU,
+            onClick = onGoLearn,
+            icon = { Text("📖") },
+            label = { Text("Impara", fontSize = uiScale.bodyFont) }
+        )
+        NavigationRailItem(
+            selected = currentScreen == Screen.GUIDED_PATH,
+            onClick = onGoGuided,
+            icon = { Text("🧭") },
+            label = { Text("Percorso", fontSize = uiScale.bodyFont) }
+        )
+        NavigationRailItem(
+            selected = currentScreen == Screen.HOMEWORK_MENU,
+            onClick = onGoHomework,
+            icon = { Text("📘") },
+            label = { Text("Compiti", fontSize = uiScale.bodyFont) }
+        )
+        NavigationRailItem(
+            selected = currentScreen == Screen.HOMEWORK_REPORTS,
+            onClick = onGoReports,
+            icon = { Text("📊") },
+            label = { Text("Report", fontSize = uiScale.bodyFont) }
+        )
     }
 }
 
