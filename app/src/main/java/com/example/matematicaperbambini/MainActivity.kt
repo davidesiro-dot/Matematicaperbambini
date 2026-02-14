@@ -527,7 +527,7 @@ private fun AppShell() {
     var returnScreenAfterLeaderboard by rememberSaveable { mutableStateOf<Screen?>(null) }
     var leaderboardTab by rememberSaveable { mutableStateOf(LeaderboardTab.STARS) }
 
-    var soundEnabled by remember { mutableStateOf(true) }
+    var soundEnabled by rememberSaveable { mutableStateOf(true) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val fx = remember(context) { SoundFx(context) }
     val isGameScreen = when (screen) {
@@ -558,15 +558,15 @@ private fun AppShell() {
 
 
 
-    var mode by remember { mutableStateOf(GameMode.ADD) }
-    var digits by remember { mutableStateOf(2) }
-    var startMode by remember { mutableStateOf(StartMode.RANDOM) }
-    var helpPreset by remember { mutableStateOf(HelpPreset.GUIDED) }
+    var mode by rememberSaveable { mutableStateOf(GameMode.ADD) }
+    var digits by rememberSaveable { mutableStateOf(2) }
+    var startMode by rememberSaveable { mutableStateOf(StartMode.RANDOM) }
+    var helpPreset by rememberSaveable { mutableStateOf(HelpPreset.GUIDED) }
     var sessionHelpSettings by remember { mutableStateOf(helpPreset.toHelpSettings()) }
-    var isLearnFlow by remember { mutableStateOf(false) }
+    var isLearnFlow by rememberSaveable { mutableStateOf(false) }
 
-    var pendingDigitsMode by remember { mutableStateOf<GameMode?>(null) }
-    var pendingStartMenuMode by remember { mutableStateOf<GameMode?>(null) }
+    var pendingDigitsMode by rememberSaveable { mutableStateOf<GameMode?>(null) }
+    var pendingStartMenuMode by rememberSaveable { mutableStateOf<GameMode?>(null) }
 
     // tabelline
     var selectedTable by remember { mutableStateOf(2) }
@@ -2036,6 +2036,7 @@ private fun LearnMenuScreen(
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val sizing = menuSizing(maxHeight = screenHeight, maxWidth = LocalConfiguration.current.screenWidthDp.dp)
+    val scrollState = rememberScrollState()
 
     Box(
         modifier = Modifier
@@ -2043,7 +2044,9 @@ private fun LearnMenuScreen(
             .padding(16.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             MenuHeader(

@@ -5,11 +5,16 @@ import android.media.MediaPlayer
 
 class SoundFx(private val context: Context) {
 
-    private var introPlayer: MediaPlayer? = null
+    companion object {
+        private var sharedIntroPlayer: MediaPlayer? = null
+    }
+
+    private val introPlayer: MediaPlayer?
+        get() = sharedIntroPlayer
 
     fun playIntro() {
-        if (introPlayer == null) {
-            introPlayer = MediaPlayer.create(context, R.raw.intro_music).apply {
+        if (sharedIntroPlayer == null) {
+            sharedIntroPlayer = MediaPlayer.create(context.applicationContext, R.raw.intro_music).apply {
                 isLooping = true
                 setVolume(0.5f, 0.5f)
             }
@@ -30,7 +35,6 @@ class SoundFx(private val context: Context) {
     fun bonus() {}
 
     fun release() {
-        introPlayer?.release()
-        introPlayer = null
+        // Intentionally kept across configuration changes to avoid restarting music.
     }
 }
