@@ -137,8 +137,9 @@ private fun CompactHud(
     val progress = bonusProgressOverride?.coerceIn(0f, 1f)
         ?: (rewardProgress / safeTarget.toFloat()).coerceIn(0f, 1f)
     val isCompact = ui.isCompact
-    val fontSize = if (isCompact) 12.sp else 14.sp
-    val progressHeight = if (isCompact) 6.dp else 8.dp
+    val isExpanded = ui.isExpanded
+    val fontSize = if (isCompact) 12.sp else if (isExpanded) 16.sp else 14.sp
+    val progressHeight = if (isCompact) 6.dp else if (isExpanded) 10.dp else 8.dp
 
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -175,21 +176,22 @@ fun GameBottomActions(
     modifier: Modifier = Modifier,
     center: (@Composable () -> Unit)? = null
 ) {
+    val windowType = LocalWindowType.current
     val longLabelLimit = 8
-    val baseFont = 16.sp
-    val compactFont = 15.sp
+    val baseFont = if (windowType == WindowType.Expanded) 18.sp else 16.sp
+    val compactFont = if (windowType == WindowType.Expanded) 16.sp else 15.sp
     val leftFont = if (leftText.length > longLabelLimit) compactFont else baseFont
     val rightFont = if (rightText.length > longLabelLimit) compactFont else baseFont
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(if (windowType == WindowType.Expanded) 14.dp else 10.dp)
     ) {
         Box(modifier = Modifier.weight(1f)) {
             Button(
                 onClick = onLeft,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                contentPadding = PaddingValues(horizontal = if (windowType == WindowType.Expanded) 16.dp else 12.dp, vertical = if (windowType == WindowType.Expanded) 10.dp else 8.dp)
             ) {
                 Text(
                     leftText,
@@ -209,7 +211,7 @@ fun GameBottomActions(
             Button(
                 onClick = onRight,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                contentPadding = PaddingValues(horizontal = if (windowType == WindowType.Expanded) 16.dp else 12.dp, vertical = if (windowType == WindowType.Expanded) 10.dp else 8.dp)
             ) {
                 Text(
                     rightText,
