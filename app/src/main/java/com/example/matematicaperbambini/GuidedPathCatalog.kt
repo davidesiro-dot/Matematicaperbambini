@@ -131,6 +131,7 @@ fun buildBaseCatalog(): List<LessonSpec> {
     val specialHelps = HelpSettings(true, true, true, true, true)
     val specialSoftHelps = HelpSettings(true, true, false, true, true)
     val challengeHelps = HelpPreset.CHALLENGE.toHelpSettings()
+    val borrowHighlightHelps = HelpSettings(false, true, false, true, true)
 
     // Classe I - ADD (SPECIAL + CHALLENGE)
     addFixed("I-ADD-S1", "Classe I • Addizioni • Special 1", "Somme entro 10, numeri superiori", GradeLevel.I, OperationType.ADD, 1,
@@ -156,6 +157,26 @@ fun buildBaseCatalog(): List<LessonSpec> {
         fixed + chainCases(rng, count = 8, firstMin = 4, firstMax = 12, totalMax = 20)
     }
 
+    // Classe I - SUB (SPECIAL + CHALLENGE)
+    addFixed("I-SUB-S1", "Classe I • Sottrazioni • Special 1", "Differenza sempre 5", GradeLevel.I, OperationType.SUB, 1,
+        difficulty = 1, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(10 to 5, 9 to 4, 8 to 3, 7 to 2, 6 to 1, 5 to 0, 15 to 10, 14 to 9, 13 to 8, 12 to 7), gameType = GameType.SUBTRACTION)
+    addFixed("I-SUB-S2", "Classe I • Sottrazioni • Special 2", "Differenza sempre 1", GradeLevel.I, OperationType.SUB, 2,
+        difficulty = 2, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(7 to 6, 8 to 7, 9 to 8, 6 to 5, 5 to 4, 4 to 3, 3 to 2, 2 to 1, 1 to 0, 10 to 9), gameType = GameType.SUBTRACTION)
+    addFixed("I-SUB-S3", "Classe I • Sottrazioni • Special 3", "Sottrazioni simmetriche", GradeLevel.I, OperationType.SUB, 3,
+        difficulty = 3, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(9 to 3, 8 to 2, 7 to 1, 6 to 4, 5 to 3, 10 to 5, 12 to 6, 14 to 7, 16 to 8, 18 to 9), gameType = GameType.SUBTRACTION)
+    addFixed("I-SUB-C1", "Classe I • Sottrazioni • Challenge 1", "Differenza sempre 9", GradeLevel.I, OperationType.SUB, 4,
+        difficulty = 3, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(18 to 9, 27 to 18, 36 to 27, 45 to 36, 54 to 45, 63 to 54, 72 to 63, 81 to 72, 90 to 81, 99 to 90), gameType = GameType.SUBTRACTION)
+    addFixed("I-SUB-C2", "Classe I • Sottrazioni • Challenge 2", "Entro 20 misto", GradeLevel.I, OperationType.SUB, 5,
+        difficulty = 4, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(17 to 9, 18 to 7, 16 to 8, 19 to 6, 14 to 5, 13 to 9, 12 to 7, 15 to 8, 11 to 4, 10 to 6), gameType = GameType.SUBTRACTION)
+    addFixed("I-SUB-C3", "Classe I • Sottrazioni • Challenge 3", "Catena sottrazioni entro 20", GradeLevel.I, OperationType.SUB, 5,
+        difficulty = 5, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(20 to 5, 15 to 3, 12 to 4, 8 to 2, 6 to 1, 5 to 2, 3 to 1, 2 to 1, 1 to 0, 1 to 1), gameType = GameType.SUBTRACTION)
+
     // Classe II - ADD (SPECIAL + CHALLENGE)
     addFixed("II-ADD-S1", "Classe II • Addizioni • Special 1", "Riempimento unità entro 50", GradeLevel.II, OperationType.ADD, 1,
         difficulty = 2, category = LessonCategory.SPECIAL, helps = specialHelps,
@@ -178,6 +199,26 @@ fun buildBaseCatalog(): List<LessonSpec> {
         )
         fixed + chainCases(rng, count = 9, firstMin = 18, firstMax = 45, totalMax = 60, carryFirst = true)
     }
+
+    // Classe II - SUB (SPECIAL + CHALLENGE)
+    addFixed("II-SUB-S1", "Classe II • Sottrazioni • Special 1", "Tutti con prestito", GradeLevel.II, OperationType.SUB, 1,
+        difficulty = 2, category = LessonCategory.SPECIAL, helps = borrowHighlightHelps,
+        ops = listOf(32 to 17, 45 to 28, 53 to 26, 61 to 34, 74 to 39, 82 to 47, 90 to 58, 67 to 29, 58 to 19, 49 to 18), gameType = GameType.SUBTRACTION)
+    addFixed("II-SUB-S2", "Classe II • Sottrazioni • Special 2", "Risultato sempre 20", GradeLevel.II, OperationType.SUB, 2,
+        difficulty = 2, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(40 to 20, 35 to 15, 50 to 30, 45 to 25, 60 to 40, 38 to 18, 44 to 24, 70 to 50, 66 to 46, 52 to 32), gameType = GameType.SUBTRACTION)
+    addFixed("II-SUB-S3", "Classe II • Sottrazioni • Special 3", "Differenza sempre 11", GradeLevel.II, OperationType.SUB, 3,
+        difficulty = 3, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(22 to 11, 33 to 22, 44 to 33, 55 to 44, 66 to 55, 77 to 66, 88 to 77, 99 to 88, 110 to 99, 121 to 110), gameType = GameType.SUBTRACTION)
+    addFixed("II-SUB-C1", "Classe II • Sottrazioni • Challenge 1", "Prestito multiplo", GradeLevel.II, OperationType.SUB, 4,
+        difficulty = 4, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(73 to 48, 84 to 59, 95 to 67, 68 to 49, 79 to 58, 87 to 69, 96 to 78, 65 to 37, 74 to 58, 83 to 67), gameType = GameType.SUBTRACTION)
+    addFixed("II-SUB-C2", "Classe II • Sottrazioni • Challenge 2", "Differenza palindroma", GradeLevel.II, OperationType.SUB, 5,
+        difficulty = 4, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(123 to 22, 232 to 121, 345 to 222, 454 to 343, 567 to 444, 678 to 555, 789 to 666, 890 to 767, 901 to 878, 1000 to 999), gameType = GameType.SUBTRACTION)
+    addFixed("II-SUB-C3", "Classe II • Sottrazioni • Challenge 3", "Differenza 99", GradeLevel.II, OperationType.SUB, 5,
+        difficulty = 5, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(198 to 99, 297 to 198, 396 to 297, 495 to 396, 594 to 495, 693 to 594, 792 to 693, 891 to 792, 990 to 891, 1089 to 990), gameType = GameType.SUBTRACTION)
 
     addFixed("II-SUB-1", "Classe II • Sottrazioni 1", "Fino a 100 senza prestito", GradeLevel.II, OperationType.SUB, 1,
         listOf(32 to 11,43 to 21,54 to 32,65 to 43,76 to 54,87 to 65,98 to 76,59 to 38,68 to 47,79 to 58), GameType.SUBTRACTION)
@@ -243,6 +284,46 @@ fun buildBaseCatalog(): List<LessonSpec> {
             }
         }
     }
+
+    // Classe III - MUL (SPECIAL + CHALLENGE)
+    addFixed("III-MUL-S1", "Classe III • Moltiplicazioni • Special 1", "Tabelline specchiate", GradeLevel.III, OperationType.MUL, 1,
+        difficulty = 3, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(3 to 4, 4 to 3, 5 to 6, 6 to 5, 7 to 8, 8 to 7, 9 to 2, 2 to 9, 4 to 5, 5 to 4), gameType = GameType.MULTIPLICATION_HARD)
+    addFixed("III-MUL-S2", "Classe III • Moltiplicazioni • Special 2", "Risultato sempre 24", GradeLevel.III, OperationType.MUL, 2,
+        difficulty = 3, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(3 to 8, 4 to 6, 6 to 4, 8 to 3, 12 to 2, 2 to 12, 1 to 24, 24 to 1, 6 to 4, 4 to 6), gameType = GameType.MULTIPLICATION_HARD)
+    addFixed("III-MUL-S3", "Classe III • Moltiplicazioni • Special 3", "Moltiplicazioni con 10", GradeLevel.III, OperationType.MUL, 3,
+        difficulty = 3, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(12 to 10, 23 to 10, 34 to 10, 45 to 10, 56 to 10, 67 to 10, 78 to 10, 89 to 10, 90 to 10, 101 to 10), gameType = GameType.MULTIPLICATION_HARD)
+    addFixed("III-MUL-C1", "Classe III • Moltiplicazioni • Challenge 1", "Doppia cifra", GradeLevel.III, OperationType.MUL, 4,
+        difficulty = 4, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(12 to 7, 15 to 6, 18 to 9, 23 to 4, 27 to 5, 34 to 3, 45 to 2, 36 to 8, 29 to 7, 48 to 6), gameType = GameType.MULTIPLICATION_HARD)
+    addFixed("III-MUL-C2", "Classe III • Moltiplicazioni • Challenge 2", "Risultato 144", GradeLevel.III, OperationType.MUL, 5,
+        difficulty = 5, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(12 to 12, 9 to 16, 8 to 18, 6 to 24, 4 to 36, 3 to 48, 2 to 72, 1 to 144, 18 to 8, 16 to 9), gameType = GameType.MULTIPLICATION_HARD)
+    addFixed("III-MUL-C3", "Classe III • Moltiplicazioni • Challenge 3", "Catena moltiplicazioni", GradeLevel.III, OperationType.MUL, 5,
+        difficulty = 5, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(5 to 4, 20 to 2, 40 to 3, 120 to 2, 240 to 2, 480 to 1, 480 to 2, 960 to 1, 960 to 2, 1920 to 1), gameType = GameType.MULTIPLICATION_HARD)
+
+    // Classe III - DIV (SPECIAL + CHALLENGE)
+    addFixed("III-DIV-S1", "Classe III • Divisioni • Special 1", "Resto sempre 1", GradeLevel.III, OperationType.DIV, 1,
+        difficulty = 3, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(7 to 3, 10 to 3, 13 to 3, 16 to 3, 19 to 3, 22 to 3, 25 to 3, 28 to 3, 31 to 3, 34 to 3), gameType = GameType.DIVISION_STEP)
+    addFixed("III-DIV-S2", "Classe III • Divisioni • Special 2", "Resto sempre 2", GradeLevel.III, OperationType.DIV, 2,
+        difficulty = 3, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(8 to 3, 11 to 3, 14 to 3, 17 to 3, 20 to 3, 23 to 3, 26 to 3, 29 to 3, 32 to 3, 35 to 3), gameType = GameType.DIVISION_STEP)
+    addFixed("III-DIV-S3", "Classe III • Divisioni • Special 3", "Quoziente sempre 5", GradeLevel.III, OperationType.DIV, 3,
+        difficulty = 3, category = LessonCategory.SPECIAL, helps = specialHelps,
+        ops = listOf(25 to 5, 30 to 6, 35 to 7, 40 to 8, 45 to 9, 50 to 10, 55 to 11, 60 to 12, 65 to 13, 70 to 14), gameType = GameType.DIVISION_STEP)
+    addFixed("III-DIV-C1", "Classe III • Divisioni • Challenge 1", "Resto 1 con 2 cifre", GradeLevel.III, OperationType.DIV, 4,
+        difficulty = 4, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(41 to 4, 53 to 4, 65 to 4, 77 to 4, 89 to 4, 101 to 4, 113 to 4, 125 to 4, 137 to 4, 149 to 4), gameType = GameType.DIVISION_STEP)
+    addFixed("III-DIV-C2", "Classe III • Divisioni • Challenge 2", "Divisioni difficili con resto", GradeLevel.III, OperationType.DIV, 5,
+        difficulty = 5, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(97 to 6, 83 to 7, 124 to 9, 158 to 8, 179 to 7, 205 to 9, 236 to 8, 257 to 6, 278 to 7, 299 to 8), gameType = GameType.DIVISION_STEP)
+    addFixed("III-DIV-C3", "Classe III • Divisioni • Challenge 3", "Divisioni con quoziente 11", GradeLevel.III, OperationType.DIV, 5,
+        difficulty = 5, category = LessonCategory.CHALLENGE, helps = challengeHelps,
+        ops = listOf(121 to 11, 132 to 12, 143 to 13, 154 to 14, 165 to 15, 176 to 16, 187 to 17, 198 to 18, 209 to 19, 220 to 20), gameType = GameType.DIVISION_STEP)
 
     // Classe III - ADD (SPECIAL + CHALLENGE)
     addFixed("III-ADD-S1", "Classe III • Addizioni • Special 1", "Doppi riempimenti 2 cifre", GradeLevel.III, OperationType.ADD, 1,
