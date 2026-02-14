@@ -418,8 +418,9 @@ fun BonusBar(correctCount: Int, bonusTarget: Int = BONUS_TARGET, ui: UiSizing? =
     val rewardProgress = correctCount % safeTarget
     val label = if (rewardProgress == 0) "Bonus: $safeTarget/$safeTarget 🎈" else "Bonus: $rewardProgress/$safeTarget"
     val p = (rewardProgress / safeTarget.toFloat()).coerceIn(0f, 1f)
-    val fontSize = (ui?.font ?: 18).sp
-    val barHeight = if (ui?.isCompact == true) 8.dp else 10.dp
+    val scale = LocalUiScale.current
+    val fontSize = (ui?.font ?: scale.bodyFont.value.toInt().coerceAtLeast(14)).sp
+    val barHeight = if (ui?.isCompact == true) 8.dp else if (ui?.isExpanded == true) 12.dp else 10.dp
 
     SeaGlassPanel(title = "Progresso") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -458,17 +459,20 @@ fun GameHeader(
     useStatusBarsPadding: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val scale = LocalUiScale.current
     val isCompact = ui?.isCompact == true
-    val titleSize = (ui?.title ?: 18).sp
-    val subtitleSize = if (isCompact) 10.sp else 12.sp
-    val buttonSize = if (isCompact) 34.dp else 40.dp
-    val iconSize = if (isCompact) 18.dp else 22.dp
-    val buttonFont = if (isCompact) 16.sp else 18.sp
-    val spacing = if (isCompact) 6.dp else 10.dp
+    val isExpanded = ui?.isExpanded == true || LocalWindowType.current == WindowType.Expanded
+    val titleSize = (ui?.title ?: scale.titleFont.value.toInt().coerceAtLeast(18)).sp
+    val subtitleSize = if (isCompact) 10.sp else if (isExpanded) 13.sp else 12.sp
+    val buttonSize = if (isCompact) 34.dp else if (isExpanded) 44.dp else 40.dp
+    val iconSize = if (isCompact) 18.dp else if (isExpanded) 24.dp else 22.dp
+    val buttonFont = if (isCompact) 16.sp else if (isExpanded) 20.sp else 18.sp
+    val spacing = if (isCompact) 6.dp else if (isExpanded) 12.dp else 10.dp
 
     val headerModifier = modifier
         .fillMaxWidth()
         .headerOffsetFromStatusBar(includeStatusBarPadding = useStatusBarsPadding)
+        .padding(vertical = if (isExpanded) 4.dp else 8.dp)
 
     Row(
         headerModifier,
@@ -520,6 +524,9 @@ fun GameHeader(
 // -----------------------------
 @Composable
 private fun AppShell() {
+    val windowType = calculateWindowType()
+    val uiScale = rememberUiScale(windowType)
+
     var screen by remember { mutableStateOf(Screen.HOME) }
     var navAnim by remember { mutableStateOf(NavAnim.SLIDE) }
     var returnScreenAfterLeaderboard by remember { mutableStateOf<Screen?>(null) }
@@ -633,20 +640,62 @@ private fun AppShell() {
         screen = Screen.LEADERBOARD
     }
 
-    AnimatedContent(
-        targetState = screen,
-        transitionSpec = {
-            if (navAnim == NavAnim.EXPAND) {
-                (scaleIn(initialScale = 0.90f, animationSpec = tween(260, easing = FastOutSlowInEasing)) + fadeIn(tween(200)))
-                    .togetherWith(fadeOut(tween(140)) + scaleOut(targetScale = 1.04f, animationSpec = tween(220)))
-            } else {
-                (slideInHorizontally { it } + fadeIn())
-                    .togetherWith(slideOutHorizontally { -it } + fadeOut())
+    CompositionLocalProvider(
+        LocalWindowType provides windowType,
+        LocalUiScale provides uiScale
+    ) {
+        Row(Modifier.fillMaxSize()) {
+            if (windowType == WindowType.Expanded) {
+                NavigationRail {
+                    NavigationRailItem(
+                        selected = screen == Screen.HOME,
+                        onClick = { navAnim = NavAnim.SLIDE; screen = Screen.HOME },
+                        icon = { Text("🏠") },
+                        label = { Text("Home") }
+                    )
+                    NavigationRailItem(
+                        selected = screen == Screen.IMPARA_MENU || screen == Screen.LEARN_MENU,
+                        onClick = { navAnim = NavAnim.SLIDE; screen = Screen.LEARN_MENU },
+                        icon = { Text("📘") },
+                        label = { Text("Impara") }
+                    )
+                    NavigationRailItem(
+                        selected = screen == Screen.GUIDED_PATH,
+                        onClick = { navAnim = NavAnim.SLIDE; screen = Screen.GUIDED_PATH },
+                        icon = { Text("🧭") },
+                        label = { Text("Percorso") }
+                    )
+                    NavigationRailItem(
+                        selected = screen == Screen.HOMEWORK_CODES,
+                        onClick = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_CODES },
+                        icon = { Text("🗂") },
+                        label = { Text("Archivio") }
+                    )
+                    NavigationRailItem(
+                        selected = screen == Screen.HOMEWORK_REPORTS,
+                        onClick = { navAnim = NavAnim.SLIDE; screen = Screen.HOMEWORK_REPORTS },
+                        icon = { Text("📊") },
+                        label = { Text("Report") }
+                    )
+                }
+                VerticalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))
             }
-        },
-        label = "nav"
-    ) { s ->
-        when (s) {
+
+            Box(Modifier.weight(1f)) {
+                AnimatedContent(
+                    targetState = screen,
+                    transitionSpec = {
+                        if (navAnim == NavAnim.EXPAND) {
+                            (scaleIn(initialScale = 0.90f, animationSpec = tween(260, easing = FastOutSlowInEasing)) + fadeIn(tween(200)))
+                                .togetherWith(fadeOut(tween(140)) + scaleOut(targetScale = 1.04f, animationSpec = tween(220)))
+                        } else {
+                            (slideInHorizontally { it } + fadeIn())
+                                .togetherWith(slideOutHorizontally { -it } + fadeOut())
+                        }
+                    },
+                    label = "nav"
+                ) { s ->
+                    when (s) {
             Screen.HOME -> HomeMenuKids(
                 soundEnabled = soundEnabled,
                 onToggleSound = { soundEnabled = !soundEnabled },
@@ -1137,6 +1186,9 @@ private fun AppShell() {
                     screen = Screen.HOMEWORK_RUNNER
                 }
             )
+                    }
+                }
+            }
         }
     }
 }
