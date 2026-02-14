@@ -1614,6 +1614,7 @@ private fun LearnMenuKids(
         }
     }
 }
+}
 
 @Composable
 private fun GameMenuKids(
@@ -1780,6 +1781,7 @@ private fun GameMenuKids(
             }
         }
     }
+}
 }
 
 @Composable
@@ -2019,6 +2021,7 @@ private fun HomeworkMenu(
             }
         }
     }
+}
 }
 
 
