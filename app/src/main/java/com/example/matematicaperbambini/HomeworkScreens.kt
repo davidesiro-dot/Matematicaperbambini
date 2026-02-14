@@ -2147,7 +2147,6 @@ fun HomeworkReportsScreen(
     onDeleteReports: (List<HomeworkReport>) -> Unit
 ) {
     val context = LocalContext.current
-    val windowType = LocalWindowType.current
     var selectedKeys by remember { mutableStateOf(setOf<String>()) }
     var multiSelectEnabled by remember { mutableStateOf(false) }
     var expandedKey by remember { mutableStateOf<String?>(null) }
@@ -2183,7 +2182,6 @@ fun HomeworkReportsScreen(
         )
 
         /* ───────── CONTENUTO SCROLLABILE ───────── */
-        if (windowType == WindowType.Compact) {
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -2390,8 +2388,6 @@ fun HomeworkReportsScreen(
                     }
                 }
             }
-        }
-
         }
 
         if (reports.isNotEmpty()) {
