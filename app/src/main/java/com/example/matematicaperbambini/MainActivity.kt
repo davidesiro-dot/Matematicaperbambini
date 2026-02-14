@@ -2397,6 +2397,7 @@ private fun HomeworkCodesScreen(
 ) {
     val formatter = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
     val sortedCodes = remember(codes) { codes.sortedByDescending { it.createdAt } }
+    val screenScrollState = rememberScrollState()
     var selectedId by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val selectedCode = sortedCodes.firstOrNull { it.id == selectedId }
@@ -2417,7 +2418,8 @@ private fun HomeworkCodesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(screenScrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SeaGlassPanel {
