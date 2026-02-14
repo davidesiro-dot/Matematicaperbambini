@@ -2392,6 +2392,8 @@ fun HomeworkReportsScreen(
             }
         }
 
+        }
+
         if (reports.isNotEmpty()) {
             SeaGlassPanel(
                 title = "Azioni report selezionati",

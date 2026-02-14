@@ -1,7 +1,6 @@
 package com.example.matematicaperbambini
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -17,7 +16,6 @@ data class UiSizing(
 )
 
 @Composable
-@ReadOnlyComposable
 fun rememberUiSizing(): UiSizing {
     val windowType = LocalWindowType.current
     val uiScale = LocalUiScale.current

@@ -1,6 +1,5 @@
 package com.example.matematicaperbambini
 
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalConfiguration
@@ -31,11 +30,12 @@ val LocalUiScale = staticCompositionLocalOf {
 }
 
 @Composable
-fun rememberWindowType(): WindowType = BoxWithConstraints {
-    when {
-        maxWidth <= 0.dp -> WindowType.Compact
-        maxWidth < 600.dp -> WindowType.Compact
-        maxWidth < 840.dp -> WindowType.Medium
+fun rememberWindowType(): WindowType {
+    val configuration = LocalConfiguration.current
+    val widthDp = configuration.screenWidthDp.takeIf { it > 0 } ?: 360
+    return when {
+        widthDp < 600 -> WindowType.Compact
+        widthDp < 840 -> WindowType.Medium
         else -> WindowType.Expanded
     }
 }
