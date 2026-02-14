@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,9 +56,12 @@ fun OperationStartMenuScreen(
     onSelectHelpPreset: (HelpPreset) -> Unit,
     availableHelpPresets: List<HelpPreset> = HelpPreset.values().toList()
 ) {
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -129,8 +134,7 @@ fun OperationStartMenuScreen(
 
             AiutiAttiviInfo(selectedHelpPreset)
         }
-
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(12.dp))
     }
 }
 
