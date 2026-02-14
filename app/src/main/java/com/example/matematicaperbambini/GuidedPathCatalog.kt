@@ -250,9 +250,14 @@ fun buildBaseCatalog(): List<LessonSpec> {
             generator = { rng ->
                 when (op) {
                     OperationType.ADD -> List(10) {
-                        val max = if (grade == GradeLevel.III) 500 else 999
-                        val a = rng.nextInt(max / 3, max)
-                        val b = rng.nextInt(max / 4, max / 2)
+                        val max = when (grade) {
+                            GradeLevel.I -> 10 + level * 4
+                            GradeLevel.II -> 30 + level * 15
+                            GradeLevel.III -> 80 + level * 60
+                            GradeLevel.IV -> 300 + level * 400
+                        }
+                        val a = rng.nextInt((max / 4).coerceAtLeast(1), max)
+                        val b = rng.nextInt(1, (max - a).coerceAtLeast(2))
                         ExerciseInstance(gameType, a = a, b = b)
                     }
                     OperationType.SUB -> List(10) {
@@ -281,6 +286,14 @@ fun buildBaseCatalog(): List<LessonSpec> {
         listOf(OperationType.SUB, OperationType.MUL, OperationType.DIV).forEach { op ->
             (1..5).forEach { level ->
                 lessons += generatedLesson(grade, op, level, difficultyBase = if (grade == GradeLevel.IV) (level + 1).coerceAtMost(5) else level)
+            }
+        }
+    }
+
+    GradeLevel.entries.forEach { grade ->
+        (1..5).forEach { level ->
+            if (lessons.none { it.grade == grade && it.operation == OperationType.ADD && it.category == LessonCategory.BASE && it.levelIndex == level }) {
+                lessons += generatedLesson(grade, OperationType.ADD, level)
             }
         }
     }
